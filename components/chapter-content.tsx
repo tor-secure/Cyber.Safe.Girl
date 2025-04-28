@@ -100,7 +100,7 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
                 <Button onClick={() => setIsQuizModalOpen(true)}>Take a Test</Button>
               </div>
             </CardHeader>
-            <CardContent className="prose dark:prose-invert max-w-none">
+            <CardContent className="pblue dark:pblue-invert max-w-none">
               <p>{chapterData.content}</p>
 
               <div className="aspect-video mt-6 rounded-lg overflow-hidden">

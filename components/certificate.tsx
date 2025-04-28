@@ -16,7 +16,7 @@ export function Certificate() {
           <div className="border rounded-lg p-8 bg-slate-50">
             <div className="text-center space-y-6">
               <div className="mb-6">
-                <h2 className="text-3xl font-bold text-rose-600">Cyber Safe Girl</h2>
+                <h2 className="text-3xl font-bold text-blue-600">Cyber Safe Girl</h2>
                 <p className="text-sm text-muted-foreground">Certificate of Completion</p>
               </div>
 
