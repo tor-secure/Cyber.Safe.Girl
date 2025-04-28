@@ -39,7 +39,7 @@ function LoginForm() {
     try {
       await login(email, password)
       // Redirect to dashboard after successful login
-      router.push("/Dashboard")
+      router.push("/dashboard")
     } catch (err: any) {
       setError(getAuthErrorMessage(err.code) || "Login failed. Please try again.")
     }
@@ -57,7 +57,7 @@ function LoginForm() {
     try {
       await register(name, email, password)
       // Redirect to dashboard after successful registration
-      router.push("/Dashboard")
+      router.push("/dashboard")
     } catch (err: any) {
       setError(getAuthErrorMessage(err.code) || "Registration failed. Please try again.")
     }
@@ -67,7 +67,7 @@ function LoginForm() {
     setError("")
     try {
       await loginWithGoogle()
-      router.push("/Dashboard")
+      router.push("/dashboard")
     } catch (err: any) {
       setError(getAuthErrorMessage(err.code) || "Google login failed. Please try again.")
     }
