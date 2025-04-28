@@ -27,7 +27,7 @@ export function LoginForm() {
     try {
       await login(email, password)
       // Redirect to dashboard after successful login
-      router.push("/Dashboard")
+      router.push("/dashboard")
     } catch (err: any) {
       setError(getAuthErrorMessage(err.code) || "Invalid email or password. Please try again.")
     }
@@ -36,7 +36,7 @@ export function LoginForm() {
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle()
-      router.push("/Dashboard")
+      router.push("/dashboard")
     } catch (err: any) {
       setError(getAuthErrorMessage(err.code) || "Google login failed. Please try again.")
     }
