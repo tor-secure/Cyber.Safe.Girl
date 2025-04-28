@@ -106,7 +106,15 @@ function LoginForm() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 bg-gray-50 dark:bg-gray-900">
+    <div
+      className="flex min-h-screen items-center justify-center p-4 bg-gray-50 dark:bg-gray-900"
+      style={{
+        backgroundImage: 'url("/loginbg.png")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundAttachment: 'fixed',
+      }}
+    >
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center">
