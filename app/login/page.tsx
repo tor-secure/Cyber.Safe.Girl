@@ -115,7 +115,6 @@ function LoginForm() {
         backgroundAttachment: 'fixed',
       }}
     >
-      <div></div>
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center">
