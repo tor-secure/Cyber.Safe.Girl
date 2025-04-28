@@ -3,6 +3,18 @@
 import type React from "react"
 
 import { createContext, useContext, useState, useEffect } from "react"
+import { 
+  signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  GoogleAuthProvider, 
+  signInWithPopup,
+  updateProfile,
+  User as FirebaseUser,
+  sendPasswordResetEmail
+} from 'firebase/auth'
+import { auth } from './firebase'
 
 type User = {
   id: string
@@ -15,7 +27,10 @@ type AuthContextType = {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<void>
-  logout: () => void
+  register: (name: string, email: string, password: string) => Promise<void>
+  loginWithGoogle: () => Promise<void>
+  logout: () => Promise<void>
+  resetPassword: (email: string) => Promise<void>
   isAuthenticated: boolean
 }
 
@@ -25,32 +40,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Simulate loading user from localStorage on initial load
+  // Listen for auth state changes
   useEffect(() => {
-    const storedUser = localStorage.getItem("user")
-    if (storedUser) {
-      setUser(JSON.parse(storedUser))
-    }
-    setIsLoading(false)
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setIsLoading(true)
+      if (firebaseUser) {
+        // Convert Firebase user to our User type
+        setUser({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          avatar: firebaseUser.photoURL || undefined,
+        })
+      } else {
+        setUser(null)
+      }
+      setIsLoading(false)
+    })
+
+    // Cleanup subscription
+    return () => unsubscribe()
   }, [])
 
-  // Mock login function - will be replaced with Firebase auth
+  // Email/password login
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Mock user data
-      const userData: User = {
-        id: "user123",
-        name: "SHREYAS H.S",
-        email: email,
-        avatar: "/placeholder-user.jpg",
-      }
-
-      setUser(userData)
-      localStorage.setItem("user", JSON.stringify(userData))
+      await signInWithEmailAndPassword(auth, email, password)
     } catch (error) {
       console.error("Login failed:", error)
       throw error
@@ -59,9 +75,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const logout = () => {
-    setUser(null)
-    localStorage.removeItem("user")
+  // Email/password registration
+  const register = async (name: string, email: string, password: string) => {
+    setIsLoading(true)
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      
+      // Update the user profile with the name
+      if (userCredential.user) {
+        await updateProfile(userCredential.user, {
+          displayName: name
+        })
+      }
+    } catch (error) {
+      console.error("Registration failed:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Google login
+  const loginWithGoogle = async () => {
+    setIsLoading(true)
+    try {
+      const provider = new GoogleAuthProvider()
+      await signInWithPopup(auth, provider)
+    } catch (error) {
+      console.error("Google login failed:", error)
+      throw error
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Password reset
+  const resetPassword = async (email: string) => {
+    try {
+      await sendPasswordResetEmail(auth, email)
+    } catch (error) {
+      console.error("Password reset failed:", error)
+      throw error
+    }
+  }
+
+  // Logout
+  const logout = async () => {
+    try {
+      await signOut(auth)
+    } catch (error) {
+      console.error("Logout failed:", error)
+      throw error
+    }
   }
 
   return (
@@ -70,7 +135,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         user,
         isLoading,
         login,
+        register,
+        loginWithGoogle,
         logout,
+        resetPassword,
         isAuthenticated: !!user,
       }}
     >

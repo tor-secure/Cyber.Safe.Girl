@@ -16,12 +16,26 @@ import { LogOut, User, Settings, CreditCard } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 export function UserAccountNav() {
-  const { user, logout } = useAuth()
+  const { user, logout, isLoading } = useAuth()
   const router = useRouter()
 
-  const handleLogout = () => {
-    logout()
-    router.push("/login")
+  const handleLogout = async () => {
+    try {
+      await logout()
+      router.push("/homepage")
+    } catch (error) {
+      console.error("Logout failed:", error)
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+        <Avatar className="h-8 w-8">
+          <AvatarFallback>...</AvatarFallback>
+        </Avatar>
+      </Button>
+    )
   }
 
   if (!user) {
@@ -32,13 +46,23 @@ export function UserAccountNav() {
     )
   }
 
+  // Get initials from user's name
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .toUpperCase()
+      .substring(0, 2)
+  }
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-8 w-8 rounded-full">
           <Avatar className="h-8 w-8">
-            <AvatarImage src={user.avatar || "/placeholder-user.jpg"} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={user.avatar || ""} alt={user.name} />
+            <AvatarFallback>{getInitials(user.name)}</AvatarFallback>
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
