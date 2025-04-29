@@ -1,27 +1,7 @@
-"use client";
 import React from "react";
-import { useEffect, useState } from "react";
-import { db } from "@/lib/firebase"; // Adjust the import path as necessary
-import { collection, getDocs } from "firebase/firestore";
-import { useRouter } from "next/navigation";
 
 const Introduction: React.FC = () => {
-  interface DocumentData {
-    id: string;
-    [key: string]: any;
-  }
   
-  const [data, setData] = useState<DocumentData[]>([]);
-
-  useEffect(() => {
-    async function fetchData() {
-      const querySnapshot = await getDocs(collection(db, "Quiz-DB"));
-      const docs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setData(docs);
-    }
-
-    fetchData();
-  }, []);
 
   return (
     <div className="p-4 bg-gray-900 text-white space-y-4">
@@ -41,7 +21,7 @@ const Introduction: React.FC = () => {
       
 
       {/* Introduction Content */}
-     {false&& <div className="text-sm leading-6 text-justify">
+     { <div className="text-sm leading-6 text-justify">
         <p>
           Welcome to Cyber Safe Girl Version 5 Beta Release of the Online
           Learning Program. I am Dr. Ananth Prabhu G, the curator of this
