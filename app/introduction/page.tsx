@@ -1,6 +1,8 @@
 import React from "react";
 
 const Introduction: React.FC = () => {
+  
+
   return (
     <div className="p-4 bg-gray-900 text-white space-y-4">
       {/* YouTube Video */}
@@ -19,7 +21,7 @@ const Introduction: React.FC = () => {
       
 
       {/* Introduction Content */}
-      <div className="text-sm leading-6 text-justify">
+     { <div className="text-sm leading-6 text-justify">
         <p>
           Welcome to Cyber Safe Girl Version 5 Beta Release of the Online
           Learning Program. I am Dr. Ananth Prabhu G, the curator of this
@@ -27,18 +29,21 @@ const Introduction: React.FC = () => {
           responsible browsing and supporting my mission of{" "}
           <strong>#CyberSafeIndia</strong>.
         </p>
+        <br/>
         <p>
           This is a free course. It is relevant for anyone 13 years and above.
           The prerequisites for this program are understanding the English
           language and basics of computer or mobile device operation. Yes, you
           do not need to know rocket science.
-        </p>
+        </p>        <br/>
+
         <p>
           The main objective of this program is to help the participants
           understand the various cyber crimes, Information Technology Act and
           various relevant acts, tips to browse the internet safely, and other
           important information.
-        </p>
+        </p>        <br/>
+
         <p>
           We will be discussing about 60 common cyber crimes that are committed
           all over the world. I believe awareness is the key, and if you can
@@ -49,13 +54,15 @@ const Introduction: React.FC = () => {
           an introduction of the topic, my video lecture, the infotoon from the
           Cyber Safe Girl v5.0, another video to give you more insights,
           precautionary measures to be taken, and finally, the module test.
-        </p>
+        </p>        <br/>
+
         <p>
           Each module test comprises 10 questions. You will have to score a
           minimum of 5 marks to march forward to the next module. If you are
           unable to secure pass marks in that particular module, I recommend you
           to go through all the 5 parts once again and give the test.
-        </p>
+        </p>        <br/>
+
         <p>
           Upon completion of 60 modules, you can also enroll for the
           certification program. The registration fee is Rs 499/- and you can
@@ -93,7 +100,8 @@ const Introduction: React.FC = () => {
           friends to enroll for this free course and help me with my mission of{" "}
           <strong>#CyberSafeIndia</strong>. Jai Hind.
         </p>
-      </div>
+      </div>}
+
     </div>
   );
 };
