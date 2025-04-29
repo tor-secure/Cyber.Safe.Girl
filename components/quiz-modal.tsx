@@ -29,6 +29,7 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [score, setScore] = useState(0)
   const [isStarted, setIsStarted] = useState(false)
+  const [data, setData] = useState(null);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -39,7 +40,21 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
       setIsStarted(false)
       setScore(0)
     }
-  }, [open])
+
+
+  
+  }, [open]);
+  useEffect(() => {
+    const fetchData = async () => {
+      const id = '1';
+      const res = await fetch(`/api/chapter?id=${id}`);
+      const json = await res.json();
+      setData(json);
+      console.log(json);
+    };
+
+    fetchData();
+  }, []);
 
   // This would come from an API in a real application
   const quizData = {
