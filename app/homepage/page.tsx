@@ -33,9 +33,9 @@ import {
 
 const devs = [
   {
-    name: "Ashwin",
+    name: "Ashwin Bekal",
     image:
-      "https://media.licdn.com/dms/image/v2/D5603AQHF_yCu9TCfqA/profile-displayphoto-shrink_400_400/B56ZXlRk6xGQAg-/0/1743308346331?e=1751500800&v=beta&t=9Omv1POcF2uoujvD95LXMNUFb_3pijuUu1u9wykZEuo",
+      "https://media.licdn.com/dms/image/v2/D5603AQHi0wFbhDpuag/profile-displayphoto-shrink_800_800/B56ZZ6rA8jGkAc-/0/1745814819091?e=1751500800&v=beta&t=oYXC4beqyJTX7_fgN4x64FRjpHqVXOSP8sA7x3yvUBc",
     url: "https://www.linkedin.com/in/ashwinbekal",
   },
   {
