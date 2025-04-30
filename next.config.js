@@ -18,6 +18,17 @@ const nextConfig = {
       },
     ];
   },
+  // Configure image domains
+  images: {
+    domains: [
+      'cybersafegirl.com', 
+      'www.cybersafegirl.com',
+      'images.unsplash.com',
+      'avatars.githubusercontent.com',
+      'github.com',
+      'lh3.googleusercontent.com'
+    ],
+  },
 }
 
 module.exports = nextConfig

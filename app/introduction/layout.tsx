@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserAccountNav } from "@/components/user-account-nav"
 import { useAuth } from "@/lib/auth-context"
+import { useProgress } from "@/lib/progress-context"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -35,17 +36,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isAuthenticated, pathname, router])
 
-  const [chapters] = useState(
-    Array.from({ length: 60 }, (_, i) => ({
-      id: i + 1,
-      title: `Chapter ${i + 1}`,
-      completed: i < 2,
-      locked: i > 2, // Lock all chapters except first 3
-    })),
-  )
-
-  // Calculate if all chapters are completed for final test access
-  const allChaptersCompleted = chapters.every((chapter) => chapter.completed)
+  // Use the progress context instead of local state
+  const { chapters, finalTestUnlocked, certificateUnlocked, isLoading } = useProgress()
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -114,9 +106,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/final-test"}
-                  className={!allChaptersCompleted ? "opacity-60 cursor-not-allowed" : ""}
+                  className={!finalTestUnlocked ? "opacity-60 cursor-not-allowed" : ""}
                 >
-                  {!allChaptersCompleted ? (
+                  {!finalTestUnlocked ? (
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2">
                         <FileQuestion className="h-5 w-5" />
@@ -134,11 +126,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/certificate"}>
-                  <Link href="/certificate" className="flex items-center gap-2">
-                    <Award className="h-5 w-5" />
-                    <span>Certificate</span>
-                  </Link>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname === "/certificate"}
+                  className={!certificateUnlocked ? "opacity-60 cursor-not-allowed" : ""}
+                >
+                  {!certificateUnlocked ? (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <Award className="h-5 w-5" />
+                        <span>Certificate</span>
+                      </div>
+                      <Lock className="h-4 w-4" />
+                    </div>
+                  ) : (
+                    <Link href="/certificate" className="flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      <span>Certificate</span>
+                    </Link>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
