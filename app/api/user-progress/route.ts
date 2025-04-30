@@ -24,24 +24,10 @@ export async function GET(request: NextRequest) {
     }
 
     console.log("User Progress API - User ID:", userId);
-    console.log("User Progress API - Firebase Admin DB initialized:", !!adminDb);
 
-    // If Firebase admin is not initialized, return mock data for development/testing
     if (!adminDb) {
-      console.log("User Progress API - Using mock data due to Firebase admin not being initialized");
-      
-      // For new users, only the first chapter is unlocked
-      return NextResponse.json({
-        progress: {
-          userId,
-          completedChapters: [],
-          unlockedChapters: ["CH-001"],
-          finalTestUnlocked: false,
-          finalTestCompleted: false,
-          certificateUnlocked: false,
-          lastUpdated: new Date().toISOString()
-        }
-      });
+      console.error("Firebase admin is not initialized");
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
     }
 
     // Check if user progress document exists
@@ -88,22 +74,15 @@ export async function POST(request: NextRequest) {
     console.log("User Progress API POST - Chapter ID:", chapterId);
     console.log("User Progress API POST - Score:", score, "out of", totalQuestions);
 
-    // Calculate passing score (70% or higher)
+    // Calculate passing score (30% or higher)
     const passingScore = Math.ceil(totalQuestions * 0.3); // 30% to pass
     const passed = score >= passingScore;
     
     console.log("User Progress API POST - Passing score:", passingScore, "Passed:", passed);
 
-    // If Firebase admin is not initialized, return mock response
     if (!adminDb) {
-      console.log("User Progress API POST - Using mock data due to Firebase admin not being initialized");
-      
-      return NextResponse.json({
-        success: true,
-        passed,
-        message: passed ? "Chapter completed successfully" : "Chapter not completed. Score below 30%",
-        unlockedNextChapter: passed
-      });
+      console.error("Firebase admin is not initialized");
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
     }
 
     // Get current user progress
@@ -197,14 +176,9 @@ export async function PATCH(request: NextRequest) {
     const passingScore = Math.ceil(totalQuestions * 0.3);
     const passed = finalTestScore >= passingScore;
 
-    // If Firebase admin is not initialized, return mock response
     if (!adminDb) {
-      return NextResponse.json({
-        success: true,
-        passed,
-        certificateUnlocked: passed,
-        message: passed ? "Final test completed successfully. Certificate unlocked!" : "Final test not passed. Score below 30%"
-      });
+      console.error("Firebase admin is not initialized");
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
     }
 
     // Get current user progress
