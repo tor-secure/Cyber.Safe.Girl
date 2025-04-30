@@ -28,24 +28,8 @@ export interface QuizQuestion {
     }
   }
   
-  // Function to fetch answer key for a specific chapter
-  export async function fetchAnswerKey(chapterId: string): Promise<AnswerKey> {
-    try {
-      const response = await fetch(`/api/quiz/${chapterId}`)
-  
-      if (!response.ok) {
-        throw new Error(`Failed to fetch answer key: ${response.statusText}`)
-      }
-  
-      const data = await response.json()
-      return data.answerKey || {}
-    } catch (error) {
-      console.error("Error fetching answer key:", error)
-  
-      // Return fallback data for development/testing
-      return getFallbackAnswerKey(chapterId)
-    }
-  }
+  // We no longer need to fetch the answer key from the client side
+  // as the validation is now done on the server side
   
   // Fallback data for development/testing
   function getFallbackQuestions(chapterId: string): QuizQuestion[] {
@@ -163,19 +147,5 @@ export interface QuizQuestion {
     }))
   }
   
-  function getFallbackAnswerKey(chapterId: string): AnswerKey {
-    // Return dummy answer key
-    return {
-      Q01: "A",
-      Q02: "B",
-      Q03: "B",
-      Q04: "B",
-      Q05: "B",
-      Q06: "A",
-      Q07: "C",
-      Q08: "A",
-      Q09: "C",
-      Q10: "D",
-    }
-  }
+  // We no longer need the fallback answer key since validation is done on the server
   

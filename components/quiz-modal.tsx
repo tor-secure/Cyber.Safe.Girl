@@ -15,7 +15,18 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { fetchQuizQuestions, fetchAnswerKey, type QuizQuestion, type AnswerKey } from "@/lib/quiz-service"
+import { type QuizQuestion } from "@/lib/quiz-service"
+import { useAuth } from "@/lib/auth-context" // Import useAuth hook
+
+// Define the structure of the analytics object received from the backend
+interface QuizAnalytics {
+  chapterId: string;
+  userId: string;
+  score: number;
+  totalQuestionsAttempted: number;
+  submittedAt: string;
+  // evaluationDetails?: Record<string, { userAnswer: string; correctAnswer: string; isCorrect: boolean }>; // Optional
+}
 
 interface QuizModalProps {
   open: boolean
@@ -25,17 +36,19 @@ interface QuizModalProps {
 }
 
 export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizModalProps) {
+  const { user, isLoading: authLoading } = useAuth() // Get user and auth loading state
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
-  const [score, setScore] = useState(0)
   const [isStarted, setIsStarted] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [submitting, setSubmitting] = useState(false) // Loading state for submitting answers
   const [error, setError] = useState<string | null>(null)
+  const [quizAnalytics, setQuizAnalytics] = useState<QuizAnalytics | null>(null) // Store analytics from backend
+  const [evaluationDetails, setEvaluationDetails] = useState<Record<string, { userAnswer: string; correctAnswer: string; isCorrect: boolean }>>({})
 
   // State for storing fetched data
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
-  const [answerKey, setAnswerKey] = useState<AnswerKey>({})
 
   // Format chapter ID for Firestore (e.g., "1" -> "CH-001")
   const chapter = `CH-${chapterId.padStart(3, "0")}`
@@ -52,7 +65,7 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
     }
   }, [open])
 
-  // Fetch quiz data from Firestore when quiz starts
+  // Fetch quiz data from backend API when quiz starts
   useEffect(() => {
     if (isStarted && open) {
       async function loadQuizData() {
@@ -60,26 +73,29 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
         setError(null)
 
         try {
-          const [fetchedQuestions, fetchedAnswerKey] = await Promise.all([
-            fetchQuizQuestions(chapter),
-            fetchAnswerKey(chapter),
-          ])
+          const response = await fetch(`/api/quiz/${chapter}`) // Fetch from GET endpoint
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+          }
+          const data = await response.json()
 
-          if (fetchedQuestions.length === 0) {
+          if (!data.questions || data.questions.length === 0) {
             setError("No questions found for this chapter.")
+            setQuestions([])
           } else {
-            setQuestions(fetchedQuestions)
-            setAnswerKey(fetchedAnswerKey)
-            // Initialize selectedAnswers with empty values
+            setQuestions(data.questions)
+            // Initialize selectedAnswers based on fetched questions
             const initialAnswers: Record<string, string> = {}
-            fetchedQuestions.forEach((q) => {
+            data.questions.forEach((q: QuizQuestion) => {
               initialAnswers[q.id] = ""
             })
             setSelectedAnswers(initialAnswers)
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Failed to load quiz data:", err)
-          setError("Failed to load quiz. Please try again later.")
+          setError(err.message || "Failed to load quiz. Please try again later.")
+          setQuestions([]) // Clear questions on error
         } finally {
           setLoading(false)
         }
@@ -101,19 +117,53 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
     }
   }
 
-  const handleSubmit = () => {
-    // Calculate score by comparing selected answers with answer key
-    let correctAnswers = 0
+  const handleSubmit = async () => {
+    console.log("Submitting answers:", selectedAnswers);
+    
+    if (!user) {
+      setError("You must be logged in to submit the quiz.");
+      return; // Or redirect to login
+    }
+    if (Object.values(selectedAnswers).some((answer) => !answer)) {
+        setError("Please answer all questions before submitting.");
+        return;
+    }
 
-    Object.entries(selectedAnswers).forEach(([questionId, selectedOption]) => {
-      if (answerKey[questionId] === selectedOption) {
-        correctAnswers++
+    setSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/quiz/${chapter}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userAnswers: selectedAnswers,
+          userId: user.id, // Send the user ID from auth context
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || `HTTP error! status: ${response.status}`);
       }
-    })
 
-    setScore(correctAnswers)
-    setIsSubmitted(true)
-    onComplete(correctAnswers, questions.length)
+      // Store the analytics and evaluation details received from the backend
+      setQuizAnalytics(result.analytics);
+      setEvaluationDetails(result.evaluationDetails || {});
+      setIsSubmitted(true);
+      
+      // Call the onComplete callback with the score
+      onComplete(result.analytics.score, result.analytics.totalQuestionsAttempted);
+
+    } catch (err: any) {
+      console.error("Failed to submit quiz:", err);
+      setError(err.message || "Failed to submit quiz. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   const handleStartQuiz = () => {
@@ -194,8 +244,8 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
               <Button onClick={() => onOpenChange(false)}>Close</Button>
             </DialogFooter>
           </div>
-        ) : isSubmitted ? (
-          // Quiz results screen
+        ) : isSubmitted && quizAnalytics ? (
+          // Quiz results screen with server-side evaluation
           <>
             <DialogHeader>
               <DialogTitle>Quiz Results</DialogTitle>
@@ -205,20 +255,22 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
               <div className="text-center p-6 bg-muted rounded-lg">
                 <h2 className="text-3xl font-bold mb-2">Your Score</h2>
                 <div className="text-5xl font-bold mb-4">
-                  {score}/{questions.length}
+                  {quizAnalytics.score}/{questions.length}
                 </div>
                 <p className="text-muted-foreground">
-                  {score >= questions.length * 0.7
+                  {quizAnalytics.score >= questions.length * 0.7
                     ? "Great job! You've passed this chapter's quiz."
                     : "You need to score at least 70% to pass. Consider reviewing the chapter and trying again."}
                 </p>
+                <p className="text-sm text-muted-foreground mt-2">Attempted: {quizAnalytics.totalQuestionsAttempted} questions</p>
               </div>
 
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Question Summary</h3>
                 <div className="flex flex-wrap gap-3 justify-center">
                   {questions.map((question, index) => {
-                    const isCorrect = answerKey[question.id] === selectedAnswers[question.id]
+                    const evaluation = evaluationDetails[question.id];
+                    const isCorrect = evaluation ? evaluation.isCorrect : false;
 
                     return (
                       <div
@@ -349,10 +401,11 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
               </div>
               <Button
                 onClick={handleSubmit}
-                disabled={Object.values(selectedAnswers).some((answer) => !answer)}
+                disabled={submitting || Object.values(selectedAnswers).some((answer) => !answer)}
                 className="w-full sm:w-auto mt-2 sm:mt-0"
               >
-                Submit
+                {submitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {submitting ? "Submitting..." : "Submit"}
               </Button>
             </DialogFooter>
           </>

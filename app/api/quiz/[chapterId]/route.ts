@@ -88,6 +88,9 @@ export async function POST(request: NextRequest, { params }: { params: { chapter
     const totalQuestionsAttempted = Object.keys(userAnswers).length
     const evaluationDetails: Record<string, { userAnswer: string; correctAnswer: string; isCorrect: boolean }> = {}
 
+    console.log("User Answers:", JSON.stringify(userAnswers));
+    console.log("Correct Answers:", JSON.stringify(correctAnswersData));
+
     for (const questionId in userAnswers) {
       const userAnswer = userAnswers[questionId]
       const correctAnswer = correctAnswersData[questionId]
@@ -96,8 +99,8 @@ export async function POST(request: NextRequest, { params }: { params: { chapter
       if (isCorrect) {
         score++
       }
-console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Answer: ${correctAnswer}, Is Correct: ${isCorrect}`)
-;
+      
+      console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Answer: ${correctAnswer}, Is Correct: ${isCorrect}`);
 
       evaluationDetails[questionId] = {
         userAnswer: userAnswer,
@@ -105,6 +108,9 @@ console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Ans
         isCorrect: isCorrect,
       }
     }
+    
+    console.log(`Final Score: ${score}/${totalQuestionsAttempted}`);
+    console.log("Evaluation Details:", JSON.stringify(evaluationDetails));
 
     // --- Prepare User Analytics ---
     const userAnalytics = {
@@ -133,7 +139,7 @@ console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Ans
       totalQuestionsAttempted: totalQuestionsAttempted,
       evaluationDetails: evaluationDetails,
       analytics: userAnalytics, // Send the calculated analytics back
-    })
+    }, { status: 200 })
 
   } catch (error) {
     console.error("Error evaluating quiz:", error)
