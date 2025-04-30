@@ -51,8 +51,8 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
   // State for storing fetched data
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
 
-  // Format chapter ID for Firestore (e.g., "1" -> "CH-001")
-  const chapter = `CH-${chapterId.padStart(3, "0")}`
+  // Use the chapter ID as provided (should already be formatted correctly from chapter-content.tsx)
+  const chapter = chapterId
 
   // Reset state when modal opens
   useEffect(() => {
