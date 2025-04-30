@@ -32,7 +32,7 @@ interface QuizModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   chapterId: string
-  onComplete: (score: number, totalQuestions: number) => void
+  onComplete: (score: number, totalQuestions: number, passed: boolean) => void
 }
 
 export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizModalProps) {
@@ -134,7 +134,8 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
     setError(null);
 
     try {
-      const response = await fetch(`/api/quiz/${chapter}`, {
+      // Step 1: Submit quiz answers for evaluation
+      const quizResponse = await fetch(`/api/quiz/${chapter}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -145,19 +146,49 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
         }),
       });
 
-      const result = await response.json();
+      const quizResult = await quizResponse.json();
 
-      if (!response.ok) {
-        throw new Error(result.error || `HTTP error! status: ${response.status}`);
+      if (!quizResponse.ok) {
+        throw new Error(quizResult.error || `HTTP error! status: ${quizResponse.status}`);
       }
 
       // Store the analytics and evaluation details received from the backend
-      setQuizAnalytics(result.analytics);
-      setEvaluationDetails(result.evaluationDetails || {});
+      setQuizAnalytics(quizResult.analytics);
+      setEvaluationDetails(quizResult.evaluationDetails || {});
       setIsSubmitted(true);
       
-      // Call the onComplete callback with the score
-      onComplete(result.analytics.score, result.analytics.totalQuestionsAttempted);
+      // Calculate if the user passed the quiz (30% passing threshold)
+      const passingScore = Math.ceil(quizResult.analytics.totalQuestionsAttempted * 0.3);
+      const passed = quizResult.analytics.score >= passingScore;
+      
+      // Call the onComplete callback with the score and passed status
+      onComplete(quizResult.analytics.score, quizResult.analytics.totalQuestionsAttempted, passed);
+
+      // Step 2: Update user progress to potentially unlock next chapter
+      try {
+        const progressResponse = await fetch('/api/user-progress', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            userId: user.id,
+            chapterId: chapter,
+            score: quizResult.analytics.score,
+            totalQuestions: quizResult.analytics.totalQuestionsAttempted
+          }),
+        });
+
+        const progressResult = await progressResponse.json();
+        
+        if (progressResult.unlockedNextChapter) {
+          console.log(`Unlocked next chapter: ${progressResult.nextChapterId}`);
+          // You could show a notification here that a new chapter was unlocked
+        }
+      } catch (progressErr) {
+        console.error("Failed to update user progress:", progressErr);
+        // Don't show this error to the user, as the quiz was still submitted successfully
+      }
 
     } catch (err: any) {
       console.error("Failed to submit quiz:", err);

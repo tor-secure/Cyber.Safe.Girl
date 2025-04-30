@@ -21,18 +21,53 @@ interface QuizAnalytics {
   submittedAt: string;
 }
 
+interface UserProgress {
+  userId: string;
+  completedChapters: string[];
+  unlockedChapters: string[];
+  finalTestUnlocked: boolean;
+  finalTestCompleted: boolean;
+  certificateUnlocked: boolean;
+  lastUpdated: string;
+}
+
 export default function Dashboard() {
   const { user } = useAuth()
-  const [progress] = useState(5)
-  const [totalChapters] = useState(60)
+  const [totalChapters] = useState(70)
   const [finalTestScore] = useState(6)
   const [totalTestQuestions] = useState(30)
-  const [passingScore] = useState(12)
+  const [passingScore] = useState(9) // 30% of 30 questions
   const [quizAnalytics, setQuizAnalytics] = useState<QuizAnalytics[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [totalQuizScore, setTotalQuizScore] = useState(0)
   const [totalQuizQuestions, setTotalQuizQuestions] = useState(0)
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null)
+  const [completedChaptersCount, setCompletedChaptersCount] = useState(0)
+
+  // Fetch user progress
+  useEffect(() => {
+    async function fetchUserProgress() {
+      if (!user) return;
+
+      try {
+        const response = await fetch(`/api/user-progress?userId=${user.id}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setUserProgress(data.progress);
+        setCompletedChaptersCount(data.progress.completedChapters.length);
+      } catch (err: any) {
+        console.error("Failed to fetch user progress:", err);
+        // Don't set error here as we'll still try to fetch quiz analytics
+      }
+    }
+
+    fetchUserProgress();
+  }, [user]);
 
   // Fetch quiz analytics for the user
   useEffect(() => {
@@ -100,9 +135,9 @@ export default function Dashboard() {
     fetchQuizAnalytics()
   }, [user])
 
-  const progressPercentage = Math.round((progress / totalChapters) * 100)
+  const progressPercentage = Math.round((completedChaptersCount / totalChapters) * 100)
   const isPassing = finalTestScore >= passingScore
-  const allChaptersCompleted = progress === totalChapters
+  const allChaptersCompleted = userProgress?.finalTestUnlocked || false
 
   return (
     <div className="space-y-6">
@@ -117,7 +152,7 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {progress} of {totalChapters} chapters completed
+                    {completedChaptersCount} of {totalChapters} chapters completed
                   </span>
                   <span className="text-sm font-medium">{progressPercentage}%</span>
                 </div>
@@ -128,11 +163,11 @@ export default function Dashboard() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Completed: {progress}</span>
+                  <span>Completed: {completedChaptersCount}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4 text-amber-500" />
-                  <span>Pending: {totalChapters - progress}</span>
+                  <span>Pending: {totalChapters - completedChaptersCount}</span>
                 </div>
               </div>
             </CardFooter>
@@ -195,38 +230,57 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Final Test Score</CardTitle>
+              <CardTitle>Final Test Status</CardTitle>
               <CardDescription>Your performance on the final assessment</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800">
-                  <span className="text-2xl font-bold">
-                    {finalTestScore}/{totalTestQuestions}
-                  </span>
+              {userProgress?.finalTestCompleted ? (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <span className="text-2xl font-bold">
+                      {finalTestScore}/{totalTestQuestions}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    {!isPassing && (
+                      <Alert variant="destructive" className="mb-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Warning</AlertTitle>
+                        <AlertDescription>
+                          Your score is below the passing threshold of {passingScore} points.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {userProgress.certificateUnlocked ? (
+                      <Button asChild className="w-full">
+                        <Link href="/certificate">View Certificate</Link>
+                      </Button>
+                    ) : (
+                      <Button asChild className="w-full">
+                        <Link href="/final-test">Retake Final Test</Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  {!isPassing && (
-                    <Alert variant="destructive" className="mb-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>Warning</AlertTitle>
-                      <AlertDescription>
-                        Your score is below the passing threshold of {passingScore} points.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {!allChaptersCompleted ? (
-                    <Button disabled className="w-full flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      Complete All Chapters First
-                    </Button>
-                  ) : (
-                    <Button asChild className="w-full">
-                      <Link href="/final-test">Take Final Test</Link>
-                    </Button>
-                  )}
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <span className="text-lg font-medium text-center">Not Taken</span>
+                  </div>
+                  <div className="flex-1">
+                    {!allChaptersCompleted ? (
+                      <Button disabled className="w-full flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Complete All Chapters First
+                      </Button>
+                    ) : (
+                      <Button asChild className="w-full">
+                        <Link href="/final-test">Take Final Test</Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -240,7 +294,7 @@ export default function Dashboard() {
             <CardContent className="space-y-6">
               <div>
                 <h3 className="text-sm font-medium mb-2">Course Status</h3>
-                <ProgressChart completed={progress} total={totalChapters} />
+                <ProgressChart completed={completedChaptersCount} total={totalChapters} />
               </div>
               <div>
                 <h3 className="text-sm font-medium mb-2">Chapter Performance</h3>
