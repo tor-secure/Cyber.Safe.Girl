@@ -35,17 +35,58 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isAuthenticated, pathname, router])
 
-  const [chapters] = useState(
-    Array.from({ length: 60 }, (_, i) => ({
-      id: i + 1,
-      title: `Chapter ${i + 1}`,
-      completed: i < 2,
-      locked: i > 2, // Lock all chapters except first 3
-    })),
-  )
+  const [chapters, setChapters] = useState<{
+    id: number;
+    title: string;
+    completed: boolean;
+    locked: boolean;
+  }[]>([])
+  const [finalTestUnlocked, setFinalTestUnlocked] = useState(false)
+  const [certificateUnlocked, setCertificateUnlocked] = useState(false)
+  const { user } = useAuth()
 
-  // Calculate if all chapters are completed for final test access
-  const allChaptersCompleted = chapters.every((chapter) => chapter.completed)
+  // Fetch user progress to determine locked/unlocked chapters
+  useEffect(() => {
+    if (user?.uid) {
+      fetch(`/api/user-progress?userId=${user.uid}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.progress) {
+            const { completedChapters, unlockedChapters, finalTestUnlocked, certificateUnlocked } = data.progress
+            
+            // Format chapter IDs to match the expected format (number)
+            const completedChapterIds = completedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
+            const unlockedChapterIds = unlockedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
+            
+            // Create chapters array with correct locked/completed status
+            const chaptersData = Array.from({ length: 60 }, (_, i) => {
+              const chapterId = i + 1
+              return {
+                id: chapterId,
+                title: `Chapter ${chapterId}`,
+                completed: completedChapterIds.includes(chapterId),
+                locked: !unlockedChapterIds.includes(chapterId),
+              }
+            })
+            
+            setChapters(chaptersData)
+            setFinalTestUnlocked(finalTestUnlocked)
+            setCertificateUnlocked(certificateUnlocked)
+          }
+        })
+        .catch(error => {
+          console.error("Error fetching user progress:", error)
+          // Fallback to default state if fetch fails
+          const defaultChapters = Array.from({ length: 60 }, (_, i) => ({
+            id: i + 1,
+            title: `Chapter ${i + 1}`,
+            completed: false,
+            locked: i > 0, // Only first chapter unlocked by default
+          }))
+          setChapters(defaultChapters)
+        })
+    }
+  }, [user?.uid])
 
   return (
     <SidebarProvider defaultOpen={true}>
@@ -114,9 +155,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <SidebarMenuButton
                   asChild
                   isActive={pathname === "/final-test"}
-                  className={!allChaptersCompleted ? "opacity-60 cursor-not-allowed" : ""}
+                  className={!finalTestUnlocked ? "opacity-60 cursor-not-allowed" : ""}
                 >
-                  {!allChaptersCompleted ? (
+                  {!finalTestUnlocked ? (
                     <div className="flex items-center justify-between w-full">
                       <div className="flex items-center gap-2">
                         <FileQuestion className="h-5 w-5" />
@@ -134,11 +175,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton asChild isActive={pathname === "/certificate"}>
-                  <Link href="/certificate" className="flex items-center gap-2">
-                    <Award className="h-5 w-5" />
-                    <span>Certificate</span>
-                  </Link>
+                <SidebarMenuButton 
+                  asChild 
+                  isActive={pathname === "/certificate"}
+                  className={!certificateUnlocked ? "opacity-60 cursor-not-allowed" : ""}
+                >
+                  {!certificateUnlocked ? (
+                    <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center gap-2">
+                        <Award className="h-5 w-5" />
+                        <span>Certificate</span>
+                      </div>
+                      <Lock className="h-4 w-4" />
+                    </div>
+                  ) : (
+                    <Link href="/certificate" className="flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      <span>Certificate</span>
+                    </Link>
+                  )}
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
