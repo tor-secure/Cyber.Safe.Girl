@@ -1,8 +1,12 @@
 import { ChapterContent } from "@/components/chapter-content";
 
-// ✅ Make the function async to fix the "params should be awaited" error
+// Make the function async
 export default async function ChapterPage({ params }: { params: { id: string } }) {
-  const { id } = params;
+  // Await params before accessing its properties
+  const resolvedParams = await params;
+  const { id } = resolvedParams;
 
-  return <ChapterContent chapterId={id} />;
+  return (
+    <ChapterContent chapterId={id} />
+  );
 }
