@@ -44,6 +44,7 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false) // Loading state for submitting answers
   const [error, setError] = useState<string | null>(null)
+  const [score, setScore] = useState(0) // Add missing score state
   const [quizAnalytics, setQuizAnalytics] = useState<QuizAnalytics | null>(null) // Store analytics from backend
   const [evaluationDetails, setEvaluationDetails] = useState<Record<string, { userAnswer: string; correctAnswer: string; isCorrect: boolean }>>({})
 
