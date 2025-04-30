@@ -47,16 +47,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   // Fetch user progress to determine locked/unlocked chapters
   useEffect(() => {
-    if (user?.uid) {
-      fetch(`/api/user-progress?userId=${user.uid}`)
+    if (user?.id) {
+      console.log("Fetching user progress for user:", user.id)
+      fetch(`/api/user-progress?userId=${user.id}`)
         .then(res => res.json())
         .then(data => {
+          console.log("User progress data received:", data)
           if (data.progress) {
             const { completedChapters, unlockedChapters, finalTestUnlocked, certificateUnlocked } = data.progress
+            
+            console.log("Completed chapters:", completedChapters)
+            console.log("Unlocked chapters:", unlockedChapters)
             
             // Format chapter IDs to match the expected format (number)
             const completedChapterIds = completedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
             const unlockedChapterIds = unlockedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
+            
+            console.log("Completed chapter IDs:", completedChapterIds)
+            console.log("Unlocked chapter IDs:", unlockedChapterIds)
             
             // Create chapters array with correct locked/completed status
             const chaptersData = Array.from({ length: 60 }, (_, i) => {
@@ -69,6 +77,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               }
             })
             
+            console.log("Setting chapters data:", chaptersData.slice(0, 5)) // Log first 5 chapters for debugging
             setChapters(chaptersData)
             setFinalTestUnlocked(finalTestUnlocked)
             setCertificateUnlocked(certificateUnlocked)
@@ -85,8 +94,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           }))
           setChapters(defaultChapters)
         })
+    } else {
+      console.log("No user ID available, cannot fetch user progress")
     }
-  }, [user?.uid])
+  }, [user?.id])
 
   return (
     <SidebarProvider defaultOpen={true}>
