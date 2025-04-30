@@ -19,29 +19,70 @@ export async function GET(request: NextRequest) {
     }
 
     // Query the userQuizAnalytics collection for the user's quiz results
-    const analyticsSnapshot = await adminDb
-      .collection('userQuizAnalytics')
-      .where('userId', '==', userId)
-      .orderBy('submittedAt', 'desc')
-      .get();
-
-    console.log("Quiz Analytics API - Query executed, empty:", analyticsSnapshot.empty);
-
-    if (analyticsSnapshot.empty) {
+    let quizAnalytics = [];
+    
+    try {
+      // Try the compound query first (requires composite index)
+      const analyticsSnapshot = await adminDb
+        .collection('userQuizAnalytics')
+        .where('userId', '==', userId)
+        .orderBy('submittedAt', 'desc')
+        .get();
+      
+      console.log("Quiz Analytics API - Query executed, empty:", analyticsSnapshot.empty);
+      
+      if (!analyticsSnapshot.empty) {
+        // Convert the snapshot to an array of analytics objects
+        quizAnalytics = analyticsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            chapterId: data.chapterId,
+            score: data.score,
+            totalQuestionsAttempted: data.totalQuestionsAttempted,
+            submittedAt: data.submittedAt,
+          };
+        });
+      }
+    } catch (error) {
+      console.log("Quiz Analytics API - Compound query failed, falling back to simple query:", error);
+      
+      // Fallback to a simple query without ordering (doesn't require composite index)
+      const analyticsSnapshot = await adminDb
+        .collection('userQuizAnalytics')
+        .where('userId', '==', userId)
+        .get();
+      
+      console.log("Quiz Analytics API - Simple query executed, empty:", analyticsSnapshot.empty);
+      
+      if (!analyticsSnapshot.empty) {
+        // Convert the snapshot to an array of analytics objects and sort manually
+        quizAnalytics = analyticsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            chapterId: data.chapterId,
+            score: data.score,
+            totalQuestionsAttempted: data.totalQuestionsAttempted,
+            submittedAt: data.submittedAt,
+          };
+        });
+        
+        // Sort manually by submittedAt in descending order
+        quizAnalytics.sort((a, b) => {
+          const dateA = a.submittedAt ? new Date(a.submittedAt).getTime() : 0;
+          const dateB = b.submittedAt ? new Date(b.submittedAt).getTime() : 0;
+          return dateB - dateA;
+        });
+      }
+    }
+    
+    console.log("Quiz Analytics API - Processed data:", quizAnalytics.length, "records");
+    
+    // Return empty array if no analytics found
+    if (quizAnalytics.length === 0) {
       return NextResponse.json({ quizAnalytics: [] });
     }
-
-    // Convert the snapshot to an array of analytics objects
-    const quizAnalytics = analyticsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        chapterId: data.chapterId,
-        score: data.score,
-        totalQuestionsAttempted: data.totalQuestionsAttempted,
-        submittedAt: data.submittedAt,
-      };
-    });
 
     console.log("Quiz Analytics API - Returning data:", quizAnalytics.length, "records");
     return NextResponse.json({ quizAnalytics });
