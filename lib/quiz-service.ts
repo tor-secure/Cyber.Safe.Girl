@@ -53,7 +53,7 @@ export interface QuizQuestion {
     const baseQuestions = [
       {
         id: "Q01",
-        question: "What is the primary risk associated with mobile recharge shops according to the chapter?",
+        question: "What is to the chapter?",
         options: {
           A: "Personal information exploitation",
           B: "Financial fraud",

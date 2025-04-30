@@ -10,9 +10,9 @@ function initializeFirebaseAdmin() {
       const app = initializeApp({
         credential: cert({
           projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+          clientEmail: process.env.NEXT_PUBLIC_FIREBASE_CLIENT_EMAIL,
           // The private key needs to have newlines replaced
-          privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+          privateKey: process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
         }),
       })
 
