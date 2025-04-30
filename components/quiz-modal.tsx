@@ -290,9 +290,9 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
                   {quizAnalytics.score}/{questions.length}
                 </div>
                 <p className="text-muted-foreground">
-                  {quizAnalytics.score >= questions.length * 0.7
+                  {quizAnalytics.score >= questions.length * 0.3
                     ? "Great job! You've passed this chapter's quiz."
-                    : "You need to score at least 70% to pass. Consider reviewing the chapter and trying again."}
+                    : "You need to score at least 30% to pass. Consider reviewing the chapter and trying again."}
                 </p>
                 <p className="text-sm text-muted-foreground mt-2">Attempted: {quizAnalytics.totalQuestionsAttempted} questions</p>
               </div>
