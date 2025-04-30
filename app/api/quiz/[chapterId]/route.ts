@@ -106,16 +106,16 @@ console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Ans
       }
     }
 
-    // // --- Prepare User Analytics ---
-    // const userAnalytics = {
-    //   chapterId: chapterId,
-    //   userId: userId, // Include the user ID
-    //   score: score,
-    //   totalQuestionsAttempted: totalQuestionsAttempted,
-    //   // You can add more details like timestamp, evaluation details, etc.
-    //   // evaluationDetails: evaluationDetails, // Optional: include detailed evaluation
-    //   submittedAt: new Date().toISOString(),
-    // }
+    // --- Prepare User Analytics ---
+    const userAnalytics = {
+      chapterId: chapterId,
+      userId: userId, // Include the user ID
+      score: score,
+      totalQuestionsAttempted: totalQuestionsAttempted,
+      // You can add more details like timestamp, evaluation details, etc.
+      // evaluationDetails: evaluationDetails, // Optional: include detailed evaluation
+      submittedAt: new Date().toISOString(),
+    }
 
     // --- Store User Analytics in Firestore ---
     // Example: Storing analytics in a 'userQuizAnalytics' collection
@@ -123,8 +123,8 @@ console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Ans
     if (!adminDb) {
       return NextResponse.json({ error: "Firebase admin not initialized" }, { status: 500 });
     }
-    // const analyticsRef = adminDb.collection('userQuizAnalytics').doc(`${userId}_${chapterId}_${Date.now()}`); // Unique doc ID
-    // await analyticsRef.set(userAnalytics);
+    const analyticsRef = adminDb.collection('userQuizAnalytics').doc(`${userId}_${chapterId}_${Date.now()}`); // Unique doc ID
+    await analyticsRef.set(userAnalytics);
 
     // --- Send User Analytics back to Frontend ---
     return NextResponse.json({
@@ -132,7 +132,7 @@ console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Ans
       score: score,
       totalQuestionsAttempted: totalQuestionsAttempted,
       evaluationDetails: evaluationDetails,
-      // analytics: userAnalytics, // Send the calculated analytics back
+      analytics: userAnalytics, // Send the calculated analytics back
     })
 
   } catch (error) {
