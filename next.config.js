@@ -23,6 +23,7 @@ const nextConfig = {
     domains: [
       'cybersafegirl.com', 
       'www.cybersafegirl.com',
+      'cybersafegirl.vercel.app',
       'images.unsplash.com',
       'avatars.githubusercontent.com',
       'github.com',
