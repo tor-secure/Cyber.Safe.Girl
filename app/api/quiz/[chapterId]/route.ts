@@ -7,10 +7,13 @@ function getRandomItems(array: any[], count: number) {
   return shuffled.slice(0, count)
 }
 
-export async function GET(request: NextRequest, { params }: { params: { chapterId: string } }) {
+// Update the GET function to properly await params
+export async function GET(request: NextRequest, { params }: { params: Promise<{ chapterId: string }> }) {
   try {
-    const { chapterId } = params
+    // Await the params object before destructuring
+    const { chapterId } = await params
 
+    // Rest of the function remains the same
     // Handle final test (fetch from multiple chapters)
     if (chapterId === "final-test") {
       // For final test, we need to fetch questions from multiple chapters
