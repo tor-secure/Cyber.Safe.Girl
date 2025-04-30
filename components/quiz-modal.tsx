@@ -5,7 +5,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
+import { ChevronLeft, ChevronRight, AlertCircle, Loader2 } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   Dialog,
@@ -15,6 +15,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { fetchQuizQuestions, fetchAnswerKey, type QuizQuestion, type AnswerKey } from "@/lib/quiz-service"
 
 interface QuizModalProps {
   open: boolean
@@ -25,117 +26,71 @@ interface QuizModalProps {
 
 export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizModalProps) {
   const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<string[]>(Array(5).fill(""))
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [score, setScore] = useState(0)
   const [isStarted, setIsStarted] = useState(false)
-  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  // State for storing fetched data
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
+  const [answerKey, setAnswerKey] = useState<AnswerKey>({})
+
+  // Format chapter ID for Firestore (e.g., "1" -> "CH-001")
+  const chapter = `CH-${chapterId.padStart(3, "0")}`
 
   // Reset state when modal opens
   useEffect(() => {
     if (open) {
       setCurrentQuestion(0)
-      setSelectedAnswers(Array(5).fill(""))
+      setSelectedAnswers({})
       setIsSubmitted(false)
       setIsStarted(false)
       setScore(0)
+      setError(null)
     }
+  }, [open])
 
-
-  
-  }, [open]);
+  // Fetch quiz data from Firestore when quiz starts
   useEffect(() => {
-    const fetchData = async () => {
-      const id = '1';
-      const res = await fetch(`/api/chapter?id=${id}`);
-      const json = await res.json();
-      setData(json);
-      console.log(json);
-    };
+    if (isStarted && open) {
+      async function loadQuizData() {
+        setLoading(true)
+        setError(null)
 
-    fetchData();
-  }, []);
+        try {
+          const [fetchedQuestions, fetchedAnswerKey] = await Promise.all([
+            fetchQuizQuestions(chapter),
+            fetchAnswerKey(chapter),
+          ])
 
-  // This would come from an API in a real application
-  const quizData = {
-    title:
-      chapterId === "1" ? "Mobile Recharge Shop" : chapterId === "2" ? "Debit Card Cloning" : `Chapter ${chapterId}`,
-    questions: [
-      {
-        id: 1,
-        text:
-          chapterId === "2"
-            ? "What are the ways to figure that a skimming device has been attached? I.Look out for protruding or extra layer of fittings over the card reader II.Check the slot for moving parts"
-            : "What is the potential risk of giving your mobile number to a local recharge shop?",
-        options:
-          chapterId === "2"
-            ? ["I only", "II only", "I and II", "None of the above"]
-            : [
-                "No risk at all",
-                "They might send spam messages",
-                "They could create a fake identity using your information",
-                "They might charge extra for the recharge",
-              ],
-        correctAnswer: chapterId === "2" ? "I and II" : "They could create a fake identity using your information",
-      },
-      {
-        id: 2,
-        text:
-          chapterId === "2"
-            ? "Does having ATM guard minimize the possibility of a skimming attack?"
-            : "What should you do to minimize the risk when recharging your mobile?",
-        options:
-          chapterId === "2"
-            ? [
-                "Yes, if the guard observes people's activity in the ATM",
-                "Yes, if the guard observes people's activity in the ATM and can identify if a skimming device has been attached",
-                "No, this would not make any difference",
-                "I don't know",
-              ]
-            : [
-                "Use online recharge methods",
-                "Go to the official customer care center",
-                "Use a trusted vendor you know personally",
-                "All of the above",
-              ],
-        correctAnswer:
-          chapterId === "2"
-            ? "Yes, if the guard observes people's activity in the ATM and can identify if a skimming device has been attached"
-            : "All of the above",
-      },
-      {
-        id: 3,
-        text: "Which section of the IT Act deals with identity theft?",
-        options: ["Section 65", "Section 66C", "Section 67", "Section 70"],
-        correctAnswer: "Section 66C",
-      },
-      {
-        id: 4,
-        text: "What should you do if you suspect your information has been compromised?",
-        options: [
-          "Ignore it as nothing will happen",
-          "Wait and see if there's any suspicious activity",
-          "Report to the authorities immediately",
-          "Change all your passwords but don't report",
-        ],
-        correctAnswer: "Report to the authorities immediately",
-      },
-      {
-        id: 5,
-        text: "Which of the following is NOT a good cybersecurity practice?",
-        options: [
-          "Using different passwords for different accounts",
-          "Sharing your OTP with trusted friends",
-          "Enabling two-factor authentication",
-          "Regularly updating your devices",
-        ],
-        correctAnswer: "Sharing your OTP with trusted friends",
-      },
-    ],
-  }
+          if (fetchedQuestions.length === 0) {
+            setError("No questions found for this chapter.")
+          } else {
+            setQuestions(fetchedQuestions)
+            setAnswerKey(fetchedAnswerKey)
+            // Initialize selectedAnswers with empty values
+            const initialAnswers: Record<string, string> = {}
+            fetchedQuestions.forEach((q) => {
+              initialAnswers[q.id] = ""
+            })
+            setSelectedAnswers(initialAnswers)
+          }
+        } catch (err) {
+          console.error("Failed to load quiz data:", err)
+          setError("Failed to load quiz. Please try again later.")
+        } finally {
+          setLoading(false)
+        }
+      }
+
+      loadQuizData()
+    }
+  }, [isStarted, open, chapter])
 
   const handleNext = () => {
-    if (currentQuestion < quizData.questions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1)
     }
   }
@@ -147,21 +102,23 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
   }
 
   const handleSubmit = () => {
-    const calculatedScore = quizData.questions.reduce((score, question, index) => {
-      return score + (selectedAnswers[index] === question.correctAnswer ? 1 : 0)
-    }, 0)
+    // Calculate score by comparing selected answers with answer key
+    let correctAnswers = 0
 
-    setScore(calculatedScore)
+    Object.entries(selectedAnswers).forEach(([questionId, selectedOption]) => {
+      if (answerKey[questionId] === selectedOption) {
+        correctAnswers++
+      }
+    })
+
+    setScore(correctAnswers)
     setIsSubmitted(true)
-    onComplete(calculatedScore, quizData.questions.length)
+    onComplete(correctAnswers, questions.length)
   }
 
   const handleStartQuiz = () => {
     setIsStarted(true)
   }
-
-  const currentQuestionData = quizData.questions[currentQuestion]
-  const progress = ((currentQuestion + 1) / quizData.questions.length) * 100
 
   // Prevent closing the modal once the quiz has started
   const handleOpenChange = (open: boolean) => {
@@ -171,6 +128,8 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
     }
     onOpenChange(open)
   }
+
+  const progress = questions.length > 0 ? ((currentQuestion + 1) / questions.length) * 100 : 0
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -218,23 +177,38 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
               </Button>
             </DialogFooter>
           </>
+        ) : loading ? (
+          // Loading state
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium">Loading quiz questions...</p>
+          </div>
+        ) : error ? (
+          // Error state
+          <div className="py-8">
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+            <DialogFooter className="mt-6">
+              <Button onClick={() => onOpenChange(false)}>Close</Button>
+            </DialogFooter>
+          </div>
         ) : isSubmitted ? (
           // Quiz results screen
           <>
             <DialogHeader>
               <DialogTitle>Quiz Results</DialogTitle>
-              <DialogDescription>
-                Chapter {chapterId}: {quizData.title}
-              </DialogDescription>
+              <DialogDescription>Chapter {chapterId}</DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
               <div className="text-center p-6 bg-muted rounded-lg">
                 <h2 className="text-3xl font-bold mb-2">Your Score</h2>
                 <div className="text-5xl font-bold mb-4">
-                  {score}/{quizData.questions.length}
+                  {score}/{questions.length}
                 </div>
                 <p className="text-muted-foreground">
-                  {score >= quizData.questions.length * 0.7
+                  {score >= questions.length * 0.7
                     ? "Great job! You've passed this chapter's quiz."
                     : "You need to score at least 70% to pass. Consider reviewing the chapter and trying again."}
                 </p>
@@ -243,18 +217,22 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
               <div className="space-y-4">
                 <h3 className="font-semibold text-lg">Question Summary</h3>
                 <div className="flex flex-wrap gap-3 justify-center">
-                  {quizData.questions.map((question, index) => (
-                    <div
-                      key={index}
-                      className={`w-10 h-10 flex items-center justify-center rounded-full font-medium ${
-                        selectedAnswers[index] === question.correctAnswer
-                          ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                          : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                      }`}
-                    >
-                      {index + 1}
-                    </div>
-                  ))}
+                  {questions.map((question, index) => {
+                    const isCorrect = answerKey[question.id] === selectedAnswers[question.id]
+
+                    return (
+                      <div
+                        key={index}
+                        className={`w-10 h-10 flex items-center justify-center rounded-full font-medium ${
+                          isCorrect
+                            ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                            : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                        }`}
+                      >
+                        {index + 1}
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
@@ -266,14 +244,28 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
                 onClick={() => {
                   setIsSubmitted(false)
                   setCurrentQuestion(0)
-                  setSelectedAnswers(Array(5).fill(""))
-                  setIsStarted(true)
+                  const resetAnswers: Record<string, string> = {}
+                  questions.forEach((q) => {
+                    resetAnswers[q.id] = ""
+                  })
+                  setSelectedAnswers(resetAnswers)
                 }}
               >
                 Retake Quiz
               </Button>
             </DialogFooter>
           </>
+        ) : questions.length === 0 ? (
+          // No questions available
+          <div className="py-8">
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>No questions available for this chapter.</AlertDescription>
+            </Alert>
+            <DialogFooter className="mt-6">
+              <Button onClick={() => onOpenChange(false)}>Close</Button>
+            </DialogFooter>
+          </div>
         ) : (
           // Quiz questions screen
           <>
@@ -281,12 +273,10 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
               <div className="flex items-center justify-between">
                 <DialogTitle>Take a Quiz</DialogTitle>
                 <div className="text-sm font-medium">
-                  Question {currentQuestion + 1} of {quizData.questions.length}
+                  Question {currentQuestion + 1} of {questions.length}
                 </div>
               </div>
-              <DialogDescription>
-                Chapter {chapterId}: {quizData.title}
-              </DialogDescription>
+              <DialogDescription>Chapter {chapterId}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <Progress value={progress} className="h-2" />
@@ -302,36 +292,40 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-lg font-medium mb-4">
-                      {currentQuestion + 1}. {currentQuestionData.text}
+                      {currentQuestion + 1}. {questions[currentQuestion]?.question}
                     </h3>
 
                     <RadioGroup
-                      value={selectedAnswers[currentQuestion]}
+                      value={selectedAnswers[questions[currentQuestion]?.id] || ""}
                       onValueChange={(value) => {
-                        const newAnswers = [...selectedAnswers]
-                        newAnswers[currentQuestion] = value
-                        setSelectedAnswers(newAnswers)
+                        setSelectedAnswers((prev) => ({
+                          ...prev,
+                          [questions[currentQuestion].id]: value,
+                        }))
                       }}
                       className="space-y-3"
                     >
-                      {currentQuestionData.options.map((option, index) => (
-                        <div
-                          key={index}
-                          className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors ${
-                            selectedAnswers[currentQuestion] === option ? "bg-muted" : ""
-                          }`}
-                          onClick={() => {
-                            const newAnswers = [...selectedAnswers]
-                            newAnswers[currentQuestion] = option
-                            setSelectedAnswers(newAnswers)
-                          }}
-                        >
-                          <RadioGroupItem value={option} id={`option-${index}`} />
-                          <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer text-base">
-                            {option}
-                          </Label>
-                        </div>
-                      ))}
+                      {Object.entries(questions[currentQuestion]?.options || {})
+                        .sort()
+                        .map(([optionKey, optionText]) => (
+                          <div
+                            key={optionKey}
+                            className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors ${
+                              selectedAnswers[questions[currentQuestion]?.id] === optionKey ? "bg-muted" : ""
+                            }`}
+                            onClick={() => {
+                              setSelectedAnswers((prev) => ({
+                                ...prev,
+                                [questions[currentQuestion].id]: optionKey,
+                              }))
+                            }}
+                          >
+                            <RadioGroupItem value={optionKey} id={`option-${optionKey}`} />
+                            <Label htmlFor={`option-${optionKey}`} className="flex-1 cursor-pointer text-base">
+                              {optionKey}: {optionText}
+                            </Label>
+                          </div>
+                        ))}
                     </RadioGroup>
                   </div>
                 </div>
@@ -346,7 +340,7 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
                 <Button
                   variant="outline"
                   onClick={handleNext}
-                  disabled={currentQuestion === quizData.questions.length - 1}
+                  disabled={currentQuestion === questions.length - 1}
                   className="flex-1"
                 >
                   Next
@@ -355,7 +349,7 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
               </div>
               <Button
                 onClick={handleSubmit}
-                disabled={selectedAnswers.some((answer) => !answer)}
+                disabled={Object.values(selectedAnswers).some((answer) => !answer)}
                 className="w-full sm:w-auto mt-2 sm:mt-0"
               >
                 Submit

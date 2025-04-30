@@ -1,11 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle, Trophy, CreditCard } from "lucide-react"
+import { AlertTriangle, Trophy, CreditCard, Loader2, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react"
 import Link from "next/link"
 import {
   Dialog,
@@ -18,15 +18,159 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { fetchQuizQuestions, fetchAnswerKey, type QuizQuestion, type AnswerKey } from "@/lib/quiz-service"
 
 export function FinalTest() {
-  const [score] = useState(6)
-  const [totalQuestions] = useState(30)
-  const [passingScore] = useState(12)
+  const [score, setScore] = useState<number | null>(null)
+  const [totalQuestions, setTotalQuestions] = useState<number | null>(null)
+  const [passingScore, setPassingScore] = useState(12)
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   const [showVoucherDialog, setShowVoucherDialog] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
-  const isPassing = score >= passingScore
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showTestDialog, setShowTestDialog] = useState(false)
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
+  const [answerKey, setAnswerKey] = useState<AnswerKey>({})
+  const [testLoading, setTestLoading] = useState(false)
+
+  // Fetch final test results from Firestore
+  useEffect(() => {
+    async function loadFinalTestData() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        // Fetch final test questions and answer key
+        const [fetchedQuestions, fetchedAnswerKey] = await Promise.all([
+          fetchQuizQuestions("final-test"),
+          fetchAnswerKey("final-test"),
+        ])
+
+        if (fetchedQuestions.length === 0) {
+          setError("No questions found for the final test.")
+          setScore(0)
+          setTotalQuestions(0)
+        } else {
+          // Calculate score if user has already taken the test
+          // For now, we'll use a placeholder score
+          setTotalQuestions(fetchedQuestions.length)
+          setScore(6) // This would be replaced with actual score from user data
+          setPassingScore(Math.ceil(fetchedQuestions.length * 0.4)) // 40% passing threshold
+        }
+      } catch (err) {
+        console.error("Failed to load final test data:", err)
+        setError("Failed to load final test data. Please try again later.")
+        setScore(0)
+        setTotalQuestions(0)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFinalTestData()
+  }, [])
+
+  const handleStartTest = async () => {
+    setShowTestDialog(true)
+    setTestLoading(true)
+    setCurrentQuestion(0)
+    setSelectedAnswers({})
+    setIsSubmitted(false)
+
+    try {
+      const [fetchedQuestions, fetchedAnswerKey] = await Promise.all([
+        fetchQuizQuestions("final-test"),
+        fetchAnswerKey("final-test"),
+      ])
+
+      if (fetchedQuestions.length === 0) {
+        setError("No questions found for the final test.")
+      } else {
+        setQuestions(fetchedQuestions)
+        setAnswerKey(fetchedAnswerKey)
+        // Initialize selectedAnswers with empty values
+        const initialAnswers: Record<string, string> = {}
+        fetchedQuestions.forEach((q) => {
+          initialAnswers[q.id] = ""
+        })
+        setSelectedAnswers(initialAnswers)
+      }
+    } catch (err) {
+      console.error("Failed to load final test data:", err)
+      setError("Failed to load final test. Please try again later.")
+    } finally {
+      setTestLoading(false)
+    }
+  }
+
+  const handleNext = () => {
+    if (currentQuestion < questions.length - 1) {
+      setCurrentQuestion(currentQuestion + 1)
+    }
+  }
+
+  const handlePrevious = () => {
+    if (currentQuestion > 0) {
+      setCurrentQuestion(currentQuestion - 1)
+    }
+  }
+
+  const handleSubmitTest = () => {
+    // Calculate score by comparing selected answers with answer key
+    let correctAnswers = 0
+
+    Object.entries(selectedAnswers).forEach(([questionId, selectedOption]) => {
+      if (answerKey[questionId] === selectedOption) {
+        correctAnswers++
+      }
+    })
+
+    setScore(correctAnswers)
+    setTotalQuestions(questions.length)
+    setIsSubmitted(true)
+    setShowTestDialog(false)
+  }
+
+  const isPassing = score !== null && totalQuestions !== null ? score >= passingScore : false
+
+  if (loading) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <Card>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+            <p className="text-lg font-medium">Loading final test data...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Final Assessment</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Alert variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          </CardContent>
+          <CardFooter>
+            <Button onClick={() => window.location.reload()}>Try Again</Button>
+          </CardFooter>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto">
@@ -67,15 +211,15 @@ export function FinalTest() {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span>Your Score</span>
-                  <span>{Math.round((score / totalQuestions) * 100)}%</span>
+                  <span>{totalQuestions ? Math.round((score! / totalQuestions) * 100) : 0}%</span>
                 </div>
-                <Progress value={(score / totalQuestions) * 100} className="h-2" />
+                <Progress value={totalQuestions ? (score! / totalQuestions) * 100 : 0} className="h-2" />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>0%</span>
                   <span
                     className={`${isPassing ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}
                   >
-                    Passing: {Math.round((passingScore / totalQuestions) * 100)}%
+                    Passing: {totalQuestions ? Math.round((passingScore / totalQuestions) * 100) : 0}%
                   </span>
                   <span>100%</span>
                 </div>
@@ -84,8 +228,8 @@ export function FinalTest() {
           </div>
         </CardContent>
         <CardFooter className="flex flex-wrap gap-2">
-          <Button className="flex-1" onClick={() => setShowPaymentDialog(true)}>
-            Take Retest
+          <Button className="flex-1" onClick={handleStartTest}>
+            Take Test
           </Button>
           {isPassing && (
             <Button variant="outline" asChild className="flex-1">
@@ -114,7 +258,7 @@ export function FinalTest() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{totalQuestions - score}</div>
+                    <div className="text-2xl font-bold">{totalQuestions !== null ? totalQuestions - score! : 0}</div>
                     <div className="text-sm text-muted-foreground">Incorrect Answers</div>
                   </div>
                 </CardContent>
@@ -122,7 +266,9 @@ export function FinalTest() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <div className="text-2xl font-bold">{Math.round((score / totalQuestions) * 100)}%</div>
+                    <div className="text-2xl font-bold">
+                      {totalQuestions ? Math.round((score! / totalQuestions) * 100) : 0}%
+                    </div>
                     <div className="text-sm text-muted-foreground">Accuracy</div>
                   </div>
                 </CardContent>
@@ -251,6 +397,159 @@ export function FinalTest() {
             </Button>
             <Button>Apply Voucher</Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Test Dialog */}
+      <Dialog
+        open={showTestDialog}
+        onOpenChange={(open) => {
+          // Only allow closing if not in the middle of a test
+          if (!open || isSubmitted || !questions.length) {
+            setShowTestDialog(open)
+          }
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-2xl max-w-[95vw] max-h-[90vh] overflow-y-auto bg-background text-foreground"
+          onInteractOutside={(e) => {
+            // Prevent closing by clicking outside if test is in progress
+            if (questions.length && !isSubmitted) {
+              e.preventDefault()
+            }
+          }}
+        >
+          {testLoading ? (
+            // Loading state
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+              <p className="text-lg font-medium">Loading final test questions...</p>
+            </div>
+          ) : error ? (
+            // Error state
+            <div className="py-8">
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+              <DialogFooter className="mt-6">
+                <Button onClick={() => setShowTestDialog(false)}>Close</Button>
+              </DialogFooter>
+            </div>
+          ) : questions.length === 0 ? (
+            // No questions available
+            <div className="py-8">
+              <Alert>
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>No questions available for the final test.</AlertDescription>
+              </Alert>
+              <DialogFooter className="mt-6">
+                <Button onClick={() => setShowTestDialog(false)}>Close</Button>
+              </DialogFooter>
+            </div>
+          ) : (
+            // Test questions screen
+            <>
+              <DialogHeader>
+                <div className="flex items-center justify-between">
+                  <DialogTitle>Final Assessment</DialogTitle>
+                  <div className="text-sm font-medium">
+                    Question {currentQuestion + 1} of {questions.length}
+                  </div>
+                </div>
+                <DialogDescription>
+                  Test your knowledge of all cybersecurity concepts covered in the course
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <Progress value={((currentQuestion + 1) / questions.length) * 100} className="h-2" />
+
+                <div className="select-none">
+                  <Alert className="mb-6">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>
+                      Select an answer to proceed. You cannot exit the test until you submit all answers.
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-6">
+                    <div>
+                      <h3 className="text-lg font-medium mb-4">
+                        {currentQuestion + 1}. {questions[currentQuestion]?.question}
+                        {questions[currentQuestion]?.chapter && (
+                          <span className="text-sm text-muted-foreground ml-2">
+                            (From Chapter {questions[currentQuestion].chapter.replace("CH-", "")})
+                          </span>
+                        )}
+                      </h3>
+
+                      <RadioGroup
+                        value={selectedAnswers[questions[currentQuestion]?.id] || ""}
+                        onValueChange={(value) => {
+                          setSelectedAnswers((prev) => ({
+                            ...prev,
+                            [questions[currentQuestion].id]: value,
+                          }))
+                        }}
+                        className="space-y-3"
+                      >
+                        {Object.entries(questions[currentQuestion]?.options || {})
+                          .sort()
+                          .map(([optionKey, optionText]) => (
+                            <div
+                              key={optionKey}
+                              className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors ${
+                                selectedAnswers[questions[currentQuestion]?.id] === optionKey ? "bg-muted" : ""
+                              }`}
+                              onClick={() => {
+                                setSelectedAnswers((prev) => ({
+                                  ...prev,
+                                  [questions[currentQuestion].id]: optionKey,
+                                }))
+                              }}
+                            >
+                              <RadioGroupItem value={optionKey} id={`option-${optionKey}`} />
+                              <Label htmlFor={`option-${optionKey}`} className="flex-1 cursor-pointer text-base">
+                                {optionKey}: {optionText}
+                              </Label>
+                            </div>
+                          ))}
+                      </RadioGroup>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter className="flex flex-col sm:flex-row justify-between gap-2 mt-4">
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    onClick={handlePrevious}
+                    disabled={currentQuestion === 0}
+                    className="flex-1"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-2" />
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleNext}
+                    disabled={currentQuestion === questions.length - 1}
+                    className="flex-1"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-2" />
+                  </Button>
+                </div>
+                <Button
+                  onClick={handleSubmitTest}
+                  disabled={Object.values(selectedAnswers).some((answer) => !answer)}
+                  className="w-full sm:w-auto mt-2 sm:mt-0"
+                >
+                  Submit
+                </Button>
+              </DialogFooter>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
