@@ -1,100 +1,72 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { ChevronLeft, ChevronRight, AlertCircle } from "lucide-react"
+import { ChevronLeft, ChevronRight, AlertCircle, Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { fetchQuizQuestions, fetchAnswerKey, type QuizQuestion, type AnswerKey } from "@/lib/quiz-service"
 
-export function QuizContent({ chapterId }: { chapterId: string }) {
+interface QuizContentProps {
+  chapterId: string
+}
+
+export function QuizContent({ chapterId }: QuizContentProps) {
   const router = useRouter()
   const [currentQuestion, setCurrentQuestion] = useState(0)
-  const [selectedAnswers, setSelectedAnswers] = useState<string[]>(Array(5).fill(""))
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [score, setScore] = useState(0)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // This would come from an API in a real application
-  const quizData = {
-    title:
-      chapterId === "1" ? "Mobile Recharge Shop" : chapterId === "2" ? "Debit Card Cloning" : `Chapter ${chapterId}`,
-    questions: [
-      {
-        id: 1,
-        text:
-          chapterId === "2"
-            ? "What are the ways to figure that a skimming device has been attached? I.Look out for protruding or extra layer of fittings over the card reader II.Check the slot for moving parts"
-            : "What is the potential risk of giving your mobile number to a local recharge shop?",
-        options:
-          chapterId === "2"
-            ? ["I only", "II only", "I and II", "None of the above"]
-            : [
-                "No risk at all",
-                "They might send spam messages",
-                "They could create a fake identity using your information",
-                "They might charge extra for the recharge",
-              ],
-        correctAnswer: chapterId === "2" ? "I and II" : "They could create a fake identity using your information",
-      },
-      {
-        id: 2,
-        text:
-          chapterId === "2"
-            ? "Does having ATM guard minimize the possibility of a skimming attack?"
-            : "What should you do to minimize the risk when recharging your mobile?",
-        options:
-          chapterId === "2"
-            ? [
-                "Yes, if the guard observes people's activity in the ATM",
-                "Yes, if the guard observes people's activity in the ATM and can identify if a skimming device has been attached",
-                "No, this would not make any difference",
-                "I don't know",
-              ]
-            : [
-                "Use online recharge methods",
-                "Go to the official customer care center",
-                "Use a trusted vendor you know personally",
-                "All of the above",
-              ],
-        correctAnswer:
-          chapterId === "2"
-            ? "Yes, if the guard observes people's activity in the ATM and can identify if a skimming device has been attached"
-            : "All of the above",
-      },
-      {
-        id: 3,
-        text: "Which section of the IT Act deals with identity theft?",
-        options: ["Section 65", "Section 66C", "Section 67", "Section 70"],
-        correctAnswer: "Section 66C",
-      },
-      {
-        id: 4,
-        text: "What should you do if you suspect your information has been compromised?",
-        options: [
-          "Ignore it as nothing will happen",
-          "Wait and see if there's any suspicious activity",
-          "Report to the authorities immediately",
-          "Change all your passwords but don't report",
-        ],
-        correctAnswer: "Report to the authorities immediately",
-      },
-      {
-        id: 5,
-        text: "Which of the following is NOT a good cybersecurity practice?",
-        options: [
-          "Using different passwords for different accounts",
-          "Sharing your OTP with trusted friends",
-          "Enabling two-factor authentication",
-          "Regularly updating your devices",
-        ],
-        correctAnswer: "Sharing your OTP with trusted friends",
-      },
-    ],
-  }
+  // State for storing fetched data
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
+  const [answerKey, setAnswerKey] = useState<AnswerKey>({})
+
+  // Format chapter ID for Firestore (e.g., "1" -> "CH-001")
+  const chapter = `CH-${chapterId.padStart(3, "0")}`
+
+  // Fetch quiz data from Firestore
+  useEffect(() => {
+    async function loadQuizData() {
+      setLoading(true)
+      setError(null)
+
+      try {
+        const [fetchedQuestions, fetchedAnswerKey] = await Promise.all([
+          fetchQuizQuestions(chapter),
+          fetchAnswerKey(chapter),
+        ])
+
+        if (fetchedQuestions.length === 0) {
+          setError("No questions found for this chapter.")
+        } else {
+          setQuestions(fetchedQuestions)
+          setAnswerKey(fetchedAnswerKey)
+          // Initialize selectedAnswers with empty values
+          const initialAnswers: Record<string, string> = {}
+          fetchedQuestions.forEach((q) => {
+            initialAnswers[q.id] = ""
+          })
+          setSelectedAnswers(initialAnswers)
+        }
+      } catch (err) {
+        console.error("Failed to load quiz data:", err)
+        setError("Failed to load quiz. Please try again later.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadQuizData()
+  }, [chapter])
 
   const handleNext = () => {
-    if (currentQuestion < quizData.questions.length - 1) {
+    if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1)
     }
   }
@@ -106,29 +78,56 @@ export function QuizContent({ chapterId }: { chapterId: string }) {
   }
 
   const handleSubmit = () => {
+    // Calculate score by comparing selected answers with answer key
+    let correctAnswers = 0
+
+    Object.entries(selectedAnswers).forEach(([questionId, selectedOption]) => {
+      if (answerKey[questionId] === selectedOption) {
+        correctAnswers++
+      }
+    })
+
+    setScore(correctAnswers)
     setIsSubmitted(true)
-    // In a real app, you would send the answers to the server
   }
 
-  const calculateScore = () => {
-    return quizData.questions.reduce((score, question, index) => {
-      return score + (selectedAnswers[index] === question.correctAnswer ? 1 : 0)
-    }, 0)
+  // Loading state
+  if (loading) {
+    return (
+      <Card className="max-w-3xl mx-auto">
+        <CardContent className="flex flex-col items-center justify-center py-12">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+          <p className="text-lg font-medium">Loading quiz questions...</p>
+        </CardContent>
+      </Card>
+    )
   }
 
-  const currentQuestionData = quizData.questions[currentQuestion]
+  // Error state
+  if (error) {
+    return (
+      <Card className="max-w-3xl mx-auto">
+        <CardContent className="py-8">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+          <Button className="mt-6" onClick={() => router.push(`/chapters/${chapterId}`)}>
+            Back to Chapter
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
 
   if (isSubmitted) {
-    const score = calculateScore()
-    const totalQuestions = quizData.questions.length
+    const totalQuestions = questions.length
 
     return (
       <Card className="max-w-3xl mx-auto">
         <CardHeader>
           <CardTitle>Quiz Results</CardTitle>
-          <CardDescription>
-            Chapter {chapterId}: {quizData.title}
-          </CardDescription>
+          <CardDescription>Chapter {chapterId}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="text-center p-6 bg-muted rounded-lg">
@@ -146,18 +145,22 @@ export function QuizContent({ chapterId }: { chapterId: string }) {
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Question Summary</h3>
             <div className="flex flex-wrap gap-3 justify-center">
-              {quizData.questions.map((question, index) => (
-                <div
-                  key={index}
-                  className={`w-10 h-10 flex items-center justify-center rounded-full font-medium ${
-                    selectedAnswers[index] === question.correctAnswer
-                      ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
-                      : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
-                  }`}
-                >
-                  {index + 1}
-                </div>
-              ))}
+              {questions.map((question, index) => {
+                const isCorrect = answerKey[question.id] === selectedAnswers[question.id]
+
+                return (
+                  <div
+                    key={index}
+                    className={`w-10 h-10 flex items-center justify-center rounded-full font-medium ${
+                      isCorrect
+                        ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300"
+                        : "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </CardContent>
@@ -169,7 +172,11 @@ export function QuizContent({ chapterId }: { chapterId: string }) {
             onClick={() => {
               setIsSubmitted(false)
               setCurrentQuestion(0)
-              setSelectedAnswers(Array(5).fill(""))
+              const resetAnswers: Record<string, string> = {}
+              questions.forEach((q) => {
+                resetAnswers[q.id] = ""
+              })
+              setSelectedAnswers(resetAnswers)
             }}
           >
             Retake Quiz
@@ -179,18 +186,35 @@ export function QuizContent({ chapterId }: { chapterId: string }) {
     )
   }
 
+  // If no questions loaded
+  if (questions.length === 0) {
+    return (
+      <Card className="max-w-3xl mx-auto">
+        <CardContent className="py-8">
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>No questions available for this chapter.</AlertDescription>
+          </Alert>
+          <Button className="mt-6" onClick={() => router.push(`/chapters/${chapterId}`)}>
+            Back to Chapter
+          </Button>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  const currentQuestionData = questions[currentQuestion]
+
   return (
     <Card className="max-w-3xl mx-auto">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Take a Quiz</CardTitle>
-            <CardDescription>
-              Chapter {chapterId}: {quizData.title}
-            </CardDescription>
+            <CardDescription>Chapter {chapterId}</CardDescription>
           </div>
           <div className="text-sm font-medium">
-            Question {currentQuestion + 1} of {quizData.questions.length}
+            Question {currentQuestion + 1} of {questions.length}
           </div>
         </div>
       </CardHeader>
@@ -206,36 +230,40 @@ export function QuizContent({ chapterId }: { chapterId: string }) {
           <div className="space-y-6">
             <div>
               <h3 className="text-lg font-medium mb-4">
-                {currentQuestion + 1}. {currentQuestionData.text}
+                {currentQuestion + 1}. {currentQuestionData.question}
               </h3>
 
               <RadioGroup
-                value={selectedAnswers[currentQuestion]}
+                value={selectedAnswers[currentQuestionData.id] || ""}
                 onValueChange={(value) => {
-                  const newAnswers = [...selectedAnswers]
-                  newAnswers[currentQuestion] = value
-                  setSelectedAnswers(newAnswers)
+                  setSelectedAnswers((prev) => ({
+                    ...prev,
+                    [currentQuestionData.id]: value,
+                  }))
                 }}
                 className="space-y-3"
               >
-                {currentQuestionData.options.map((option, index) => (
-                  <div
-                    key={index}
-                    className={`flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors ${
-                      selectedAnswers[currentQuestion] === option ? "bg-muted" : ""
-                    }`}
-                    onClick={() => {
-                      const newAnswers = [...selectedAnswers]
-                      newAnswers[currentQuestion] = option
-                      setSelectedAnswers(newAnswers)
-                    }}
-                  >
-                    <RadioGroupItem value={option} id={`option-${index}`} className="sr-only" />
-                    <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer text-base">
-                      {option}
-                    </Label>
-                  </div>
-                ))}
+                {Object.entries(currentQuestionData.options)
+                  .sort()
+                  .map(([optionKey, optionText]) => (
+                    <div
+                      key={optionKey}
+                      className={`flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors ${
+                        selectedAnswers[currentQuestionData.id] === optionKey ? "bg-muted" : ""
+                      }`}
+                      onClick={() => {
+                        setSelectedAnswers((prev) => ({
+                          ...prev,
+                          [currentQuestionData.id]: optionKey,
+                        }))
+                      }}
+                    >
+                      <RadioGroupItem value={optionKey} id={`option-${optionKey}`} />
+                      <Label htmlFor={`option-${optionKey}`} className="flex-1 cursor-pointer text-base">
+                        {optionKey}: {optionText}
+                      </Label>
+                    </div>
+                  ))}
               </RadioGroup>
             </div>
           </div>
@@ -247,12 +275,12 @@ export function QuizContent({ chapterId }: { chapterId: string }) {
             <ChevronLeft className="h-4 w-4 mr-2" />
             Previous
           </Button>
-          <Button variant="outline" onClick={handleNext} disabled={currentQuestion === quizData.questions.length - 1}>
+          <Button variant="outline" onClick={handleNext} disabled={currentQuestion === questions.length - 1}>
             Next
             <ChevronRight className="h-4 w-4 ml-2" />
           </Button>
         </div>
-        <Button onClick={handleSubmit} disabled={selectedAnswers.some((answer) => !answer)}>
+        <Button onClick={handleSubmit} disabled={Object.values(selectedAnswers).some((answer) => !answer)}>
           Submit
         </Button>
       </CardFooter>
