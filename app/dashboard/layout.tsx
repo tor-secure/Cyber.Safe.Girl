@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { UserAccountNav } from "@/components/user-account-nav"
 import { useAuth } from "@/lib/auth-context"
+import { useProgress } from "@/lib/progress-context"
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -35,69 +36,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [isAuthenticated, pathname, router])
 
-  const [chapters, setChapters] = useState<{
-    id: number;
-    title: string;
-    completed: boolean;
-    locked: boolean;
-  }[]>([])
-  const [finalTestUnlocked, setFinalTestUnlocked] = useState(false)
-  const [certificateUnlocked, setCertificateUnlocked] = useState(false)
-  const { user } = useAuth()
-
-  // Fetch user progress to determine locked/unlocked chapters
-  useEffect(() => {
-    if (user?.id) {
-      console.log("Fetching user progress for user:", user.id)
-      fetch(`/api/user-progress?userId=${user.id}`)
-        .then(res => res.json())
-        .then(data => {
-          console.log("User progress data received:", data)
-          if (data.progress) {
-            const { completedChapters, unlockedChapters, finalTestUnlocked, certificateUnlocked } = data.progress
-            
-            console.log("Completed chapters:", completedChapters)
-            console.log("Unlocked chapters:", unlockedChapters)
-            
-            // Format chapter IDs to match the expected format (number)
-            const completedChapterIds = completedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
-            const unlockedChapterIds = unlockedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
-            
-            console.log("Completed chapter IDs:", completedChapterIds)
-            console.log("Unlocked chapter IDs:", unlockedChapterIds)
-            
-            // Create chapters array with correct locked/completed status
-            const chaptersData = Array.from({ length: 60 }, (_, i) => {
-              const chapterId = i + 1
-              return {
-                id: chapterId,
-                title: `Chapter ${chapterId}`,
-                completed: completedChapterIds.includes(chapterId),
-                locked: !unlockedChapterIds.includes(chapterId),
-              }
-            })
-            
-            console.log("Setting chapters data:", chaptersData.slice(0, 5)) // Log first 5 chapters for debugging
-            setChapters(chaptersData)
-            setFinalTestUnlocked(finalTestUnlocked)
-            setCertificateUnlocked(certificateUnlocked)
-          }
-        })
-        .catch(error => {
-          console.error("Error fetching user progress:", error)
-          // Fallback to default state if fetch fails
-          const defaultChapters = Array.from({ length: 60 }, (_, i) => ({
-            id: i + 1,
-            title: `Chapter ${i + 1}`,
-            completed: false,
-            locked: i > 0, // Only first chapter unlocked by default
-          }))
-          setChapters(defaultChapters)
-        })
-    } else {
-      console.log("No user ID available, cannot fetch user progress")
-    }
-  }, [user?.id])
+  // Use the progress context instead of local state
+  const { chapters, finalTestUnlocked, certificateUnlocked, isLoading } = useProgress()
 
   return (
     <SidebarProvider defaultOpen={true}>

@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
+import { ProgressProvider } from "@/lib/progress-context"
 import { ChatButton } from "@/components/chat/chat-button"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -49,7 +50,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <ProgressProvider>
+              {children}
+            </ProgressProvider>
+          </AuthProvider>
         </ThemeProvider>
         <ChatButton />
       </body>
