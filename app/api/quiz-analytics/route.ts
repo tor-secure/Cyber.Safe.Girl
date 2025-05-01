@@ -13,6 +13,38 @@ export async function GET(request: NextRequest) {
 
     console.log("Quiz Analytics API - User ID:", userId);
 
+    // Check if we're using mock credentials
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+      console.log("Using mock quiz analytics data");
+      
+      // Create mock quiz analytics data
+      const mockQuizAnalytics = [
+        {
+          id: "mock-quiz-1",
+          chapterId: "CH-001",
+          score: 8,
+          totalQuestionsAttempted: 10,
+          submittedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+        },
+        {
+          id: "mock-quiz-2",
+          chapterId: "CH-002",
+          score: 7,
+          totalQuestionsAttempted: 10,
+          submittedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString() // 5 days ago
+        },
+        {
+          id: "mock-quiz-3",
+          chapterId: "CH-003",
+          score: 9,
+          totalQuestionsAttempted: 10,
+          submittedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString() // 2 days ago
+        }
+      ];
+      
+      return NextResponse.json({ quizAnalytics: mockQuizAnalytics });
+    }
+
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
       return NextResponse.json({ error: "Database connection error" }, { status: 500 });

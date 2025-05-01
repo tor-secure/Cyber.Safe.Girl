@@ -15,6 +15,80 @@ export async function GET(request: NextRequest) {
     
     console.log("Quiz API GET - Chapter ID:", chapterId);
 
+    // Check if we're using mock credentials
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+      console.log("Using mock quiz questions data");
+      
+      // Define the question type
+      interface QuizQuestion {
+        question: string;
+        options: {
+          A: string;
+          B: string;
+          C: string;
+          D: string;
+        };
+      }
+      
+      // Create mock questions for this chapter
+      const mockQuestions = [
+        {
+          id: "Q1",
+          question: "What is the most common type of cyber attack?",
+          options: {
+            A: "Phishing",
+            B: "Malware",
+            C: "DDoS",
+            D: "SQL Injection"
+          }
+        },
+        {
+          id: "Q2",
+          question: "Which of these is a strong password?",
+          options: {
+            A: "password123",
+            B: "P@ssw0rd!2023",
+            C: "qwerty",
+            D: "12345678"
+          }
+        },
+        {
+          id: "Q3",
+          question: "What is two-factor authentication?",
+          options: {
+            A: "Using two different passwords",
+            B: "Logging in from two different devices",
+            C: "Using something you know and something you have for authentication",
+            D: "Changing your password twice a month"
+          }
+        },
+        {
+          id: "Q4",
+          question: "What should you do if you receive a suspicious email?",
+          options: {
+            A: "Reply to ask for more information",
+            B: "Click on links to verify them",
+            C: "Delete it immediately",
+            D: "Report it and don't click on any links"
+          }
+        },
+        {
+          id: "Q5",
+          question: "What is a VPN used for?",
+          options: {
+            A: "Speeding up your internet connection",
+            B: "Encrypting your internet traffic",
+            C: "Blocking all websites",
+            D: "Sharing your location with websites"
+          }
+        }
+      ];
+      
+      return NextResponse.json({
+        questions: mockQuestions,
+      });
+    }
+
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
       return NextResponse.json({ error: "Database connection error" }, { status: 500 });
@@ -153,6 +227,58 @@ export async function POST(request: NextRequest) {
     }
     if (!userId) {
         return NextResponse.json({ error: "User ID is required" }, { status: 400 });
+    }
+
+    // Check if we're using mock credentials
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+      console.log("Using mock quiz evaluation");
+      
+      // Mock correct answers
+      const mockCorrectAnswers = {
+        "Q1": "A",
+        "Q2": "B",
+        "Q3": "C",
+        "Q4": "D",
+        "Q5": "B"
+      };
+      
+      // Evaluate user answers
+      let score = 0;
+      const totalQuestionsAttempted = Object.keys(userAnswers).length;
+      const evaluationDetails: Record<string, { userAnswer: string; correctAnswer: string; isCorrect: boolean }> = {};
+      
+      for (const questionId in userAnswers) {
+        const userAnswer = userAnswers[questionId];
+        const correctAnswer = mockCorrectAnswers[questionId as keyof typeof mockCorrectAnswers];
+        const isCorrect = userAnswer === correctAnswer;
+        
+        if (isCorrect) {
+          score++;
+        }
+        
+        evaluationDetails[questionId] = {
+          userAnswer,
+          correctAnswer: correctAnswer || "N/A",
+          isCorrect
+        };
+      }
+      
+      // Create mock analytics
+      const mockAnalytics = {
+        chapterId,
+        userId,
+        score,
+        totalQuestionsAttempted,
+        submittedAt: new Date().toISOString()
+      };
+      
+      return NextResponse.json({
+        message: "Quiz evaluated successfully",
+        score,
+        totalQuestionsAttempted,
+        evaluationDetails,
+        analytics: mockAnalytics
+      });
     }
 
     if (!adminDb) {

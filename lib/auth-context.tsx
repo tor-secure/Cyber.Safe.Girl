@@ -106,39 +106,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      // Sign in with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
-      // Get the user from the credential
-      const firebaseUser = userCredential.user;
-      
-      // Get the ID token
-      const token = await firebaseUser.getIdToken(true);
-      
-      // Store token in a cookie that persists across sessions
-      setCookie('firebase-auth-token', token, 30); // 30 days
-      
-      // Also store in localStorage as a backup
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('firebase-auth-token', token);
+      // Check if we're using mock credentials and allow test user login
+      if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key' && 
+          email === 'test@example.com' && 
+          password === 'password123') {
+        
+        console.log("Using test user login with mock credentials");
+        
+        // Create a mock token
+        const mockToken = "mock-firebase-token-" + Date.now();
+        
+        // Store token in a cookie that persists across sessions
+        setCookie('firebase-auth-token', mockToken, 30); // 30 days
+        
+        // Also store in localStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', mockToken);
+        }
+        
+        // Create mock user data
+        const userData = {
+          id: 'test-user-id',
+          name: 'Test User',
+          email: email,
+          avatar: undefined,
+        };
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // Update state
+        setUser(userData);
+        
+        return userData;
+      } else {
+        // Regular Firebase authentication
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        // Get the user from the credential
+        const firebaseUser = userCredential.user;
+        
+        // Get the ID token
+        const token = await firebaseUser.getIdToken(true);
+        
+        // Store token in a cookie that persists across sessions
+        setCookie('firebase-auth-token', token, 30); // 30 days
+        
+        // Also store in localStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', token);
+        }
+        
+        // Convert Firebase user to our User type and store in localStorage
+        const userData = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          avatar: firebaseUser.photoURL || undefined,
+        };
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // Update state
+        setUser(userData);
+        
+        return userData;
       }
-      
-      // Convert Firebase user to our User type and store in localStorage
-      const userData = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'User',
-        email: firebaseUser.email || '',
-        avatar: firebaseUser.photoURL || undefined,
-      };
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(userData));
-      }
-      
-      // Update state
-      setUser(userData);
-      
-      return userData;
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -151,44 +187,77 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true)
     try {
-      // Create user with Firebase
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      
-      // Get the user from the credential
-      const firebaseUser = userCredential.user;
-      
-      // Update the user profile with the name
-      await updateProfile(firebaseUser, {
-        displayName: name
-      });
-      
-      // Get the ID token
-      const token = await firebaseUser.getIdToken(true);
-      
-      // Store token in a cookie that persists across sessions
-      setCookie('firebase-auth-token', token, 30); // 30 days
-      
-      // Also store in localStorage as a backup
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('firebase-auth-token', token);
+      // Check if we're using mock credentials
+      if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+        console.log("Using test user registration with mock credentials");
+        
+        // Create a mock token
+        const mockToken = "mock-firebase-token-" + Date.now();
+        
+        // Store token in a cookie that persists across sessions
+        setCookie('firebase-auth-token', mockToken, 30); // 30 days
+        
+        // Also store in localStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', mockToken);
+        }
+        
+        // Create mock user data
+        const userData = {
+          id: 'test-user-id',
+          name: name,
+          email: email,
+          avatar: undefined,
+        };
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // Update state
+        setUser(userData);
+        
+        return userData;
+      } else {
+        // Create user with Firebase
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
+        // Get the user from the credential
+        const firebaseUser = userCredential.user;
+        
+        // Update the user profile with the name
+        await updateProfile(firebaseUser, {
+          displayName: name
+        });
+        
+        // Get the ID token
+        const token = await firebaseUser.getIdToken(true);
+        
+        // Store token in a cookie that persists across sessions
+        setCookie('firebase-auth-token', token, 30); // 30 days
+        
+        // Also store in localStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', token);
+        }
+        
+        // Convert Firebase user to our User type and store in localStorage
+        const userData = {
+          id: firebaseUser.uid,
+          name: name || 'User',
+          email: firebaseUser.email || '',
+          avatar: firebaseUser.photoURL || undefined,
+        };
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // Update state
+        setUser(userData);
+        
+        return userData;
       }
-      
-      // Convert Firebase user to our User type and store in localStorage
-      const userData = {
-        id: firebaseUser.uid,
-        name: name || 'User',
-        email: firebaseUser.email || '',
-        avatar: firebaseUser.photoURL || undefined,
-      };
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(userData));
-      }
-      
-      // Update state
-      setUser(userData);
-      
-      return userData;
     } catch (error) {
       console.error("Registration failed:", error);
       throw error;
@@ -201,41 +270,74 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = async () => {
     setIsLoading(true)
     try {
-      const provider = new GoogleAuthProvider();
-      
-      // Sign in with Google
-      const result = await signInWithPopup(auth, provider);
-      
-      // Get the user from the credential
-      const firebaseUser = result.user;
-      
-      // Get the ID token
-      const token = await firebaseUser.getIdToken(true);
-      
-      // Store token in a cookie that persists across sessions
-      setCookie('firebase-auth-token', token, 30); // 30 days
-      
-      // Also store in localStorage as a backup
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('firebase-auth-token', token);
+      // Check if we're using mock credentials
+      if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+        console.log("Using test Google login with mock credentials");
+        
+        // Create a mock token
+        const mockToken = "mock-firebase-token-" + Date.now();
+        
+        // Store token in a cookie that persists across sessions
+        setCookie('firebase-auth-token', mockToken, 30); // 30 days
+        
+        // Also store in localStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', mockToken);
+        }
+        
+        // Create mock user data
+        const userData = {
+          id: 'google-test-user-id',
+          name: 'Google Test User',
+          email: 'google-test@example.com',
+          avatar: 'https://via.placeholder.com/150',
+        };
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // Update state
+        setUser(userData);
+        
+        return userData;
+      } else {
+        const provider = new GoogleAuthProvider();
+        
+        // Sign in with Google
+        const result = await signInWithPopup(auth, provider);
+        
+        // Get the user from the credential
+        const firebaseUser = result.user;
+        
+        // Get the ID token
+        const token = await firebaseUser.getIdToken(true);
+        
+        // Store token in a cookie that persists across sessions
+        setCookie('firebase-auth-token', token, 30); // 30 days
+        
+        // Also store in localStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', token);
+        }
+        
+        // Convert Firebase user to our User type and store in localStorage
+        const userData = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          avatar: firebaseUser.photoURL || undefined,
+        };
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(userData));
+        }
+        
+        // Update state
+        setUser(userData);
+        
+        return userData;
       }
-      
-      // Convert Firebase user to our User type and store in localStorage
-      const userData = {
-        id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'User',
-        email: firebaseUser.email || '',
-        avatar: firebaseUser.photoURL || undefined,
-      };
-      
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user', JSON.stringify(userData));
-      }
-      
-      // Update state
-      setUser(userData);
-      
-      return userData;
     } catch (error) {
       console.error("Google login failed:", error);
       throw error;
@@ -247,10 +349,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Password reset
   const resetPassword = async (email: string) => {
     try {
-      await sendPasswordResetEmail(auth, email)
+      // Check if we're using mock credentials
+      if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+        console.log("Using mock password reset for:", email);
+        // Just pretend it worked
+        return;
+      } else {
+        await sendPasswordResetEmail(auth, email);
+      }
     } catch (error) {
-      console.error("Password reset failed:", error)
-      throw error
+      console.error("Password reset failed:", error);
+      throw error;
     }
   }
 
@@ -259,13 +368,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Clear the auth cookie
       deleteCookie('firebase-auth-token');
+      
       // Clear localStorage
-      localStorage.removeItem('user');
-      // Sign out from Firebase
-      await signOut(auth)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        localStorage.removeItem('firebase-auth-token');
+      }
+      
+      // Check if we're using mock credentials
+      if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+        console.log("Using mock logout");
+      } else {
+        // Sign out from Firebase
+        await signOut(auth);
+      }
+      
+      // Update state
+      setUser(null);
     } catch (error) {
-      console.error("Logout failed:", error)
-      throw error
+      console.error("Logout failed:", error);
+      throw error;
     }
   }
 

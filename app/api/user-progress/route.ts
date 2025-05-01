@@ -25,6 +25,24 @@ export async function GET(request: NextRequest) {
 
     console.log("User Progress API - User ID:", userId);
 
+    // Check if we're using mock credentials
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+      console.log("Using mock user progress data");
+      
+      // Create mock progress data with several chapters unlocked and completed
+      const mockProgress: UserProgress = {
+        userId,
+        completedChapters: ["CH-001", "CH-002", "CH-003"],
+        unlockedChapters: ["CH-001", "CH-002", "CH-003", "CH-004", "CH-005"],
+        finalTestUnlocked: false,
+        finalTestCompleted: false,
+        certificateUnlocked: false,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      return NextResponse.json({ progress: mockProgress });
+    }
+
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
       return NextResponse.json({ error: "Database connection error" }, { status: 500 });
@@ -79,6 +97,47 @@ export async function POST(request: NextRequest) {
     const passed = score >= passingScore;
     
     console.log("User Progress API POST - Passing score:", passingScore, "Passed:", passed);
+
+    // Check if we're using mock credentials
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+      console.log("Using mock user progress update");
+      
+      // Create mock progress data with the new chapter completed
+      const currentChapterNumber = parseInt(chapterId.replace('CH-', ''));
+      const nextChapterNumber = currentChapterNumber + 1;
+      const nextChapterId = `CH-${nextChapterNumber.toString().padStart(3, '0')}`;
+      
+      // Create a list of completed chapters including the current one
+      const completedChapters = ["CH-001", "CH-002", "CH-003"];
+      if (!completedChapters.includes(chapterId) && passed) {
+        completedChapters.push(chapterId);
+      }
+      
+      // Create a list of unlocked chapters including the next one
+      const unlockedChapters = ["CH-001", "CH-002", "CH-003", "CH-004", "CH-005"];
+      if (!unlockedChapters.includes(nextChapterId) && passed) {
+        unlockedChapters.push(nextChapterId);
+      }
+      
+      const mockProgress: UserProgress = {
+        userId,
+        completedChapters,
+        unlockedChapters,
+        finalTestUnlocked: completedChapters.length >= 70,
+        finalTestCompleted: false,
+        certificateUnlocked: false,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      return NextResponse.json({
+        success: true,
+        passed,
+        message: passed ? "Chapter completed successfully" : "Chapter not completed. Score below 30%",
+        unlockedNextChapter: passed,
+        nextChapterId: passed ? nextChapterId : null,
+        progress: mockProgress
+      });
+    }
 
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
@@ -175,6 +234,30 @@ export async function PATCH(request: NextRequest) {
     // Calculate passing score (30% or higher)
     const passingScore = Math.ceil(totalQuestions * 0.3);
     const passed = finalTestScore >= passingScore;
+
+    // Check if we're using mock credentials
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
+      console.log("Using mock final test completion");
+      
+      // Create mock progress data with final test completed
+      const mockProgress: UserProgress = {
+        userId,
+        completedChapters: ["CH-001", "CH-002", "CH-003", "CH-004", "CH-005"],
+        unlockedChapters: ["CH-001", "CH-002", "CH-003", "CH-004", "CH-005", "CH-006"],
+        finalTestUnlocked: true,
+        finalTestCompleted: true,
+        certificateUnlocked: passed,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      return NextResponse.json({
+        success: true,
+        passed,
+        certificateUnlocked: passed,
+        message: passed ? "Final test completed successfully. Certificate unlocked!" : "Final test not passed. Score below 30%",
+        progress: mockProgress
+      });
+    }
 
     if (!adminDb) {
       console.error("Firebase admin is not initialized");

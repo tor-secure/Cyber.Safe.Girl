@@ -31,6 +31,20 @@ export async function middleware(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const hasAuthHeader = authHeader && authHeader.startsWith('Bearer ')
   
+  // Check if we're using mock credentials
+  const isMockEnvironment = process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key'
+  
+  // If using mock credentials and the token starts with "mock-firebase-token", consider it valid
+  if (isMockEnvironment) {
+    const authToken = request.cookies.get('firebase-auth-token')?.value
+    const isMockToken = authToken && authToken.startsWith('mock-firebase-token')
+    
+    // If it's a mock token, allow access
+    if (isMockToken) {
+      return NextResponse.next()
+    }
+  }
+  
   // If no authentication found, redirect to login
   if (!hasAuthCookie && !hasAuthHeader) {
     // For API requests, return 401 Unauthorized
