@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { auth } from '@/lib/firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, Auth } from 'firebase/auth';
 import { setCookie, getCookie } from '@/lib/cookies';
 
 export function SessionInitializer() {

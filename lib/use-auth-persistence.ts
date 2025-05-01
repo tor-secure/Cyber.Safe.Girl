@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useAuth } from './auth-context';
 import { getCookie } from './cookies';
 import { auth } from './firebase';
-import { signInWithCustomToken } from 'firebase/auth';
+import { signInWithCustomToken, Auth } from 'firebase/auth';
 
 export function useAuthPersistence() {
   const { user, isLoading } = useAuth();
