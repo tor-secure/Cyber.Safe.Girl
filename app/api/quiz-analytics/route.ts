@@ -21,6 +21,9 @@ export async function GET(request: NextRequest) {
     // Query the userQuizAnalytics collection for the user's quiz results
     interface QuizAnalytic {
       id: string;
+      userId: string;
+      email?: string;
+      name?: string;
       chapterId: string;
       score: number;
       totalQuestionsAttempted: number;
@@ -45,6 +48,9 @@ export async function GET(request: NextRequest) {
           const data = doc.data();
           return {
             id: doc.id,
+            userId: data.userId,
+            email: data.email,
+            name: data.name,
             chapterId: data.chapterId,
             score: data.score,
             totalQuestionsAttempted: data.totalQuestionsAttempted,
@@ -69,6 +75,9 @@ export async function GET(request: NextRequest) {
           const data = doc.data();
           return {
             id: doc.id,
+            userId: data.userId,
+            email: data.email,
+            name: data.name,
             chapterId: data.chapterId,
             score: data.score,
             totalQuestionsAttempted: data.totalQuestionsAttempted,

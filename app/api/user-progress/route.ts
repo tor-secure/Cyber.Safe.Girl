@@ -4,6 +4,8 @@ import { adminDb } from "@/lib/firebase-admin"
 // Define the structure for user progress
 interface UserProgress {
   userId: string;
+  email?: string;
+  name?: string;
   completedChapters: string[];
   unlockedChapters: string[];
   finalTestUnlocked: boolean;
@@ -18,12 +20,16 @@ export async function GET(request: NextRequest) {
     // Get userId from the query parameters
     const url = new URL(request.url);
     const userId = url.searchParams.get('userId');
+    const email = url.searchParams.get('email');
+    const name = url.searchParams.get('name');
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
     console.log("User Progress API - User ID:", userId);
+    if (email) console.log("User Progress API - Email:", email);
+    if (name) console.log("User Progress API - Name:", name);
 
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
@@ -38,6 +44,8 @@ export async function GET(request: NextRequest) {
       // If no progress document exists, create a new one with only the first chapter unlocked
       const initialProgress: UserProgress = {
         userId,
+        email: email || undefined,
+        name: name || undefined,
         completedChapters: [],
         unlockedChapters: ["CH-001"],
         finalTestUnlocked: false,
@@ -52,6 +60,24 @@ export async function GET(request: NextRequest) {
 
     // Return existing progress
     const progress = userProgressSnap.data() as UserProgress;
+    
+    // Update email and name if provided and not already in the document
+    let updated = false;
+    if (email && !progress.email) {
+      progress.email = email;
+      updated = true;
+    }
+    if (name && !progress.name) {
+      progress.name = name;
+      updated = true;
+    }
+    
+    // If we added email or name, update the document
+    if (updated) {
+      progress.lastUpdated = new Date().toISOString();
+      await userProgressRef.set(progress);
+    }
+    
     return NextResponse.json({ progress });
 
   } catch (error) {
@@ -64,7 +90,7 @@ export async function GET(request: NextRequest) {
 // POST: Update user progress after completing a quiz
 export async function POST(request: NextRequest) {
   try {
-    const { userId, chapterId, score, totalQuestions } = await request.json();
+    const { userId, chapterId, score, totalQuestions, email, name } = await request.json();
 
     if (!userId || !chapterId) {
       return NextResponse.json({ error: "User ID and Chapter ID are required" }, { status: 400 });
@@ -95,6 +121,8 @@ export async function POST(request: NextRequest) {
       // Initialize progress if it doesn't exist
       progress = {
         userId,
+        email: email || undefined,
+        name: name || undefined,
         completedChapters: [],
         unlockedChapters: ["CH-001"],
         finalTestUnlocked: false,
@@ -104,6 +132,14 @@ export async function POST(request: NextRequest) {
       };
     } else {
       progress = userProgressSnap.data() as UserProgress;
+      
+      // Update email and name if provided and not already in the document
+      if (email && !progress.email) {
+        progress.email = email;
+      }
+      if (name && !progress.name) {
+        progress.name = name;
+      }
     }
 
     // If user passed the quiz
