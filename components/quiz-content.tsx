@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, AlertCircle, Loader2, CheckCircle, XCircle }
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useAuth } from "@/lib/auth-context" // Import useAuth hook
+import { useProgress } from "@/lib/progress-context" // Import useProgress hook
 import { type QuizQuestion } from "@/lib/quiz-service" // Keep QuizQuestion type if needed
 
 // Define the structure of the analytics object received from the backend
@@ -28,6 +29,7 @@ interface QuizContentProps {
 export function QuizContent({ chapterId }: QuizContentProps) {
   const router = useRouter()
   const { user, isLoading: authLoading } = useAuth() // Get user and auth loading state
+  const { refreshProgress } = useProgress() // Get refreshProgress function from progress context
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -127,6 +129,10 @@ export function QuizContent({ chapterId }: QuizContentProps) {
       // Store the analytics received from the backend
       setQuizAnalytics(result.analytics);
       setIsSubmitted(true);
+            
+      // Refresh the progress context to update the sidebar
+      refreshProgress();
+      console.log("Progress refreshed after quiz submission");
 
     } catch (err: any) {
       console.error("Failed to submit quiz:", err);

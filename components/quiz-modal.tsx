@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/dialog"
 import { type QuizQuestion } from "@/lib/quiz-service"
 import { useAuth } from "@/lib/auth-context" // Import useAuth hook
+import { useProgress } from "@/lib/progress-context" // Import useProgress hook
 
 // Define the structure of the analytics object received from the backend
 interface QuizAnalytics {
@@ -37,6 +38,7 @@ interface QuizModalProps {
 
 export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizModalProps) {
   const { user, isLoading: authLoading } = useAuth() // Get user and auth loading state
+  const { refreshProgress } = useProgress() // Get refreshProgress function from progress context
   const [currentQuestion, setCurrentQuestion] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -180,6 +182,10 @@ export function QuizModal({ open, onOpenChange, chapterId, onComplete }: QuizMod
         });
 
         const progressResult = await progressResponse.json();
+                
+        // Refresh the progress context to update the sidebar
+        refreshProgress();
+        console.log("Progress refreshed after quiz submission in modal");
         
         if (progressResult.unlockedNextChapter) {
           console.log(`Unlocked next chapter: ${progressResult.nextChapterId}`);

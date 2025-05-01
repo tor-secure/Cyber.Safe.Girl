@@ -15,6 +15,7 @@ import Link from "next/link";
 import { QuizModal } from "@/components/quiz-modal";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth-context";
+import { useProgress } from "@/lib/progress-context";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -31,6 +32,7 @@ interface UserProgress {
 export function ChapterContent({ chapterId }: { chapterId: string }) {
   const { user } = useAuth();
   const router = useRouter();
+  const { refreshProgress } = useProgress(); // Get refreshProgress function from progress context
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
   const [chapterCompleted, setChapterCompleted] = useState(false);
   const [chapterUnlocked, setChapterUnlocked] = useState(false);
@@ -198,6 +200,10 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
         
         setUserProgress(updatedProgress);
       }
+            
+      // Refresh the progress context to update the sidebar
+      refreshProgress();
+      console.log("Progress refreshed after quiz completion");
       
       toast({
         title: "Chapter Completed!",

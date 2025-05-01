@@ -15,11 +15,11 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isLoading && !user) {
-      router.push("/login")
-    }
-  }, [user, isLoading, router])
+  // useEffect(() => {
+  //   if (!isLoading && !user) {
+  //     router.push("/login")
+  //   }
+  // }, [user, isLoading, router])
 
   // Show loading state while checking authentication
   if (isLoading) {

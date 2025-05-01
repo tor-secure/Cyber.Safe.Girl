@@ -30,11 +30,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!isAuthenticated && pathname !== "/login") {
-      router.push("/login")
-    }
-  }, [isAuthenticated, pathname, router])
+  // useEffect(() => {
+  //   if (!isAuthenticated && pathname !== "/login") {
+  //     router.push("/login")
+  //   }
+  // }, [isAuthenticated, pathname, router])
 
   // Use the progress context instead of local state
   const { chapters, finalTestUnlocked, certificateUnlocked, isLoading } = useProgress()
