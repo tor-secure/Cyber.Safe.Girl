@@ -6,12 +6,17 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
 import { ProgressProvider } from "@/lib/progress-context"
 import { ChatButton } from "@/components/chat/chat-button"
+import { AuthPersistence } from "@/components/auth-persistence"
+import { SessionInitializer } from "@/components/session-initializer"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Cyber Safe Girl - Beti Bachao, Cyber Crime Se.",
   description: "Cyber Safe Girl awareness initiative for digital safety.",
+}
+
+export const viewport = {
   themeColor: "#000000",
 }
 
@@ -52,6 +57,8 @@ export default function RootLayout({
         >
           <AuthProvider>
             <ProgressProvider>
+              <SessionInitializer />
+              <AuthPersistence />
               {children}
             </ProgressProvider>
           </AuthProvider>

@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { createContext, useContext, useState, useEffect } from "react"
+import { setCookie, deleteCookie } from './cookies'
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -26,9 +27,9 @@ type User = {
 type AuthContextType = {
   user: User | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
-  loginWithGoogle: () => Promise<void>
+  login: (email: string, password: string) => Promise<User | void>
+  register: (name: string, email: string, password: string) => Promise<User | void>
+  loginWithGoogle: () => Promise<User | void>
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   isAuthenticated: boolean
@@ -42,36 +43,107 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    // First, try to restore user from localStorage on initial load
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('user') : null;
+    if (storedUser) {
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      } catch (e) {
+        console.error('Failed to parse stored user data', e);
+      }
+    }
+
+    // Then set up the auth state listener
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setIsLoading(true)
       if (firebaseUser) {
-        // Convert Firebase user to our User type
-        setUser({
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || 'User',
-          email: firebaseUser.email || '',
-          avatar: firebaseUser.photoURL || undefined,
-        })
+        try {
+          // Get the ID token with force refresh to ensure it's up to date
+          const token = await firebaseUser.getIdToken(true);
+          
+          // Store token in a cookie that persists across sessions
+          setCookie('firebase-auth-token', token, 30); // 30 days
+          
+          // Convert Firebase user to our User type
+          const userData = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || 'User',
+            email: firebaseUser.email || '',
+            avatar: firebaseUser.photoURL || undefined,
+          };
+          
+          // Update state
+          setUser(userData);
+          
+          // Store user data in localStorage for persistence
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('user', JSON.stringify(userData));
+            // Also store the token in localStorage as a backup
+            localStorage.setItem('firebase-auth-token', token);
+          }
+        } catch (error) {
+          console.error('Error processing authentication:', error);
+        }
       } else {
-        setUser(null)
+        // No user is signed in
+        if (typeof window !== 'undefined') {
+          // Clear the auth cookie when user is not authenticated
+          deleteCookie('firebase-auth-token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('firebase-auth-token');
+        }
+        setUser(null);
       }
-      setIsLoading(false)
-    })
+      setIsLoading(false);
+    });
 
     // Cleanup subscription
-    return () => unsubscribe()
+    return () => unsubscribe();
   }, [])
 
   // Email/password login
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      await signInWithEmailAndPassword(auth, email, password)
+      // Sign in with Firebase
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Get the user from the credential
+      const firebaseUser = userCredential.user;
+      
+      // Get the ID token
+      const token = await firebaseUser.getIdToken(true);
+      
+      // Store token in a cookie that persists across sessions
+      setCookie('firebase-auth-token', token, 30); // 30 days
+      
+      // Also store in localStorage as a backup
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('firebase-auth-token', token);
+      }
+      
+      // Convert Firebase user to our User type and store in localStorage
+      const userData = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'User',
+        email: firebaseUser.email || '',
+        avatar: firebaseUser.photoURL || undefined,
+      };
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
+      // Update state
+      setUser(userData);
+      
+      return userData;
     } catch (error) {
-      console.error("Login failed:", error)
-      throw error
+      console.error("Login failed:", error);
+      throw error;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -79,19 +151,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (name: string, email: string, password: string) => {
     setIsLoading(true)
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password)
+      // Create user with Firebase
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      
+      // Get the user from the credential
+      const firebaseUser = userCredential.user;
       
       // Update the user profile with the name
-      if (userCredential.user) {
-        await updateProfile(userCredential.user, {
-          displayName: name
-        })
+      await updateProfile(firebaseUser, {
+        displayName: name
+      });
+      
+      // Get the ID token
+      const token = await firebaseUser.getIdToken(true);
+      
+      // Store token in a cookie that persists across sessions
+      setCookie('firebase-auth-token', token, 30); // 30 days
+      
+      // Also store in localStorage as a backup
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('firebase-auth-token', token);
       }
+      
+      // Convert Firebase user to our User type and store in localStorage
+      const userData = {
+        id: firebaseUser.uid,
+        name: name || 'User',
+        email: firebaseUser.email || '',
+        avatar: firebaseUser.photoURL || undefined,
+      };
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
+      // Update state
+      setUser(userData);
+      
+      return userData;
     } catch (error) {
-      console.error("Registration failed:", error)
-      throw error
+      console.error("Registration failed:", error);
+      throw error;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -99,13 +201,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const loginWithGoogle = async () => {
     setIsLoading(true)
     try {
-      const provider = new GoogleAuthProvider()
-      await signInWithPopup(auth, provider)
+      const provider = new GoogleAuthProvider();
+      
+      // Sign in with Google
+      const result = await signInWithPopup(auth, provider);
+      
+      // Get the user from the credential
+      const firebaseUser = result.user;
+      
+      // Get the ID token
+      const token = await firebaseUser.getIdToken(true);
+      
+      // Store token in a cookie that persists across sessions
+      setCookie('firebase-auth-token', token, 30); // 30 days
+      
+      // Also store in localStorage as a backup
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('firebase-auth-token', token);
+      }
+      
+      // Convert Firebase user to our User type and store in localStorage
+      const userData = {
+        id: firebaseUser.uid,
+        name: firebaseUser.displayName || 'User',
+        email: firebaseUser.email || '',
+        avatar: firebaseUser.photoURL || undefined,
+      };
+      
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('user', JSON.stringify(userData));
+      }
+      
+      // Update state
+      setUser(userData);
+      
+      return userData;
     } catch (error) {
-      console.error("Google login failed:", error)
-      throw error
+      console.error("Google login failed:", error);
+      throw error;
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
   }
 
@@ -122,6 +257,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout
   const logout = async () => {
     try {
+      // Clear the auth cookie
+      deleteCookie('firebase-auth-token');
+      // Clear localStorage
+      localStorage.removeItem('user');
+      // Sign out from Firebase
       await signOut(auth)
     } catch (error) {
       console.error("Logout failed:", error)
