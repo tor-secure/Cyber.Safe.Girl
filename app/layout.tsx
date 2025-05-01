@@ -12,6 +12,9 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "Cyber Safe Girl - Beti Bachao, Cyber Crime Se.",
   description: "Cyber Safe Girl awareness initiative for digital safety.",
+}
+
+export const viewport = {
   themeColor: "#000000",
 }
 

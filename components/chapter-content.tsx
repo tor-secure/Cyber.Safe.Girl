@@ -202,7 +202,7 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
       toast({
         title: "Chapter Completed!",
         description: `You've successfully completed Chapter ${chapterId}. The next chapter is now unlocked.`,
-        variant: "success",
+        variant: "default",
       });
     }
   };

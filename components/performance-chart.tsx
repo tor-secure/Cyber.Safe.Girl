@@ -18,7 +18,7 @@ export function PerformanceChart() {
   const { user } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [quizData, setQuizData] = useState<{ chapter: string; score: number }[]>([])
+  const [quizData, setQuizData] = useState<{ chapter: string; score: number; total?: number }[]>([])
 
   useEffect(() => {
     async function fetchQuizAnalytics() {

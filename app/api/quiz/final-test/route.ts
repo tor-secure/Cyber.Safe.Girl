@@ -18,8 +18,19 @@ export async function GET(request: NextRequest) {
     if (!questionsSnap.exists) {
       console.log("Final Test API GET - Questions not found for final test, creating default questions");
       
+      // Define the question type
+      interface QuizQuestion {
+        question: string;
+        options: {
+          A: string;
+          B: string;
+          C: string;
+          D: string;
+        };
+      }
+      
       // Create default questions for the final test
-      const defaultQuestions = {
+      const defaultQuestions: Record<string, QuizQuestion> = {
         "FT1": {
           question: "What is the most effective way to protect your online accounts?",
           options: {
@@ -74,7 +85,18 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const questionsData = questionsSnap.data() || {};
+    // Define the question type if not already defined
+    interface QuizQuestion {
+      question: string;
+      options: {
+        A: string;
+        B: string;
+        C: string;
+        D: string;
+      };
+    }
+    
+    const questionsData = questionsSnap.data() as Record<string, QuizQuestion> || {};
 
     // Convert questions object to an array
     const questionsArray = Object.keys(questionsData).map((qId) => ({

@@ -8,11 +8,10 @@ function getRandomItems(array: any[], count: number) {
 }
 
 // --- GET Method: Fetch and send only quiz questions ---
-export async function GET(request: NextRequest, { params }: { params: { chapterId: string } }) {
+export async function GET(request: NextRequest) {
   try {
-    // Explicitly await params before destructuring
-    const resolvedParams = await params;
-    const { chapterId } = resolvedParams;
+    // Extract chapterId from the URL
+    const chapterId = request.nextUrl.pathname.split('/').pop();
     
     console.log("Quiz API GET - Chapter ID:", chapterId);
 
@@ -30,8 +29,19 @@ export async function GET(request: NextRequest, { params }: { params: { chapterI
     if (!questionsSnap.exists) {
       console.log("Quiz API GET - Questions not found for chapter:", chapterId);
       
+      // Define the question type
+      interface QuizQuestion {
+        question: string;
+        options: {
+          A: string;
+          B: string;
+          C: string;
+          D: string;
+        };
+      }
+      
       // Create default questions for this chapter
-      const defaultQuestions = {
+      const defaultQuestions: Record<string, QuizQuestion> = {
         "Q1": {
           question: "What is the most common type of cyber attack?",
           options: {
@@ -86,7 +96,18 @@ export async function GET(request: NextRequest, { params }: { params: { chapterI
       });
     }
 
-    const questionsData = questionsSnap.data() || {}
+    // Define the question type if not already defined
+    interface QuizQuestion {
+      question: string;
+      options: {
+        A: string;
+        B: string;
+        C: string;
+        D: string;
+      };
+    }
+    
+    const questionsData = questionsSnap.data() as Record<string, QuizQuestion> || {}
 
     // Convert questions object to an array
     const questionsArray = Object.keys(questionsData).map((qId) => ({
@@ -113,10 +134,10 @@ export async function GET(request: NextRequest, { params }: { params: { chapterI
 
 
 // --- POST Method: Receive answers, evaluate, store analytics, and respond ---
-export async function POST(request: NextRequest, { params }: { params: { chapterId: string } }) {
+export async function POST(request: NextRequest) {
   try {
-    const resolvedParams = await params;
-    const { chapterId } = resolvedParams;
+    // Extract chapterId from the URL
+    const chapterId = request.nextUrl.pathname.split('/').pop();
     
     console.log("Quiz API POST - Chapter ID:", chapterId);
 

@@ -19,7 +19,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Query the userQuizAnalytics collection for the user's quiz results
-    let quizAnalytics = [];
+    interface QuizAnalytic {
+      id: string;
+      chapterId: string;
+      score: number;
+      totalQuestionsAttempted: number;
+      submittedAt: string;
+    }
+    
+    let quizAnalytics: QuizAnalytic[] = [];
     
     try {
       // Try the compound query first (requires composite index)
