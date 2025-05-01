@@ -15,6 +15,8 @@ export async function middleware(request: NextRequest) {
     path.startsWith('/api/auth/') ||
     path === '/introduction' ||
     path.includes('/_next/') ||
+    path.includes('/static/') ||
+    path.includes('/images/') ||
     path.includes('/favicon.ico')
   
   // If it's a public path, allow access
@@ -22,24 +24,33 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
   
-  // Check if user is authenticated by looking for the Firebase auth cookie
-  const authCookie = request.cookies.get('firebase-auth-token')
+  // Check for authentication in multiple places
+  const hasAuthCookie = request.cookies.has('firebase-auth-token')
   
-  // If no auth cookie, redirect to login
-  if (!authCookie) {
+  // Check for token in authorization header (for API requests)
+  const authHeader = request.headers.get('authorization')
+  const hasAuthHeader = authHeader && authHeader.startsWith('Bearer ')
+  
+  // If no authentication found, redirect to login
+  if (!hasAuthCookie && !hasAuthHeader) {
+    // For API requests, return 401 Unauthorized
+    if (path.startsWith('/api/')) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+    
+    // For page requests, redirect to login
     return NextResponse.redirect(new URL('/login', request.url))
   }
   
   // If user is authenticated and trying to access login page, redirect to dashboard
-  if (path === '/login' && authCookie) {
+  if ((path === '/login' || path === '/register') && hasAuthCookie) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
   
-  // For API routes, we'll let them handle their own authentication
-  if (path.startsWith('/api/') && path !== '/api/auth/validate') {
-    return NextResponse.next()
-  }
-  
+  // Allow access to all other routes if authenticated
   return NextResponse.next()
 }
 
