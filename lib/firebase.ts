@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from "firebase/app"
-import { getAuth, setPersistence, browserLocalPersistence } from "firebase/auth"
+import { getAuth, setPersistence, browserLocalPersistence, inMemoryPersistence } from "firebase/auth"
 import { getFirestore } from "firebase/firestore"
 
 // Your web app's Firebase configuration
@@ -14,15 +14,30 @@ const firebaseConfig = {
 
 // Initialize Firebase only if it hasn't been initialized already
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0]
-export const auth = getAuth(app)
 
-// Set persistence to LOCAL (survives browser restarts)
+// Initialize Auth with the appropriate persistence
+let auth;
+
 if (typeof window !== 'undefined') {
+  // We're in the browser
+  auth = getAuth(app);
+  
+  // Set persistence to LOCAL (survives browser restarts)
   setPersistence(auth, browserLocalPersistence)
+    .catch((error) => {
+      console.error("Error setting auth persistence:", error);
+    });
+} else {
+  // We're on the server
+  auth = getAuth(app);
+  
+  // Use in-memory persistence on the server
+  setPersistence(auth, inMemoryPersistence)
     .catch((error) => {
       console.error("Error setting auth persistence:", error);
     });
 }
 
-export const db = getFirestore(app)
-export default app
+export { auth };
+export const db = getFirestore(app);
+export default app;
