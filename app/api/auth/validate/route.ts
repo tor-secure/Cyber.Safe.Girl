@@ -9,9 +9,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ valid: false, message: 'No token provided' }, { status: 400 });
     }
     
-    // Verify the token with Firebase Admin SDK
-    // Note: In a real implementation, you would use the Firebase Admin SDK
-    // For this example, we'll just return success
+    // Check if we're using mock credentials and it's a mock token
+    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key' && token.startsWith('mock-firebase-token')) {
+      console.log('Validating mock token');
+      return NextResponse.json({ valid: true });
+    }
+    
+    // Verify the token with Firebase Auth
+    // Note: In a real implementation with Firebase Admin SDK, you would use admin.auth().verifyIdToken(token)
+    // For this client-side implementation, we'll just return success if the token exists
     
     return NextResponse.json({ valid: true });
   } catch (error) {

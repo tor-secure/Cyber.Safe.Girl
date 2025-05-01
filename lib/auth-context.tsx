@@ -106,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setIsLoading(true)
     try {
-      // Sign in with Firebase
+      // Regular Firebase authentication
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
       // Get the user from the credential
@@ -126,7 +126,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Convert Firebase user to our User type and store in localStorage
       const userData = {
         id: firebaseUser.uid,
-        name: firebaseUser.displayName || 'User',
+        name: firebaseUser.displayName || email.split('@')[0],
         email: firebaseUser.email || '',
         avatar: firebaseUser.photoURL || undefined,
       };
@@ -247,10 +247,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Password reset
   const resetPassword = async (email: string) => {
     try {
-      await sendPasswordResetEmail(auth, email)
+      await sendPasswordResetEmail(auth, email);
     } catch (error) {
-      console.error("Password reset failed:", error)
-      throw error
+      console.error("Password reset failed:", error);
+      throw error;
     }
   }
 
@@ -259,13 +259,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       // Clear the auth cookie
       deleteCookie('firebase-auth-token');
+      
       // Clear localStorage
-      localStorage.removeItem('user');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        localStorage.removeItem('firebase-auth-token');
+      }
+      
       // Sign out from Firebase
-      await signOut(auth)
+      await signOut(auth);
+      
+      // Update state
+      setUser(null);
     } catch (error) {
-      console.error("Logout failed:", error)
-      throw error
+      console.error("Logout failed:", error);
+      throw error;
     }
   }
 

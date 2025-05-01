@@ -40,8 +40,8 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(true)
     try {
-      console.log("Fetching user progress for user:", user.id)
-      const response = await fetch(`/api/user-progress?userId=${user.id}`)
+      console.log("Fetching user progress for user:", user.name, "(", user.email, ")", "ID:", user.id)
+      const response = await fetch(`/api/user-progress?userId=${user.id}&email=${encodeURIComponent(user.email)}&name=${encodeURIComponent(user.name)}`)
       const data = await response.json()
       
       console.log("User progress data received:", data)

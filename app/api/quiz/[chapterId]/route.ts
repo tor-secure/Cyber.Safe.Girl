@@ -155,6 +155,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
+
+
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
       return NextResponse.json({ error: "Database connection error" }, { status: 500 });
