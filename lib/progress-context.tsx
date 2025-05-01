@@ -52,8 +52,8 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         console.log("Unlocked chapters:", unlockedChapters)
         
         // Format chapter IDs to match the expected format (number)
-        const completedChapterIds = completedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
-        const unlockedChapterIds = unlockedChapters.map(id => parseInt(id.replace('CH-', ''), 10))
+        const completedChapterIds = completedChapters.map((id: string) => parseInt(id.replace('CH-', ''), 10))
+        const unlockedChapterIds = unlockedChapters.map((id: string) => parseInt(id.replace('CH-', ''), 10))
         
         console.log("Completed chapter IDs:", completedChapterIds)
         console.log("Unlocked chapter IDs:", unlockedChapterIds)
