@@ -6,69 +6,6 @@ export async function GET(request: NextRequest) {
   try {
     console.log("Final Test API GET - Fetching questions");
 
-    // Check if we're using mock credentials
-    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
-      console.log("Using mock final test questions data");
-      
-      // Create mock questions for the final test
-      const mockQuestions = [
-        {
-          id: "FT1",
-          question: "What is the most effective way to protect your online accounts?",
-          options: {
-            A: "Using the same password for all accounts",
-            B: "Using two-factor authentication",
-            C: "Sharing your password with trusted friends",
-            D: "Never changing your password"
-          }
-        },
-        {
-          id: "FT2",
-          question: "Which of the following is a sign of a phishing email?",
-          options: {
-            A: "Comes from a known sender with their correct email address",
-            B: "Has proper grammar and spelling",
-            C: "Contains urgent requests for personal information",
-            D: "Has a professional company logo"
-          }
-        },
-        {
-          id: "FT3",
-          question: "What should you do if you suspect your personal information has been compromised?",
-          options: {
-            A: "Ignore it as nothing will happen",
-            B: "Share it on social media to warn others",
-            C: "Change all your passwords immediately",
-            D: "Wait and see if there's any suspicious activity"
-          }
-        },
-        {
-          id: "FT4",
-          question: "Which of the following is a secure way to store your passwords?",
-          options: {
-            A: "In a text file on your desktop",
-            B: "Written on a sticky note attached to your monitor",
-            C: "Using a reputable password manager",
-            D: "In an email draft"
-          }
-        },
-        {
-          id: "FT5",
-          question: "What is the purpose of encryption?",
-          options: {
-            A: "To make your internet connection faster",
-            B: "To protect data by making it unreadable to unauthorized users",
-            C: "To block all websites",
-            D: "To track your online activities"
-          }
-        }
-      ];
-      
-      return NextResponse.json({
-        questions: mockQuestions,
-      });
-    }
-
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
       return NextResponse.json({ error: "Database connection error" }, { status: 500 });
@@ -198,57 +135,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
-    // Check if we're using mock credentials
-    if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY === 'mock-api-key') {
-      console.log("Using mock final test evaluation");
-      
-      // Mock correct answers
-      const mockCorrectAnswers = {
-        "FT1": "B",
-        "FT2": "C",
-        "FT3": "C",
-        "FT4": "C",
-        "FT5": "B"
-      };
-      
-      // Evaluate user answers
-      let score = 0;
-      const totalQuestionsAttempted = Object.keys(userAnswers).length;
-      const evaluationDetails: Record<string, { userAnswer: string; correctAnswer: string; isCorrect: boolean }> = {};
-      
-      for (const questionId in userAnswers) {
-        const userAnswer = userAnswers[questionId];
-        const correctAnswer = mockCorrectAnswers[questionId as keyof typeof mockCorrectAnswers];
-        const isCorrect = userAnswer === correctAnswer;
-        
-        if (isCorrect) {
-          score++;
-        }
-        
-        evaluationDetails[questionId] = {
-          userAnswer,
-          correctAnswer: correctAnswer || "N/A",
-          isCorrect
-        };
-      }
-      
-      // Create mock analytics
-      const mockAnalytics = {
-        testId: "final-test",
-        userId,
-        score,
-        totalQuestionsAttempted,
-        submittedAt: new Date().toISOString()
-      };
-      
-      return NextResponse.json({
-        message: "Final test evaluated successfully",
-        score,
-        totalQuestionsAttempted,
-        evaluationDetails,
-        analytics: mockAnalytics
-      });
-    }
+
 
     if (!adminDb) {
       console.error("Firebase admin is not initialized");

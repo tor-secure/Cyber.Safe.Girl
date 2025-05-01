@@ -40,7 +40,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(true)
     try {
-      console.log("Fetching user progress for user:", user.id)
+      console.log("Fetching user progress for user:", user.name, "(", user.email, ")", "ID:", user.id)
       const response = await fetch(`/api/user-progress?userId=${user.id}`)
       const data = await response.json()
       
