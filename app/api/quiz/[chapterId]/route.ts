@@ -13,18 +13,77 @@ export async function GET(request: NextRequest, { params }: { params: { chapterI
     // Explicitly await params before destructuring
     const resolvedParams = await params;
     const { chapterId } = resolvedParams;
+    
+    console.log("Quiz API GET - Chapter ID:", chapterId);
+
+    if (!adminDb) {
+      console.error("Firebase admin is not initialized");
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
+    }
 
     // Reference to the document containing the questions for the chapter
-    const questionsRef = adminDb?.doc(`Quiz-DB/${chapterId}/question-set/questions`)
-
-    if (!questionsRef) {
-      return NextResponse.json({ error: "Firebase admin not initialized" }, { status: 500 })
-    }
+    const questionsRef = adminDb.doc(`Quiz-DB/${chapterId}/question-set/questions`)
 
     const questionsSnap = await questionsRef.get()
 
+    // If questions don't exist for this chapter, create a default set
     if (!questionsSnap.exists) {
-      return NextResponse.json({ error: "Questions not found for this chapter" }, { status: 404 })
+      console.log("Quiz API GET - Questions not found for chapter:", chapterId);
+      
+      // Create default questions for this chapter
+      const defaultQuestions = {
+        "Q1": {
+          question: "What is the most common type of cyber attack?",
+          options: {
+            A: "Phishing",
+            B: "Malware",
+            C: "DDoS",
+            D: "SQL Injection"
+          }
+        },
+        "Q2": {
+          question: "Which of these is a strong password?",
+          options: {
+            A: "password123",
+            B: "P@ssw0rd!2023",
+            C: "qwerty",
+            D: "12345678"
+          }
+        },
+        "Q3": {
+          question: "What is two-factor authentication?",
+          options: {
+            A: "Using two different passwords",
+            B: "Logging in from two different devices",
+            C: "Using something you know and something you have for authentication",
+            D: "Changing your password twice a month"
+          }
+        }
+      };
+      
+      // Create default answer key
+      const defaultAnswerKey = {
+        "Q1": "A",
+        "Q2": "B",
+        "Q3": "C"
+      };
+      
+      // Save default questions to Firestore
+      await questionsRef.set(defaultQuestions);
+      
+      // Save default answer key
+      const answerKeyRef = adminDb.doc(`Quiz-DB/${chapterId}/answer-key/answers`);
+      await answerKeyRef.set(defaultAnswerKey);
+      
+      // Convert questions object to an array for response
+      const questionsArray = Object.keys(defaultQuestions).map((qId) => ({
+        id: qId,
+        ...defaultQuestions[qId],
+      }));
+      
+      return NextResponse.json({
+        questions: questionsArray,
+      });
     }
 
     const questionsData = questionsSnap.data() || {}
@@ -35,8 +94,11 @@ export async function GET(request: NextRequest, { params }: { params: { chapterI
       ...questionsData[qId],
     }))
 
-    // Select 10 random questions
-    const randomQuestions = getRandomItems(questionsArray, 10)
+    // Select 10 random questions or all if less than 10
+    const count = Math.min(questionsArray.length, 10);
+    const randomQuestions = getRandomItems(questionsArray, count)
+    
+    console.log("Quiz API GET - Returning", randomQuestions.length, "questions");
 
     // Send only the questions to the frontend
     return NextResponse.json({
@@ -55,29 +117,35 @@ export async function POST(request: NextRequest, { params }: { params: { chapter
   try {
     const resolvedParams = await params;
     const { chapterId } = resolvedParams;
+    
+    console.log("Quiz API POST - Chapter ID:", chapterId);
 
     // Get user answers from the request body
     // Expecting format: { userAnswers: { "questionId1": "userAnswer1", "questionId2": "userAnswer2", ... } }
     const { userAnswers, userId } = await request.json() // Assuming userId is sent from frontend
 
+    console.log("Quiz API POST - User ID:", userId);
+    console.log("Quiz API POST - User Answers:", JSON.stringify(userAnswers));
+
     if (!userAnswers || typeof userAnswers !== 'object') {
         return NextResponse.json({ error: "Invalid user answers format" }, { status: 400 });
     }
-     if (!userId) {
+    if (!userId) {
         return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
+    if (!adminDb) {
+      console.error("Firebase admin is not initialized");
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
+    }
 
     // Reference to the document containing the correct answers for the chapter
-    const answersRef = adminDb?.doc(`Quiz-DB/${chapterId}/answer-key/answers`)
-
-    if (!answersRef) {
-      return NextResponse.json({ error: "Firebase admin not initialized" }, { status: 500 })
-    }
+    const answersRef = adminDb.doc(`Quiz-DB/${chapterId}/answer-key/answers`)
 
     const answersSnap = await answersRef.get()
 
     if (!answersSnap.exists) {
+      console.log("Quiz API POST - Answer key not found for chapter:", chapterId);
       return NextResponse.json({ error: "Answer key not found for this chapter" }, { status: 404 })
     }
 
@@ -88,6 +156,9 @@ export async function POST(request: NextRequest, { params }: { params: { chapter
     const totalQuestionsAttempted = Object.keys(userAnswers).length
     const evaluationDetails: Record<string, { userAnswer: string; correctAnswer: string; isCorrect: boolean }> = {}
 
+    console.log("User Answers:", JSON.stringify(userAnswers));
+    console.log("Correct Answers:", JSON.stringify(correctAnswersData));
+
     for (const questionId in userAnswers) {
       const userAnswer = userAnswers[questionId]
       const correctAnswer = correctAnswersData[questionId]
@@ -96,8 +167,8 @@ export async function POST(request: NextRequest, { params }: { params: { chapter
       if (isCorrect) {
         score++
       }
-console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Answer: ${correctAnswer}, Is Correct: ${isCorrect}`)
-;
+      
+      console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Answer: ${correctAnswer}, Is Correct: ${isCorrect}`);
 
       evaluationDetails[questionId] = {
         userAnswer: userAnswer,
@@ -105,26 +176,28 @@ console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Ans
         isCorrect: isCorrect,
       }
     }
+    
+    console.log(`Final Score: ${score}/${totalQuestionsAttempted}`);
+    console.log("Evaluation Details:", JSON.stringify(evaluationDetails));
 
-    // // --- Prepare User Analytics ---
-    // const userAnalytics = {
-    //   chapterId: chapterId,
-    //   userId: userId, // Include the user ID
-    //   score: score,
-    //   totalQuestionsAttempted: totalQuestionsAttempted,
-    //   // You can add more details like timestamp, evaluation details, etc.
-    //   // evaluationDetails: evaluationDetails, // Optional: include detailed evaluation
-    //   submittedAt: new Date().toISOString(),
-    // }
+    // --- Prepare User Analytics ---
+    const userAnalytics = {
+      chapterId: chapterId,
+      userId: userId, // Include the user ID
+      score: score,
+      totalQuestionsAttempted: totalQuestionsAttempted,
+      // You can add more details like timestamp, evaluation details, etc.
+      // evaluationDetails: evaluationDetails, // Optional: include detailed evaluation
+      submittedAt: new Date().toISOString(),
+    }
 
     // --- Store User Analytics in Firestore ---
     // Example: Storing analytics in a 'userQuizAnalytics' collection
     // You might want a different structure, e.g., nested under the user document
-    if (!adminDb) {
-      return NextResponse.json({ error: "Firebase admin not initialized" }, { status: 500 });
-    }
-    // const analyticsRef = adminDb.collection('userQuizAnalytics').doc(`${userId}_${chapterId}_${Date.now()}`); // Unique doc ID
-    // await analyticsRef.set(userAnalytics);
+    const analyticsRef = adminDb.collection('userQuizAnalytics').doc(`${userId}_${chapterId}_${Date.now()}`); // Unique doc ID
+    await analyticsRef.set(userAnalytics);
+    
+    console.log("Quiz API POST - Analytics stored in Firestore");
 
     // --- Send User Analytics back to Frontend ---
     return NextResponse.json({
@@ -132,8 +205,8 @@ console.log(`Question ID: ${questionId}, User Answer: ${userAnswer}, Correct Ans
       score: score,
       totalQuestionsAttempted: totalQuestionsAttempted,
       evaluationDetails: evaluationDetails,
-      // analytics: userAnalytics, // Send the calculated analytics back
-    })
+      analytics: userAnalytics, // Send the calculated analytics back
+    }, { status: 200 })
 
   } catch (error) {
     console.error("Error evaluating quiz:", error)

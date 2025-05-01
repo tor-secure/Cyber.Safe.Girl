@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -10,23 +10,112 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BookOpen, FileText, Info } from "lucide-react";
+import { BookOpen, FileText, Info, Loader2, Lock } from "lucide-react";
 import Link from "next/link";
 import { QuizModal } from "@/components/quiz-modal";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/lib/auth-context";
+import { useRouter } from "next/navigation";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+
+interface UserProgress {
+  userId: string;
+  completedChapters: string[];
+  unlockedChapters: string[];
+  finalTestUnlocked: boolean;
+  finalTestCompleted: boolean;
+  certificateUnlocked: boolean;
+  lastUpdated: string;
+}
 
 export function ChapterContent({ chapterId }: { chapterId: string }) {
+  const { user } = useAuth();
+  const router = useRouter();
   const [isQuizModalOpen, setIsQuizModalOpen] = useState(false);
-  const [chapterCompleted, setChapterCompleted] = useState(
-    Number.parseInt(chapterId) <= 1
-  );
-  const [chapterScore, setChapterScore] = useState<number | null>(
-    Number.parseInt(chapterId) <= 1 ? 8 : null
-  );
-  const [totalQuestions, setTotalQuestions] = useState<number | null>(
-    Number.parseInt(chapterId) <= 1 ? 10 : null
-  );
+  const [chapterCompleted, setChapterCompleted] = useState(false);
+  const [chapterUnlocked, setChapterUnlocked] = useState(false);
+  const [chapterScore, setChapterScore] = useState<number | null>(null);
+  const [totalQuestions, setTotalQuestions] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const { toast } = useToast();
+
+  // Format chapter ID for API calls (e.g., "1" -> "CH-001")
+  const formattedChapterId = `CH-${chapterId.padStart(3, '0')}`;
+
+  // Fetch user progress when component mounts
+  useEffect(() => {
+    async function fetchUserProgress() {
+      if (!user) {
+        router.push('/login');
+        return;
+      }
+
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(`/api/user-progress?userId=${user.id}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setUserProgress(data.progress);
+        
+        // Check if this chapter is completed
+        const isCompleted = data.progress.completedChapters.includes(formattedChapterId);
+        setChapterCompleted(isCompleted);
+        
+        // Check if this chapter is unlocked
+        const isUnlocked = data.progress.unlockedChapters.includes(formattedChapterId);
+        setChapterUnlocked(isUnlocked);
+        
+        // If chapter is not unlocked, redirect to dashboard
+        if (!isUnlocked) {
+          toast({
+            title: "Chapter Locked",
+            description: "You need to complete previous chapters to unlock this one.",
+            variant: "destructive",
+          });
+          // We'll let the user stay on the page but disable interactions
+        }
+        
+        // Fetch quiz analytics for this chapter if it's been completed
+        if (isCompleted) {
+          try {
+            const analyticsResponse = await fetch(`/api/quiz-analytics?userId=${user.id}&chapterId=${formattedChapterId}`);
+            
+            if (analyticsResponse.ok) {
+              const analyticsData = await analyticsResponse.json();
+              
+              if (analyticsData.quizAnalytics && analyticsData.quizAnalytics.length > 0) {
+                // Get the most recent attempt
+                const latestAttempt = analyticsData.quizAnalytics.sort(
+                  (a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+                )[0];
+                
+                setChapterScore(latestAttempt.score);
+                setTotalQuestions(latestAttempt.totalQuestionsAttempted);
+              }
+            }
+          } catch (err) {
+            console.error("Failed to fetch quiz analytics:", err);
+            // Don't set error here as it's not critical
+          }
+        }
+      } catch (err: any) {
+        console.error("Failed to fetch user progress:", err);
+        setError(err.message || "Failed to check if you have access to this chapter.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserProgress();
+  }, [user, router, formattedChapterId]);
 
   // This would come from an API in a real application
   const chapterData = {
@@ -84,16 +173,32 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
     videoUrl: `https://www.youtube.com/embed/example-${chapterId}`,
   };
 
-  const handleQuizComplete = (score: number, totalQuestions: number) => {
+  const handleQuizComplete = (score: number, totalQuestions: number, passed: boolean) => {
     setChapterScore(score);
     setTotalQuestions(totalQuestions);
 
-    // Mark chapter as completed if score is at least 70%
-    const passingScore = Math.ceil(totalQuestions * 0.7);
-    const passed = score >= passingScore;
-
     if (passed && !chapterCompleted) {
       setChapterCompleted(true);
+      
+      // Update local state to reflect changes
+      if (userProgress) {
+        const updatedProgress = { ...userProgress };
+        
+        if (!updatedProgress.completedChapters.includes(formattedChapterId)) {
+          updatedProgress.completedChapters.push(formattedChapterId);
+        }
+        
+        // Unlock next chapter
+        const chapterNumber = parseInt(chapterId);
+        const nextChapterId = `CH-${(chapterNumber + 1).toString().padStart(3, '0')}`;
+        
+        if (!updatedProgress.unlockedChapters.includes(nextChapterId)) {
+          updatedProgress.unlockedChapters.push(nextChapterId);
+        }
+        
+        setUserProgress(updatedProgress);
+      }
+      
       toast({
         title: "Chapter Completed!",
         description: `You've successfully completed Chapter ${chapterId}. The next chapter is now unlocked.`,
@@ -104,174 +209,208 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 items-start">
-        <div className="flex-1">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-2xl">
-                    {chapterData.title}
-                  </CardTitle>
-                  <CardDescription>Chapter {chapterId} of 60</CardDescription>
-                </div>
-                <Button onClick={() => setIsQuizModalOpen(true)}>
-                  Take a Test
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent className="pblue dark:pblue-invert max-w-none">
-              <p>{chapterData.content}</p>
-
-              <div className="aspect-video mt-6 rounded-lg overflow-hidden">
-                <iframe
-                  src={chapterData.videoUrl}
-                  className="w-full h-full"
-                  title={`Episode ${chapterId}: ${chapterData.title}`}
-                  allowFullScreen
-                ></iframe>
-              </div>
-            </CardContent>
-          </Card>
+      {loading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-12 w-12 animate-spin text-primary mr-2" />
+          <p className="text-lg font-medium">Loading chapter data...</p>
         </div>
+      ) : error ? (
+        <Alert variant="destructive" className="mb-4">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : !chapterUnlocked ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Chapter Locked</CardTitle>
+            <CardDescription>You need to complete previous chapters to unlock this one.</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Lock className="h-16 w-16 text-muted-foreground mb-4" />
+            <p className="text-lg font-medium mb-2">This chapter is locked</p>
+            <p className="text-center text-muted-foreground mb-6">
+              Complete the previous chapters to unlock this content.
+            </p>
+            <Button asChild>
+              <Link href="/dashboard">Return to Dashboard</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <>
+          <div className="flex flex-col md:flex-row gap-4 items-start">
+            <div className="flex-1">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-2xl">
+                        {chapterData.title}
+                      </CardTitle>
+                      <CardDescription>Chapter {chapterId} of 70</CardDescription>
+                    </div>
+                    <Button 
+                      onClick={() => setIsQuizModalOpen(true)}
+                      disabled={!chapterUnlocked}
+                    >
+                      Take a Test
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pblue dark:pblue-invert max-w-none">
+                  <p>{chapterData.content}</p>
 
-        <div className="w-full md:w-80 space-y-4 sticky top-20">
-          <Card>
-            <CardHeader>
-              <CardTitle>Chapter Navigation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-2">
-                <Button variant="outline" asChild className="justify-start">
-                  <Link
-                    href={`/chapters/${Number.parseInt(chapterId) - 1}`}
-                    className={
-                      Number.parseInt(chapterId) <= 1
-                        ? "pointer-events-none opacity-50"
-                        : ""
-                    }
-                  >
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Previous Chapter
-                  </Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  asChild
-                  className={`justify-start ${
-                    !chapterCompleted ? "pointer-events-none opacity-50" : ""
-                  }`}
-                >
-                  <Link href={`/chapters/${Number.parseInt(chapterId) + 1}`}>
-                    <BookOpen className="mr-2 h-4 w-4" />
-                    Next Chapter
-                  </Link>
-                </Button>
-                <Button variant="outline" asChild className="justify-start">
-                  <Link href="/">
-                    <Info className="mr-2 h-4 w-4" />
-                    Back to Dashboard
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+                  <div className="aspect-video mt-6 rounded-lg overflow-hidden">
+                    <iframe
+                      src={chapterData.videoUrl}
+                      className="w-full h-full"
+                      title={`Episode ${chapterId}: ${chapterData.title}`}
+                      allowFullScreen
+                    ></iframe>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Test Status</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm">Status:</span>
-                  <span className="text-sm font-medium">
-                    {chapterCompleted ? "Completed" : "Not Taken"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm">Score:</span>
-                  <span className="text-sm font-medium">
-                    {chapterScore !== null && totalQuestions !== null
-                      ? `${chapterScore}/${totalQuestions}`
-                      : "N/A"}
-                  </span>
-                </div>
-                <Button
-                  className="w-full mt-2"
-                  onClick={() => setIsQuizModalOpen(true)}
-                >
-                  {chapterCompleted ? "Retake Test" : "Take Test"}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            <div className="w-full md:w-80 space-y-4 sticky top-20">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Chapter Navigation</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-col gap-2">
+                    <Button variant="outline" asChild className="justify-start">
+                      <Link
+                        href={`/chapters/${Number.parseInt(chapterId) - 1}`}
+                        className={
+                          Number.parseInt(chapterId) <= 1
+                            ? "pointer-events-none opacity-50"
+                            : ""
+                        }
+                      >
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Previous Chapter
+                      </Link>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      asChild
+                      className={`justify-start ${
+                        !chapterCompleted ? "pointer-events-none opacity-50" : ""
+                      }`}
+                    >
+                      <Link href={`/chapters/${Number.parseInt(chapterId) + 1}`}>
+                        <BookOpen className="mr-2 h-4 w-4" />
+                        Next Chapter
+                      </Link>
+                    </Button>
+                    <Button variant="outline" asChild className="justify-start">
+                      <Link href="/dashboard">
+                        <Info className="mr-2 h-4 w-4" />
+                        Back to Dashboard
+                      </Link>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
 
-      <Tabs defaultValue="sections">
-        <TabsList>
-          <TabsTrigger value="sections">Additional Sections</TabsTrigger>
-          <TabsTrigger value="resources">Resources</TabsTrigger>
-        </TabsList>
-        <TabsContent value="sections" className="space-y-4">
-          {chapterData.sections.map((section, index) => (
-            <Card key={index}>
-              <CardHeader>
-                <CardTitle>{section.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="whitespace-pre-line">{section.content}</div>
-              </CardContent>
-            </Card>
-          ))}
-        </TabsContent>
-        <TabsContent value="resources">
-          <Card>
-            <CardHeader>
-              <CardTitle>Additional Resources</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <Link
-                    href="#"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    Downloadable PDF Guide
-                  </Link>
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <Link
-                    href="#"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    Related Case Studies
-                  </Link>
-                </li>
-                <li className="flex items-center gap-2">
-                  <FileText className="h-4 w-4" />
-                  <Link
-                    href="#"
-                    className="text-blue-600 hover:underline dark:text-blue-400"
-                  >
-                    Additional Reading Materials
-                  </Link>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Test Status</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm">Status:</span>
+                      <span className="text-sm font-medium">
+                        {chapterCompleted ? "Completed" : "Not Taken"}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm">Score:</span>
+                      <span className="text-sm font-medium">
+                        {chapterScore !== null && totalQuestions !== null
+                          ? `${chapterScore}/${totalQuestions}`
+                          : "N/A"}
+                      </span>
+                    </div>
+                    <Button
+                      className="w-full mt-2"
+                      onClick={() => setIsQuizModalOpen(true)}
+                      disabled={!chapterUnlocked}
+                    >
+                      {chapterCompleted ? "Retake Test" : "Take Test"}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
 
-      <QuizModal
-        open={isQuizModalOpen}
-        onOpenChange={setIsQuizModalOpen}
-        chapterId={chapterId}
-        onComplete={handleQuizComplete}
-      />
+          <Tabs defaultValue="sections">
+            <TabsList>
+              <TabsTrigger value="sections">Additional Sections</TabsTrigger>
+              <TabsTrigger value="resources">Resources</TabsTrigger>
+            </TabsList>
+            <TabsContent value="sections" className="space-y-4">
+              {chapterData.sections.map((section, index) => (
+                <Card key={index}>
+                  <CardHeader>
+                    <CardTitle>{section.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="whitespace-pre-line">{section.content}</div>
+                  </CardContent>
+                </Card>
+              ))}
+            </TabsContent>
+            <TabsContent value="resources">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Additional Resources</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ul className="space-y-2">
+                    <li className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <Link
+                        href="#"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        Downloadable PDF Guide
+                      </Link>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <Link
+                        href="#"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        Related Case Studies
+                      </Link>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <FileText className="h-4 w-4" />
+                      <Link
+                        href="#"
+                        className="text-blue-600 hover:underline dark:text-blue-400"
+                      >
+                        Additional Reading Materials
+                      </Link>
+                    </li>
+                  </ul>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <QuizModal
+            open={isQuizModalOpen}
+            onOpenChange={setIsQuizModalOpen}
+            chapterId={formattedChapterId}
+            onComplete={handleQuizComplete}
+          />
+        </>
+      )}
     </div>
   );
 }

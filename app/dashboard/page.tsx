@@ -1,27 +1,143 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { AlertTriangle, CheckCircle, Clock, Lock } from "lucide-react"
+import { AlertTriangle, CheckCircle, Clock, Lock, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { ChapterGrid } from "@/components/chapter-grid"
 import { ProgressChart } from "@/components/progress-chart"
 import { PerformanceChart } from "@/components/performance-chart"
+import { useAuth } from "@/lib/auth-context"
+
+interface QuizAnalytics {
+  id: string;
+  chapterId: string;
+  score: number;
+  totalQuestionsAttempted: number;
+  submittedAt: string;
+}
+
+interface UserProgress {
+  userId: string;
+  completedChapters: string[];
+  unlockedChapters: string[];
+  finalTestUnlocked: boolean;
+  finalTestCompleted: boolean;
+  certificateUnlocked: boolean;
+  lastUpdated: string;
+}
 
 export default function Dashboard() {
-  const [progress] = useState(5)
-  const [totalChapters] = useState(60)
+  const { user } = useAuth()
+  const [totalChapters] = useState(70)
   const [finalTestScore] = useState(6)
   const [totalTestQuestions] = useState(30)
-  const [passingScore] = useState(12)
+  const [passingScore] = useState(9) // 30% of 30 questions
+  const [quizAnalytics, setQuizAnalytics] = useState<QuizAnalytics[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [totalQuizScore, setTotalQuizScore] = useState(0)
+  const [totalQuizQuestions, setTotalQuizQuestions] = useState(0)
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null)
+  const [completedChaptersCount, setCompletedChaptersCount] = useState(0)
 
-  const progressPercentage = Math.round((progress / totalChapters) * 100)
+  // Fetch user progress
+  useEffect(() => {
+    async function fetchUserProgress() {
+      if (!user) return;
+
+      try {
+        const response = await fetch(`/api/user-progress?userId=${user.id}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setUserProgress(data.progress);
+        setCompletedChaptersCount(data.progress.completedChapters.length);
+      } catch (err: any) {
+        console.error("Failed to fetch user progress:", err);
+        // Don't set error here as we'll still try to fetch quiz analytics
+      }
+    }
+
+    fetchUserProgress();
+  }, [user]);
+
+  // Fetch quiz analytics for the user
+  useEffect(() => {
+    async function fetchQuizAnalytics() {
+      if (!user) return
+
+      try {
+        setLoading(true)
+        setError(null)
+        
+        const response = await fetch(`/api/quiz-analytics?userId=${user.id}`)
+        
+        if (!response.ok) {
+          // Handle non-JSON responses (like HTML error pages)
+          const contentType = response.headers.get('content-type');
+          if (contentType && contentType.includes('application/json')) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+          } else {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+        }
+        
+        const data = await response.json()
+        
+        if (!data.quizAnalytics || data.quizAnalytics.length === 0) {
+          // No quiz data yet
+          setQuizAnalytics([])
+          setTotalQuizScore(0)
+          setTotalQuizQuestions(0)
+        } else {
+          // Process the analytics data
+          // Group by chapter and take the latest attempt for each chapter
+          const chapterMap = new Map<string, QuizAnalytics>()
+          
+          data.quizAnalytics.forEach((analytics: QuizAnalytics) => {
+            const existingAnalytics = chapterMap.get(analytics.chapterId)
+            
+            if (!existingAnalytics || new Date(analytics.submittedAt) > new Date(existingAnalytics.submittedAt)) {
+              chapterMap.set(analytics.chapterId, analytics)
+            }
+          })
+          
+          // Calculate total score and questions
+          let totalScore = 0
+          let totalQuestions = 0
+          
+          chapterMap.forEach((analytics) => {
+            totalScore += analytics.score
+            totalQuestions += analytics.totalQuestionsAttempted
+          })
+          
+          setQuizAnalytics(Array.from(chapterMap.values()))
+          setTotalQuizScore(totalScore)
+          setTotalQuizQuestions(totalQuestions)
+        }
+      } catch (err: any) {
+        console.error("Failed to fetch quiz analytics:", err)
+        setError(err.message || "Failed to load quiz analytics")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchQuizAnalytics()
+  }, [user])
+
+  const progressPercentage = Math.round((completedChaptersCount / totalChapters) * 100)
   const isPassing = finalTestScore >= passingScore
-  const allChaptersCompleted = progress === totalChapters
+  const allChaptersCompleted = userProgress?.finalTestUnlocked || false
 
   return (
     <div className="space-y-6">
@@ -36,7 +152,7 @@ export default function Dashboard() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium">
-                    {progress} of {totalChapters} chapters completed
+                    {completedChaptersCount} of {totalChapters} chapters completed
                   </span>
                   <span className="text-sm font-medium">{progressPercentage}%</span>
                 </div>
@@ -47,11 +163,11 @@ export default function Dashboard() {
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span>Completed: {progress}</span>
+                  <span>Completed: {completedChaptersCount}</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4 text-amber-500" />
-                  <span>Pending: {totalChapters - progress}</span>
+                  <span>Pending: {totalChapters - completedChaptersCount}</span>
                 </div>
               </div>
             </CardFooter>
@@ -59,38 +175,112 @@ export default function Dashboard() {
 
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>Final Test Score</CardTitle>
+              <CardTitle>Quiz Performance</CardTitle>
+              <CardDescription>Your overall performance in chapter quizzes</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : error ? (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              ) : quizAnalytics.length === 0 ? (
+                <div className="text-center py-4 text-muted-foreground">
+                  No quiz data available yet. Complete some chapter quizzes to see your performance.
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <span className="text-2xl font-bold">
+                      {totalQuizScore}/{totalQuizQuestions}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Score Percentage:</span>
+                        <span className="font-medium">
+                          {totalQuizQuestions > 0 
+                            ? Math.round((totalQuizScore / totalQuizQuestions) * 100) 
+                            : 0}%
+                        </span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Chapters Attempted:</span>
+                        <span className="font-medium">{quizAnalytics.length}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span>Average Score:</span>
+                        <span className="font-medium">
+                          {quizAnalytics.length > 0 
+                            ? (totalQuizScore / quizAnalytics.length).toFixed(1) 
+                            : 0}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle>Final Test Status</CardTitle>
               <CardDescription>Your performance on the final assessment</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800">
-                  <span className="text-2xl font-bold">
-                    {finalTestScore}/{totalTestQuestions}
-                  </span>
+              {userProgress?.finalTestCompleted ? (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <span className="text-2xl font-bold">
+                      {finalTestScore}/{totalTestQuestions}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    {!isPassing && (
+                      <Alert variant="destructive" className="mb-2">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertTitle>Warning</AlertTitle>
+                        <AlertDescription>
+                          Your score is below the passing threshold of {passingScore} points.
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    {userProgress.certificateUnlocked ? (
+                      <Button asChild className="w-full">
+                        <Link href="/certificate">View Certificate</Link>
+                      </Button>
+                    ) : (
+                      <Button asChild className="w-full">
+                        <Link href="/final-test">Retake Final Test</Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  {!isPassing && (
-                    <Alert variant="destructive" className="mb-2">
-                      <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle>Warning</AlertTitle>
-                      <AlertDescription>
-                        Your score is below the passing threshold of {passingScore} points.
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  {!allChaptersCompleted ? (
-                    <Button disabled className="w-full flex items-center gap-2">
-                      <Lock className="h-4 w-4" />
-                      Complete All Chapters First
-                    </Button>
-                  ) : (
-                    <Button asChild className="w-full">
-                      <Link href="/final-test">Take Final Test</Link>
-                    </Button>
-                  )}
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-center w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800">
+                    <span className="text-lg font-medium text-center">Not Taken</span>
+                  </div>
+                  <div className="flex-1">
+                    {!allChaptersCompleted ? (
+                      <Button disabled className="w-full flex items-center gap-2">
+                        <Lock className="h-4 w-4" />
+                        Complete All Chapters First
+                      </Button>
+                    ) : (
+                      <Button asChild className="w-full">
+                        <Link href="/final-test">Take Final Test</Link>
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
             </CardContent>
           </Card>
         </div>
@@ -104,7 +294,7 @@ export default function Dashboard() {
             <CardContent className="space-y-6">
               <div>
                 <h3 className="text-sm font-medium mb-2">Course Status</h3>
-                <ProgressChart completed={progress} total={totalChapters} />
+                <ProgressChart completed={completedChaptersCount} total={totalChapters} />
               </div>
               <div>
                 <h3 className="text-sm font-medium mb-2">Chapter Performance</h3>

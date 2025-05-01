@@ -198,9 +198,9 @@ export function QuizContent({ chapterId }: QuizContentProps) {
               {score}/{totalQuestionsInQuiz} {/* Show score out of total questions */}
             </div>
             <p className="text-muted-foreground">
-              {score >= totalQuestionsInQuiz * 0.7 // Adjust passing threshold if needed
+              {score >= totalQuestionsInQuiz * 0.3 // 30% passing threshold
                 ? "Great job! You've passed this chapter's quiz."
-                : "You need to score at least 70% to pass. Consider reviewing the chapter and trying again."}
+                : "You need to score at least 30% to pass. Consider reviewing the chapter and trying again."}
             </p>
              <p className="text-sm text-muted-foreground mt-2">Attempted: {totalQuestionsAttempted} questions</p>
           </div>

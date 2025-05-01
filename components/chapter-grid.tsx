@@ -1,22 +1,123 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { BookOpen, CheckCircle, Clock, Lock } from "lucide-react"
+import { BookOpen, CheckCircle, Clock, Lock, Loader2 } from "lucide-react"
 import Link from "next/link"
+import { useAuth } from "@/lib/auth-context"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+
+interface Chapter {
+  id: number;
+  chapterId: string;
+  title: string;
+  description: string;
+  completed: boolean;
+  locked: boolean;
+}
+
+interface UserProgress {
+  userId: string;
+  completedChapters: string[];
+  unlockedChapters: string[];
+  finalTestUnlocked: boolean;
+  finalTestCompleted: boolean;
+  certificateUnlocked: boolean;
+  lastUpdated: string;
+}
 
 export function ChapterGrid() {
-  const [chapters] = useState(
-    Array.from({ length: 60 }, (_, i) => ({
-      id: i + 1,
-      title: `Chapter ${i + 1}`,
-      description: `Learn about important cybersecurity concepts in Chapter ${i + 1}`,
-      completed: i < 2,
-      locked: i > 2, // Lock all chapters except first 3
-    })),
-  )
+  const { user } = useAuth();
+  const [chapters, setChapters] = useState<Chapter[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+
+  // Fetch user progress when component mounts
+  useEffect(() => {
+    async function fetchUserProgress() {
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch(`/api/user-progress?userId=${user.id}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setUserProgress(data.progress);
+        
+        // Generate chapters based on user progress
+        generateChapters(data.progress);
+      } catch (err: any) {
+        console.error("Failed to fetch user progress:", err);
+        setError(err.message || "Failed to load chapter data");
+        
+        // Generate default chapters with only first chapter unlocked
+        const defaultProgress = {
+          userId: user.id,
+          completedChapters: [],
+          unlockedChapters: ["CH-001"],
+          finalTestUnlocked: false,
+          finalTestCompleted: false,
+          certificateUnlocked: false,
+          lastUpdated: new Date().toISOString()
+        };
+        generateChapters(defaultProgress);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchUserProgress();
+  }, [user]);
+
+  // Generate chapters based on user progress
+  const generateChapters = (progress: UserProgress) => {
+    if (!progress) return;
+
+    const chapterList = Array.from({ length: 70 }, (_, i) => {
+      const chapterNumber = i + 1;
+      const chapterId = `CH-${chapterNumber.toString().padStart(3, '0')}`;
+      
+      return {
+        id: chapterNumber,
+        chapterId,
+        title: `Chapter ${chapterNumber}`,
+        description: `Learn about important cybersecurity concepts in Chapter ${chapterNumber}`,
+        completed: progress.completedChapters.includes(chapterId),
+        locked: !progress.unlockedChapters.includes(chapterId)
+      };
+    });
+
+    setChapters(chapterList);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <p>Loading chapters...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive" className="mb-4">
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
