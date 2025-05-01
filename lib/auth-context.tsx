@@ -27,9 +27,9 @@ type User = {
 type AuthContextType = {
   user: User | null
   isLoading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
-  loginWithGoogle: () => Promise<void>
+  login: (email: string, password: string) => Promise<User | void>
+  register: (name: string, email: string, password: string) => Promise<User | void>
+  loginWithGoogle: () => Promise<User | void>
   logout: () => Promise<void>
   resetPassword: (email: string) => Promise<void>
   isAuthenticated: boolean
