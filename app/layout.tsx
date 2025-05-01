@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { AuthProvider } from "@/lib/auth-context"
 import { ProgressProvider } from "@/lib/progress-context"
 import { ChatButton } from "@/components/chat/chat-button"
+import { AuthPersistence } from "@/components/auth-persistence"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -55,6 +56,7 @@ export default function RootLayout({
         >
           <AuthProvider>
             <ProgressProvider>
+              <AuthPersistence />
               {children}
             </ProgressProvider>
           </AuthProvider>
