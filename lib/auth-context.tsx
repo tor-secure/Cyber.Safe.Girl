@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { createContext, useContext, useState, useEffect } from "react"
+import { setCookie, deleteCookie } from './cookies'
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
@@ -42,9 +43,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Listen for auth state changes
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       setIsLoading(true)
       if (firebaseUser) {
+        // Get the ID token
+        const token = await firebaseUser.getIdToken();
+        
+        // Store token in a cookie that persists across sessions
+        setCookie('firebase-auth-token', token, 30); // 30 days
+        
         // Convert Firebase user to our User type
         setUser({
           id: firebaseUser.uid,
@@ -52,11 +59,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: firebaseUser.email || '',
           avatar: firebaseUser.photoURL || undefined,
         })
+        
+        // Store user data in localStorage for persistence
+        localStorage.setItem('user', JSON.stringify({
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || 'User',
+          email: firebaseUser.email || '',
+          avatar: firebaseUser.photoURL || undefined,
+        }));
       } else {
+        // Clear the auth cookie when user is not authenticated
+        deleteCookie('firebase-auth-token');
+        localStorage.removeItem('user');
         setUser(null)
       }
       setIsLoading(false)
     })
+
+    // Try to restore user from localStorage on initial load
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error('Failed to parse stored user data', e);
+      }
+    }
 
     // Cleanup subscription
     return () => unsubscribe()
@@ -122,6 +150,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout
   const logout = async () => {
     try {
+      // Clear the auth cookie
+      deleteCookie('firebase-auth-token');
+      // Clear localStorage
+      localStorage.removeItem('user');
+      // Sign out from Firebase
       await signOut(auth)
     } catch (error) {
       console.error("Logout failed:", error)
