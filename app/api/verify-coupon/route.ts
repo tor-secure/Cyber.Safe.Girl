@@ -24,6 +24,11 @@ export async function POST(request: NextRequest) {
 
     const progress = userProgressSnap.data()
 
+    // Ensure progress is not undefined
+    if (!progress || !progress.completedChapters) {
+      return NextResponse.json({ error: "User progress is undefined or invalid" }, { status: 500 })
+    }
+
     // Check if user has completed the last chapter
     const completedChapters = progress.completedChapters || []
     const lastChapterId = "CH-070"

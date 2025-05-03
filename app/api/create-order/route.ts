@@ -19,47 +19,51 @@ const createRazorpayOrder = async (amount: number, currency: string) => {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, amount, currency, fullName } = await request.json()
+    const { userId, amount, currency, fullName } = await request.json();
 
     if (!userId) {
-      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
     if (!amount || !currency) {
-      return NextResponse.json({ error: "Amount and currency are required" }, { status: 400 })
+      return NextResponse.json({ error: "Amount and currency are required" }, { status: 400 });
     }
 
     if (!fullName) {
-      return NextResponse.json({ error: "Full name is required" }, { status: 400 })
+      return NextResponse.json({ error: "Full name is required" }, { status: 400 });
     }
 
-    // Check if user has completed all chapters
     if (!adminDb) {
-      console.error("Firebase admin is not initialized")
-      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+      console.error("Firebase admin is not initialized");
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 });
     }
 
     // Get user progress
-    const userProgressRef = adminDb.collection("userProgress").doc(userId)
-    const userProgressSnap = await userProgressRef.get()
+    const userProgressRef = adminDb.collection("userProgress").doc(userId);
+    const userProgressSnap = await userProgressRef.get();
 
     if (!userProgressSnap.exists) {
-      return NextResponse.json({ error: "User progress not found" }, { status: 404 })
+      return NextResponse.json({ error: "User progress not found" }, { status: 404 });
     }
 
-    const progress = userProgressSnap.data()
+    const progress = userProgressSnap.data();
+
+    // Ensure progress is not undefined
+    if (!progress) {
+      return NextResponse.json({ error: "User progress is undefined" }, { status: 500 });
+    }
 
     // Check if user has completed the last chapter
-    const completedChapters = progress.completedChapters || []
-    const lastChapterId = "CH-070"
+    const completedChapters = progress.completedChapters || [];
+    const lastChapterId = "CH-070";
 
     if (!completedChapters.includes(lastChapterId)) {
       return NextResponse.json(
         {
           error: "You need to complete all chapters before making a payment",
         },
-        { status: 403 },
-      )
+        { status: 403 }
+      );
     }
 
     // Check if payment is already completed
@@ -68,15 +72,15 @@ export async function POST(request: NextRequest) {
         {
           error: "Payment has already been completed",
         },
-        { status: 400 },
-      )
+        { status: 400 }
+      );
     }
 
     // Create Razorpay order
-    const order = await createRazorpayOrder(amount, currency)
+    const order = await createRazorpayOrder(amount, currency);
 
     // Store order details in Firestore
-    const orderRef = adminDb.collection("paymentOrders").doc(order.id)
+    const orderRef = adminDb.collection("paymentOrders").doc(order.id);
     await orderRef.set({
       orderId: order.id,
       userId: userId,
@@ -85,18 +89,18 @@ export async function POST(request: NextRequest) {
       status: "created",
       fullName: fullName,
       createdAt: new Date().toISOString(),
-    })
+    });
 
     // Update user progress with name if provided
     await userProgressRef.update({
       name: fullName,
       lastUpdated: new Date().toISOString(),
-    })
+    });
 
-    return NextResponse.json(order)
+    return NextResponse.json(order);
   } catch (error) {
-    console.error("Error creating order:", error)
-    const errorMessage = error instanceof Error ? error.message : "Failed to create order"
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    console.error("Error creating order:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to create order";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

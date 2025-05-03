@@ -39,7 +39,8 @@ export function ChapterGrid() {
 
   // Add a function to handle chapter completion and redirect to payment if needed
   const handleChapterCompletion = (chapterId: string) => {
-    const chapter = chapters.find((c) => c.id === chapterId)
+    // Convert chapterId to a number for comparison
+    const chapter = chapters.find((c) => c.id === Number(chapterId))
     const chapterIdString = chapter?.chapterId
 
     // If this is the last chapter (CH-070) and it's completed, redirect to payment
@@ -192,7 +193,7 @@ export function ChapterGrid() {
                     Read
                   </Link>
                 </Button>
-                <Button asChild className="flex-1" onClick={() => handleChapterCompletion(chapter.id)}>
+                <Button asChild className="flex-1" onClick={() => handleChapterCompletion(chapter.id.toString())}>
                   <Link href={`/chapters/${chapter.id}`}>Take Quiz</Link>
                 </Button>
               </>
