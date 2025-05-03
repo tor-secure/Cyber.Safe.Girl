@@ -23,184 +23,191 @@ import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 
 export function FinalTest() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [score, setScore] = useState<number | null>(null);
-  const [totalQuestions, setTotalQuestions] = useState<number | null>(null);
-  const [passingScore, setPassingScore] = useState(9); // 30% of 30 questions
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
-  const [showVoucherDialog, setShowVoucherDialog] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showTestDialog, setShowTestDialog] = useState(false);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({});
-  const [isSubmitted, setIsSubmitted] = useState(false);
-  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
-  const [testLoading, setTestLoading] = useState(false);
-  const [userProgress, setUserProgress] = useState<any>(null);
-  const [certificateUnlocked, setCertificateUnlocked] = useState(false);
-  const [finalTestCompleted, setFinalTestCompleted] = useState(false);
+  const { user } = useAuth()
+  const router = useRouter()
+  const [score, setScore] = useState<number | null>(null)
+  const [totalQuestions, setTotalQuestions] = useState<number | null>(null)
+  const [passingScore, setPassingScore] = useState(9) // 30% of 30 questions
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
+  const [showVoucherDialog, setShowVoucherDialog] = useState(false)
+  const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showTestDialog, setShowTestDialog] = useState(false)
+  const [currentQuestion, setCurrentQuestion] = useState(0)
+  const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
+  const [isSubmitted, setIsSubmitted] = useState(false)
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
+  const [testLoading, setTestLoading] = useState(false)
+  const [userProgress, setUserProgress] = useState<any>(null)
+  const [certificateUnlocked, setCertificateUnlocked] = useState(false)
+  const [finalTestCompleted, setFinalTestCompleted] = useState(false)
 
   // Check if user is allowed to take the final test
   useEffect(() => {
     async function checkUserProgress() {
       if (!user) {
-        router.push('/login');
-        return;
+        router.push("/login")
+        return
       }
 
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
 
       try {
         // Fetch user progress to check if final test is unlocked
-        const progressResponse = await fetch(`/api/user-progress?userId=${user.id}`);
-        
+        const progressResponse = await fetch(`/api/user-progress?userId=${user.id}`)
+
         if (!progressResponse.ok) {
-          throw new Error(`HTTP error! status: ${progressResponse.status}`);
+          throw new Error(`HTTP error! status: ${progressResponse.status}`)
         }
-        
-        const progressData = await progressResponse.json();
-        setUserProgress(progressData.progress);
-        
+
+        const progressData = await progressResponse.json()
+        setUserProgress(progressData.progress)
+
         // Check if user has already completed the final test
         if (progressData.progress.finalTestCompleted) {
-          setFinalTestCompleted(true);
-          setCertificateUnlocked(progressData.progress.certificateUnlocked);
-          
+          setFinalTestCompleted(true)
+          setCertificateUnlocked(progressData.progress.certificateUnlocked)
+
           // Set placeholder score for now (in a real app, you'd fetch the actual score)
-          setScore(progressData.progress.certificateUnlocked ? 20 : 6);
-          setTotalQuestions(30);
+          setScore(progressData.progress.certificateUnlocked ? 20 : 6)
+          setTotalQuestions(30)
         } else {
+          // Check if user has paid for the final test
+          if (!progressData.progress.paymentCompleted) {
+            setError("You need to complete payment before taking the final test.")
+            router.push("/payment")
+            return
+          }
+
           // Check if user is allowed to take the final test
           if (!progressData.progress.finalTestUnlocked) {
-            setError("You need to complete all chapters before taking the final test.");
+            setError("You need to complete all chapters before taking the final test.")
           }
-          
+
           // Set default values
-          setScore(0);
-          setTotalQuestions(30);
+          setScore(0)
+          setTotalQuestions(30)
         }
       } catch (err: any) {
-        console.error("Failed to check user progress:", err);
-        setError(err.message || "Failed to check if you're eligible for the final test.");
-        setScore(0);
-        setTotalQuestions(0);
+        console.error("Failed to check user progress:", err)
+        setError(err.message || "Failed to check if you're eligible for the final test.")
+        setScore(0)
+        setTotalQuestions(0)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    checkUserProgress();
-  }, [user, router]);
+    checkUserProgress()
+  }, [user, router])
 
   const handleStartTest = async () => {
     if (!user) {
-      router.push('/login');
-      return;
+      router.push("/login")
+      return
     }
 
-    setShowTestDialog(true);
-    setTestLoading(true);
-    setCurrentQuestion(0);
-    setSelectedAnswers({});
-    setIsSubmitted(false);
+    setShowTestDialog(true)
+    setTestLoading(true)
+    setCurrentQuestion(0)
+    setSelectedAnswers({})
+    setIsSubmitted(false)
 
     try {
       // Fetch final test questions
-      const fetchedQuestions = await fetchQuizQuestions("final-test");
+      const fetchedQuestions = await fetchQuizQuestions("final-test")
 
       if (fetchedQuestions.length === 0) {
-        setError("No questions found for the final test.");
+        setError("No questions found for the final test.")
       } else {
-        setQuestions(fetchedQuestions);
-        
+        setQuestions(fetchedQuestions)
+
         // Initialize selectedAnswers with empty values
-        const initialAnswers: Record<string, string> = {};
+        const initialAnswers: Record<string, string> = {}
         fetchedQuestions.forEach((q) => {
-          initialAnswers[q.id] = "";
-        });
-        setSelectedAnswers(initialAnswers);
+          initialAnswers[q.id] = ""
+        })
+        setSelectedAnswers(initialAnswers)
       }
     } catch (err) {
-      console.error("Failed to load final test data:", err);
-      setError("Failed to load final test. Please try again later.");
+      console.error("Failed to load final test data:", err)
+      setError("Failed to load final test. Please try again later.")
     } finally {
-      setTestLoading(false);
+      setTestLoading(false)
     }
-  };
+  }
 
   const handleNext = () => {
     if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+      setCurrentQuestion(currentQuestion + 1)
     }
-  };
+  }
 
   const handlePrevious = () => {
     if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
+      setCurrentQuestion(currentQuestion - 1)
     }
-  };
+  }
 
   const handleSubmitTest = async () => {
     if (!user) {
-      router.push('/login');
-      return;
+      router.push("/login")
+      return
     }
 
     try {
       // Submit answers to the backend for validation
       const response = await fetch(`/api/quiz/final-test`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userAnswers: selectedAnswers,
           userId: user.id,
         }),
-      });
+      })
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      const result = await response.json();
-      
+      const result = await response.json()
+
       // Set the score from the server response
-      setScore(result.analytics.score);
-      setTotalQuestions(result.analytics.totalQuestionsAttempted);
-      
+      setScore(result.analytics.score)
+      setTotalQuestions(result.analytics.totalQuestionsAttempted)
+
       // Update user progress to mark final test as completed
-      const progressResponse = await fetch('/api/user-progress', {
-        method: 'PATCH',
+      const progressResponse = await fetch("/api/user-progress", {
+        method: "PATCH",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           userId: user.id,
           finalTestScore: result.analytics.score,
           totalQuestions: result.analytics.totalQuestionsAttempted,
         }),
-      });
+      })
 
       if (!progressResponse.ok) {
-        console.error("Failed to update final test completion status");
+        console.error("Failed to update final test completion status")
       } else {
-        const progressResult = await progressResponse.json();
-        setFinalTestCompleted(true);
-        setCertificateUnlocked(progressResult.certificateUnlocked);
+        const progressResult = await progressResponse.json()
+        setFinalTestCompleted(true)
+        setCertificateUnlocked(progressResult.certificateUnlocked)
       }
 
-      setIsSubmitted(true);
-      setShowTestDialog(false);
+      setIsSubmitted(true)
+      setShowTestDialog(false)
     } catch (err: any) {
-      console.error("Failed to submit final test:", err);
-      setError(err.message || "Failed to submit final test. Please try again.");
+      console.error("Failed to submit final test:", err)
+      setError(err.message || "Failed to submit final test. Please try again.")
     }
-  };
+  }
 
   const isPassing = score !== null && totalQuestions !== null ? score >= passingScore : false
 

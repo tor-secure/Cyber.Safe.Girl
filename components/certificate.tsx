@@ -10,74 +10,84 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
 
 interface UserProgress {
-  userId: string;
-  completedChapters: string[];
-  unlockedChapters: string[];
-  finalTestUnlocked: boolean;
-  finalTestCompleted: boolean;
-  certificateUnlocked: boolean;
-  lastUpdated: string;
+  userId: string
+  completedChapters: string[]
+  unlockedChapters: string[]
+  finalTestUnlocked: boolean
+  finalTestCompleted: boolean
+  certificateUnlocked: boolean
+  lastUpdated: string
+  paymentCompleted: boolean
 }
 
 export function Certificate() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
-  const [certificateUnlocked, setCertificateUnlocked] = useState(false);
-  const [certificateId, setCertificateId] = useState("");
-  const [issueDate, setIssueDate] = useState("");
+  const { user } = useAuth()
+  const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null)
+  const [certificateUnlocked, setCertificateUnlocked] = useState(false)
+  const [certificateId, setCertificateId] = useState("")
+  const [issueDate, setIssueDate] = useState("")
 
   useEffect(() => {
     async function checkCertificateAccess() {
       if (!user) {
-        router.push('/login');
-        return;
+        router.push("/login")
+        return
       }
 
-      setLoading(true);
-      setError(null);
+      setLoading(true)
+      setError(null)
 
       try {
         // Fetch user progress to check if certificate is unlocked
-        const progressResponse = await fetch(`/api/user-progress?userId=${user.id}`);
-        
+        const progressResponse = await fetch(`/api/user-progress?userId=${user.id}`)
+
         if (!progressResponse.ok) {
-          throw new Error(`HTTP error! status: ${progressResponse.status}`);
+          throw new Error(`HTTP error! status: ${progressResponse.status}`)
         }
-        
-        const progressData = await progressResponse.json();
-        setUserProgress(progressData.progress);
-        
+
+        const progressData = await progressResponse.json()
+        setUserProgress(progressData.progress)
+
+        // Check if payment is completed
+        if (!progressData.progress.paymentCompleted) {
+          setError("You need to complete payment before accessing your certificate.")
+          router.push("/payment")
+          return
+        }
+
         // Check if certificate is unlocked
         if (progressData.progress.certificateUnlocked) {
-          setCertificateUnlocked(true);
-          
+          setCertificateUnlocked(true)
+
           // Generate certificate ID and issue date
-          const today = new Date();
-          const dateString = today.toISOString().split('T')[0]; // YYYY-MM-DD
-          const randomId = Math.floor(10000 + Math.random() * 90000); // 5-digit random number
-          
-          setCertificateId(`CSG-${dateString}-${randomId}`);
-          setIssueDate(today.toLocaleDateString('en-US', { 
-            year: 'numeric', 
-            month: 'long', 
-            day: 'numeric' 
-          }));
+          const today = new Date()
+          const dateString = today.toISOString().split("T")[0] // YYYY-MM-DD
+          const randomId = Math.floor(10000 + Math.random() * 90000) // 5-digit random number
+
+          setCertificateId(`CSG-${dateString}-${randomId}`)
+          setIssueDate(
+            today.toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            }),
+          )
         } else {
-          setError("You need to pass the final test to unlock your certificate.");
+          setError("You need to pass the final test to unlock your certificate.")
         }
       } catch (err: any) {
-        console.error("Failed to check certificate access:", err);
-        setError(err.message || "Failed to check if you're eligible for the certificate.");
+        console.error("Failed to check certificate access:", err)
+        setError(err.message || "Failed to check if you're eligible for the certificate.")
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    checkCertificateAccess();
-  }, [user, router]);
+    checkCertificateAccess()
+  }, [user, router])
 
   if (loading) {
     return (
@@ -89,7 +99,7 @@ export function Certificate() {
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -118,7 +128,7 @@ export function Certificate() {
           </CardContent>
         </Card>
       </div>
-    );
+    )
   }
 
   return (
