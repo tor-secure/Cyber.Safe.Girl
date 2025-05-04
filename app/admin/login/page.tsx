@@ -28,8 +28,8 @@ export default function AdminLoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
 
-      let token = null;
-      let idTokenResult = null;
+      let token: string | null = null;
+      let idTokenResult: any = null;
       
       // Check if getIdToken method exists
       if (typeof user.getIdToken === 'function') {
@@ -43,7 +43,9 @@ export default function AdminLoginPage() {
         // Set as a cookie with proper security settings
         // Import the setCookie function
         import('@/lib/cookies').then(({ setCookie }) => {
-          setCookie('firebase-auth-token', token, 30) // 30 days
+          if (token) {
+            setCookie('firebase-auth-token', token, 30) // 30 days
+          }
         })
         
         // Check if user has admin role
