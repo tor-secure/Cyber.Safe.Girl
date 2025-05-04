@@ -3,7 +3,7 @@ import { adminDb } from "@/lib/firebase-admin"
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, fullName, paymentCompleted } = await request.json()
+    const { userId, fullName, paymentCompleted, paymentMethod, couponCode, discountPercentage } = await request.json()
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 })
@@ -34,6 +34,19 @@ export async function POST(request: NextRequest) {
 
     if (fullName) {
       updateData.name = fullName
+    }
+    
+    // Add payment method and coupon information if provided
+    if (paymentMethod) {
+      updateData.paymentMethod = paymentMethod
+    }
+    
+    if (couponCode) {
+      updateData.couponCode = couponCode
+    }
+    
+    if (discountPercentage !== undefined) {
+      updateData.discountPercentage = discountPercentage
     }
 
     await userProgressRef.update(updateData)

@@ -34,6 +34,9 @@ export function PaymentForm() {
   const [processingPayment, setProcessingPayment] = useState(false)
   const [userProgress, setUserProgress] = useState<any>(null)
   const [paymentCompleted, setPaymentCompleted] = useState(false)
+  const [discountPercentage, setDiscountPercentage] = useState<number | null>(null)
+  const [discountedAmount, setDiscountedAmount] = useState<number | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null)
 
   // Check if user has completed all chapters
   useEffect(() => {
@@ -142,11 +145,31 @@ export function PaymentForm() {
     setProcessingPayment(true)
 
     try {
+      // Get user token if available
+      let authHeader = {}
+      if (user) {
+        try {
+          // Use Firebase Auth getIdToken if available
+          // Firebase user type might not include getIdToken in the TypeScript definition
+          // but it's available at runtime
+          if (user && typeof (user as any).getIdToken === 'function') {
+            const idToken = await (user as any).getIdToken()
+            authHeader = {
+              "Authorization": `Bearer ${idToken}`
+            }
+          }
+        } catch (tokenError) {
+          console.error("Error getting ID token:", tokenError)
+          // Continue without the token
+        }
+      }
+      
       // Verify coupon code
       const response = await fetch("/api/verify-coupon", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...authHeader
         },
         body: JSON.stringify({
           userId: user.id,
@@ -161,26 +184,51 @@ export function PaymentForm() {
         throw new Error(data.error || "Failed to verify coupon")
       }
 
-      if (data.valid) {
-        setCouponSuccess("Coupon applied successfully! You can now proceed to the final test.")
-        setPaymentCompleted(true)
+      if (data.valid && data.coupon) {
+        // Store the coupon data
+        setAppliedCoupon(data.coupon)
+        
+        // Check if it's a 100% discount coupon
+        if (data.coupon.discountPercentage === 100) {
+          setCouponSuccess("Coupon applied successfully! You can now proceed to the final test.")
+          setPaymentCompleted(true)
 
-        // Update user progress to mark payment as completed
-        await updateUserProgress()
+          // Update user progress to mark payment as completed
+          await updateUserProgress()
 
-        // Show success toast
-        toast({
-          title: "Payment Successful",
-          description: "You can now proceed to the final test.",
-          duration: 5000,
-        })
+          // Show success toast
+          toast({
+            title: "Payment Successful",
+            description: "You can now proceed to the final test.",
+            duration: 5000,
+          })
 
-        // Redirect to final test after a short delay
-        setTimeout(() => {
-          router.push("/final-test")
-        }, 3000)
+          // Redirect to final test after a short delay
+          setTimeout(() => {
+            router.push("/final-test")
+          }, 3000)
+        } else {
+          // Calculate discounted amount
+          const originalAmount = 499;
+          const discountPercentage = data.coupon.discountPercentage || 0;
+          const discount = (originalAmount * discountPercentage) / 100;
+          const finalAmount = Math.max(1, Math.round(originalAmount - discount)); // Ensure minimum 1 rupee
+          
+          setDiscountedAmount(finalAmount);
+          setCouponSuccess(`Coupon applied successfully! You get ${discountPercentage}% discount.`);
+          
+          // Switch to payment tab
+          setPaymentMethod("razorpay");
+          
+          // Show toast
+          toast({
+            title: "Coupon Applied",
+            description: `You've received a ${discountPercentage}% discount!`,
+            duration: 5000,
+          });
+        }
       } else {
-        setCouponError(data.message || "Invalid coupon code")
+        setCouponError(data.message || "Invalid coupon code. Only admin-generated coupons are accepted.")
       }
     } catch (err: any) {
       console.error("Coupon verification failed:", err)
@@ -203,6 +251,9 @@ export function PaymentForm() {
     setProcessingPayment(true)
 
     try {
+      // Calculate the amount to charge
+      const amount = discountedAmount || 499; // Use discounted amount if available
+      
       // Create order on the server
       const orderResponse = await fetch("/api/create-order", {
         method: "POST",
@@ -211,9 +262,11 @@ export function PaymentForm() {
         },
         body: JSON.stringify({
           userId: user.id,
-          amount: 499, // ₹499
+          amount: amount, // Use discounted amount if available
           currency: "INR",
           fullName: fullName.trim(),
+          couponCode: appliedCoupon?.code || null,
+          discountPercentage: appliedCoupon?.discountPercentage || 0
         }),
       })
 
@@ -245,6 +298,8 @@ export function PaymentForm() {
                 paymentId: response.razorpay_payment_id,
                 signature: response.razorpay_signature,
                 fullName: fullName.trim(),
+                couponCode: appliedCoupon?.code || null,
+                discountPercentage: appliedCoupon?.discountPercentage || 0
               }),
             })
 
@@ -315,6 +370,9 @@ export function PaymentForm() {
           userId: user?.id,
           fullName: fullName.trim(),
           paymentCompleted: true,
+          paymentMethod: appliedCoupon ? (appliedCoupon.discountPercentage === 100 ? "coupon" : "coupon_partial") : "razorpay",
+          couponCode: appliedCoupon?.code || null,
+          discountPercentage: appliedCoupon?.discountPercentage || 0
         }),
       })
 
@@ -428,14 +486,28 @@ export function PaymentForm() {
                     <span>Final Test Access Fee</span>
                     <span className="font-medium">₹499</span>
                   </div>
+                  
+                  {appliedCoupon && appliedCoupon.discountPercentage < 100 && (
+                    <div className="flex items-center justify-between mb-2 text-green-600">
+                      <span>Coupon Discount ({appliedCoupon.discountPercentage}%)</span>
+                      <span>-₹{Math.round((499 * appliedCoupon.discountPercentage) / 100)}</span>
+                    </div>
+                  )}
+                  
                   <div className="flex items-center justify-between mb-2 text-sm text-muted-foreground">
                     <span>GST (18%)</span>
                     <span>Included</span>
                   </div>
                   <div className="flex items-center justify-between font-medium pt-2 border-t mt-2">
                     <span>Total</span>
-                    <span>₹499</span>
+                    <span>₹{discountedAmount || 499}</span>
                   </div>
+                  
+                  {appliedCoupon && (
+                    <div className="mt-2 pt-2 border-t text-sm text-green-600">
+                      <span>Coupon "{appliedCoupon.code}" applied</span>
+                    </div>
+                  )}
                 </div>
 
                 <Button onClick={handlePayment} className="w-full" disabled={processingPayment}>

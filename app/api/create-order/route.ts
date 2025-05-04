@@ -19,7 +19,7 @@ const createRazorpayOrder = async (amount: number, currency: string) => {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, amount, currency, fullName } = await request.json();
+    const { userId, amount, currency, fullName, couponCode, discountPercentage } = await request.json();
 
     if (!userId) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
@@ -31,6 +31,17 @@ export async function POST(request: NextRequest) {
 
     if (!fullName) {
       return NextResponse.json({ error: "Full name is required" }, { status: 400 });
+    }
+    
+    // Validate amount if coupon is applied
+    if (couponCode && discountPercentage) {
+      const originalAmount = 499;
+      const expectedDiscountedAmount = Math.max(1, Math.round(originalAmount - (originalAmount * discountPercentage / 100)));
+      
+      if (amount !== expectedDiscountedAmount) {
+        console.warn(`Amount mismatch: expected ${expectedDiscountedAmount}, got ${amount}`);
+        // We'll continue with the provided amount, but log the warning
+      }
     }
 
     if (!adminDb) {
@@ -89,6 +100,9 @@ export async function POST(request: NextRequest) {
       status: "created",
       fullName: fullName,
       createdAt: new Date().toISOString(),
+      couponCode: couponCode || null,
+      discountPercentage: discountPercentage || 0,
+      originalAmount: couponCode ? 499 : amount, // Store original amount if coupon was applied
     });
 
     // Update user progress with name if provided

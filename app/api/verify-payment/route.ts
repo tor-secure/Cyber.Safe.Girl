@@ -1,5 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { adminDb } from "@/lib/firebase-admin"
+import { adminDb, FieldValue } from "@/lib/firebase-admin"
 
 // This would be replaced with actual Razorpay verification in production
 const verifyRazorpayPayment = (orderId: string, paymentId: string, signature: string) => {
@@ -10,7 +10,7 @@ const verifyRazorpayPayment = (orderId: string, paymentId: string, signature: st
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orderId, paymentId, signature, fullName } = await request.json()
+    const { userId, orderId, paymentId, signature, fullName, couponCode, discountPercentage } = await request.json()
 
     if (!userId || !orderId || !paymentId || !signature) {
       return NextResponse.json(
@@ -39,13 +39,79 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Update order status in Firestore
+    // Get order details
     const orderRef = adminDb.collection("paymentOrders").doc(orderId)
+    const orderDoc = await orderRef.get()
+    
+    if (!orderDoc.exists) {
+      return NextResponse.json(
+        {
+          verified: false,
+          error: "Order not found",
+        },
+        { status: 404 },
+      )
+    }
+    
+    const orderData = orderDoc.data()
+    
+    // Update order status in Firestore
     await orderRef.update({
       status: "paid",
       paymentId: paymentId,
       paidAt: new Date().toISOString(),
     })
+    
+    // If a coupon was used, record it in coupon usage
+    if (orderData?.couponCode) {
+      try {
+        // Get user email if available
+        let userEmail = null
+        try {
+          const userRecord = await adminDb.collection("users").doc(userId).get()
+          if (userRecord.exists) {
+            userEmail = userRecord.data()?.email || null
+          }
+        } catch (err) {
+          console.error("Error fetching user email:", err)
+          // Continue without email
+        }
+        
+        // Find the coupon
+        const couponQuery = await adminDb.collection("coupons")
+          .where("code", "==", orderData.couponCode)
+          .limit(1)
+          .get()
+          
+        if (!couponQuery.empty) {
+          const couponDoc = couponQuery.docs[0]
+          const couponId = couponDoc.id
+          
+          // Record coupon usage
+          await adminDb.collection("couponUsage").add({
+            couponId: couponId,
+            couponCode: orderData.couponCode,
+            userId: userId,
+            userName: fullName || "Unknown User",
+            userEmail: userEmail,
+            usedAt: new Date().toISOString(),
+            discountPercentage: orderData.discountPercentage || 0,
+            paymentId: paymentId,
+            orderId: orderId,
+            amountPaid: orderData.amount
+          })
+          
+          // Update coupon usage count
+          await couponDoc.ref.update({
+            usedCount: FieldValue.increment(1),
+            lastUsedAt: new Date().toISOString()
+          })
+        }
+      } catch (couponErr) {
+        // Log error but don't fail the payment verification
+        console.error("Error recording coupon usage:", couponErr)
+      }
+    }
 
     // Update user progress to mark payment as completed
     const userProgressRef = adminDb.collection("userProgress").doc(userId)
@@ -54,6 +120,9 @@ export async function POST(request: NextRequest) {
       finalTestUnlocked: true,
       name: fullName || null,
       lastUpdated: new Date().toISOString(),
+      paymentMethod: orderData?.couponCode ? "coupon_partial" : "razorpay",
+      couponCode: orderData?.couponCode || null,
+      discountPercentage: orderData?.discountPercentage || 0
     })
 
     return NextResponse.json({

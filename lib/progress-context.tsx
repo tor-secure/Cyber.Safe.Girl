@@ -59,7 +59,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
         console.log("Unlocked chapter IDs:", unlockedChapterIds)
         
         // Create chapters array with correct locked/completed status
-        const chaptersData = Array.from({ length: 60 }, (_, i) => {
+        const chaptersData = Array.from({ length: 70 }, (_, i) => {
           const chapterId = i + 1
           return {
             id: chapterId,
@@ -77,7 +77,7 @@ export function ProgressProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("Error fetching user progress:", error)
       // Fallback to default state if fetch fails
-      const defaultChapters = Array.from({ length: 60 }, (_, i) => ({
+      const defaultChapters = Array.from({ length: 70 }, (_, i) => ({
         id: i + 1,
         title: `Chapter ${i + 1}`,
         completed: false,

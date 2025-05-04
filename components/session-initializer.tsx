@@ -23,12 +23,16 @@ export function SessionInitializer() {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          // User is signed in, get the token
-          const token = await user.getIdToken(true);
-          
-          // Store the token in both cookie and localStorage
-          setCookie('firebase-auth-token', token, 30);
-          localStorage.setItem('firebase-auth-token', token);
+          // User is signed in, check if getIdToken method exists
+          if (typeof user.getIdToken === 'function') {
+            const token = await user.getIdToken(true);
+            
+            // Store the token in both cookie and localStorage
+            setCookie('firebase-auth-token', token, 30);
+            localStorage.setItem('firebase-auth-token', token);
+          } else {
+            console.warn('getIdToken method not available on user object');
+          }
           
           // Store user data in localStorage
           localStorage.setItem('user', JSON.stringify({

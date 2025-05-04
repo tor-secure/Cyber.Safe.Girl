@@ -14,10 +14,14 @@ export async function middleware(request: NextRequest) {
     path === '/' || 
     path.startsWith('/api/auth/') ||
     path === '/introduction' ||
+    path === '/admin/login' ||
     path.includes('/_next/') ||
     path.includes('/static/') ||
     path.includes('/images/') ||
-    path.includes('/favicon.ico')
+    path.includes('/favicon.ico') ||
+    path === '/api/verify-coupon' ||
+    path === '/api/check-final-test-eligibility' ||
+    path === '/api/admin/check-admin'
   
   // If it's a public path, allow access
   if (isPublicPath) {
@@ -35,15 +39,30 @@ export async function middleware(request: NextRequest) {
   if (!hasAuthCookie && !hasAuthHeader) {
     // For API requests, return 401 Unauthorized
     if (path.startsWith('/api/')) {
+      // Skip auth check for public API endpoints
+      if (path.startsWith('/api/auth/') || 
+          path.startsWith('/api/verify-coupon') || 
+          path.startsWith('/api/check-final-test-eligibility')) {
+        return NextResponse.next()
+      }
+      
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       )
     }
     
-    // For page requests, redirect to login
+    // For admin routes, redirect to admin login
+    if (path.startsWith('/admin/')) {
+      return NextResponse.redirect(new URL('/admin/login', request.url))
+    }
+    
+    // For other page requests, redirect to login
     return NextResponse.redirect(new URL('/login', request.url))
   }
+  
+  // Special handling for admin API routes - they need admin claim verification
+  // but we'll let the API routes handle that check themselves
   
   // If user is authenticated and trying to access login page, redirect to dashboard
   if ((path === '/login' || path === '/register') && hasAuthCookie) {
