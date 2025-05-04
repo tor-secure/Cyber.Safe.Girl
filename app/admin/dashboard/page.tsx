@@ -50,7 +50,8 @@ export default function AdminDashboardPage() {
       
       const response = await fetch("/api/admin/coupons", {
         headers: {
-          Authorization: `Bearer ${idToken}`
+          Authorization: `Bearer ${idToken}`,
+          'x-firebase-auth-token': idToken // Add custom header as fallback
         }
       })
       
@@ -83,7 +84,8 @@ export default function AdminDashboardPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`
+          "Authorization": `Bearer ${idToken}`,
+          "x-firebase-auth-token": idToken // Add custom header as fallback
         },
         body: JSON.stringify({
           code: couponCode,
@@ -125,7 +127,8 @@ export default function AdminDashboardPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`
+          "Authorization": `Bearer ${idToken}`,
+          "x-firebase-auth-token": idToken // Add custom header as fallback
         },
         body: JSON.stringify({
           count: numberOfCoupons,
@@ -169,11 +172,38 @@ export default function AdminDashboardPage() {
     )
   }
 
+  // Debug function
+  const debugAuth = async () => {
+    try {
+      if (!idToken) {
+        alert("Not authenticated")
+        return
+      }
+      
+      const response = await fetch("/api/admin/debug-auth", {
+        headers: {
+          Authorization: `Bearer ${idToken}`,
+          'x-firebase-auth-token': idToken
+        }
+      })
+      
+      const data = await response.json()
+      console.log("Auth Debug Info:", data)
+      alert("Auth debug info logged to console")
+    } catch (error) {
+      console.error("Debug error:", error)
+      alert("Error debugging auth. Check console.")
+    }
+  }
+
   return (
     <div className="container mx-auto py-8 px-4">
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <div className="flex items-center gap-4">
+          <Button variant="outline" size="sm" onClick={debugAuth}>
+            Debug Auth
+          </Button>
           <Button variant="outline" size="sm" onClick={() => router.push("/admin/coupons")}>
             Coupon Management
           </Button>

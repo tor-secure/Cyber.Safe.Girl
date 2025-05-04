@@ -26,8 +26,8 @@ import CouponForm from "@/components/coupon-form"
 export function FinalTest() {
   const { user } = useAuth()
   const router = useRouter()
-  const [score, setScore] = useState<number>(0);
-  const [totalQuestions, setTotalQuestions] = useState<number>(0);
+  const [score, setScore] = useState<number | null>(null)
+  const [totalQuestions, setTotalQuestions] = useState<number | null>(null)
   const [passingScore, setPassingScore] = useState(9) // 30% of 30 questions
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
   // Removed voucher dialog in favor of integrated coupon form
@@ -40,7 +40,15 @@ export function FinalTest() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [testLoading, setTestLoading] = useState(false)
-  const [userProgress, setUserProgress] = useState<any>(null)
+  interface UserProgress {
+    finalTestCompleted?: boolean;
+    certificateUnlocked?: boolean;
+    paymentCompleted?: boolean;
+    finalTestUnlocked?: boolean;
+    [key: string]: any;
+  }
+  
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null)
   const [certificateUnlocked, setCertificateUnlocked] = useState(false)
   const [finalTestCompleted, setFinalTestCompleted] = useState(false)
 
@@ -129,9 +137,9 @@ export function FinalTest() {
           setScore(0)
           setTotalQuestions(30)
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error("Failed to check user progress:", err)
-        setError(err.message || "Failed to check if you're eligible for the final test.")
+        setError(err instanceof Error ? err.message : "Failed to check if you're eligible for the final test.")
         setScore(0)
         setTotalQuestions(0)
       } finally {
@@ -242,9 +250,9 @@ export function FinalTest() {
 
       setIsSubmitted(true)
       setShowTestDialog(false)
-    } catch (err: any) {
+    } catch (err) {
       console.error("Failed to submit final test:", err)
-      setError(err.message || "Failed to submit final test. Please try again.")
+      setError(err instanceof Error ? err.message : "Failed to submit final test. Please try again.")
     }
   }
 
@@ -371,9 +379,7 @@ export function FinalTest() {
               <Card>
                 <CardContent className="pt-6">
                   <div className="text-center">
-                    <div className="text-2xl font-bold"> {typeof totalQuestions === "number" && typeof score === "number"
-                      ? totalQuestions - score
-                      : 0}</div>
+                    <div className="text-2xl font-bold">{totalQuestions !== null ? totalQuestions - score! : 0}</div>
                     <div className="text-sm text-muted-foreground">Incorrect Answers</div>
                   </div>
                 </CardContent>
@@ -497,44 +503,25 @@ export function FinalTest() {
                 <h3 className="text-lg font-medium">{questions[currentQuestion].question}</h3>
 
                 <RadioGroup
-  value={selectedAnswers[questions[currentQuestion]?.id] || ""}
-  onValueChange={(value) => {
-    setSelectedAnswers((prev) => ({
-      ...prev,
-      [questions[currentQuestion].id]: value,
-    }))
-  }}
-  className="space-y-3"
->
-  {Object.entries(questions[currentQuestion]?.options || {})
-    .sort()
-    .map(([optionKey, optionText], index) => (
-      <div
-        key={optionKey}
-        className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors ${
-          selectedAnswers[questions[currentQuestion]?.id] === optionKey ? "bg-muted" : ""
-        }`}
-        onClick={() => {
-          if (!isSubmitted) {
-            setSelectedAnswers((prev) => ({
-              ...prev,
-              [questions[currentQuestion].id]: optionKey,
-            }))
-          }
-        }}
-      >
-        <RadioGroupItem
-          value={optionKey}
-          id={`option-${index}`}
-          disabled={isSubmitted}
-        />
-        <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer text-base">
-          {optionKey}: {optionText}
-        </Label>
-      </div>
-    ))}
-</RadioGroup>
-
+                  value={selectedAnswers[questions[currentQuestion].id] || ""}
+                  onValueChange={(value) => {
+                    setSelectedAnswers({
+                      ...selectedAnswers,
+                      [questions[currentQuestion].id]: value,
+                    })
+                  }}
+                >
+                  {Object.entries(questions[currentQuestion].options).map(([key, option], index) => (
+                    <div key={index} className="flex items-center space-x-2 py-2">
+                      <RadioGroupItem
+                        value={option}
+                        id={`option-${index}`}
+                        disabled={isSubmitted}
+                      />
+                      <Label htmlFor={`option-${index}`}>{option}</Label>
+                    </div>
+                  ))}
+                </RadioGroup>
               </div>
 
               <div className="flex justify-between pt-4">

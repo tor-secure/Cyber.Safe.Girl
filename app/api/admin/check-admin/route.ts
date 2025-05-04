@@ -50,17 +50,32 @@ function initializeFirebaseAdmin() {
 
 export async function GET(request: NextRequest) {
   try {
-    // Get the authorization token from the request
+    // Get the authorization token from the request - try multiple sources
     const authHeader = request.headers.get("authorization");
+    const customTokenHeader = request.headers.get("x-firebase-auth-token");
     
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return NextResponse.json({ isAdmin: false, error: "No authorization header" }, { status: 401 });
+    // Try to get token from authorization header
+    let token: string | null = null;
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.split("Bearer ")[1];
     }
     
-    const token = authHeader.split("Bearer ")[1];
+    // If no token from auth header, try custom header
+    if (!token && customTokenHeader) {
+      token = customTokenHeader;
+    }
+    
+    // If still no token, check cookies
+    if (!token) {
+      const cookies = request.cookies;
+      const tokenCookie = cookies.get("firebase-auth-token");
+      if (tokenCookie) {
+        token = tokenCookie.value;
+      }
+    }
     
     if (!token) {
-      return NextResponse.json({ isAdmin: false, error: "No token provided" }, { status: 401 });
+      return NextResponse.json({ isAdmin: false, error: "No token found in request" }, { status: 401 });
     }
     
     // Initialize Firebase Admin if needed

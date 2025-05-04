@@ -36,9 +36,15 @@ export default function AdminLoginPage() {
         // Get the ID token
         token = await user.getIdToken(true)
         
-        // Store token in localStorage and sessionStorage for redundancy
+        // Store token in multiple places for redundancy
         localStorage.setItem('firebase-auth-token', token)
         sessionStorage.setItem('firebase-auth-token', token)
+        
+        // Set as a cookie with proper security settings
+        // Import the setCookie function
+        import('@/lib/cookies').then(({ setCookie }) => {
+          setCookie('firebase-auth-token', token, 30) // 30 days
+        })
         
         // Check if user has admin role
         if (typeof user.getIdTokenResult === 'function') {

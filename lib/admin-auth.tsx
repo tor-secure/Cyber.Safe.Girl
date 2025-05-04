@@ -84,6 +84,7 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         const response = await fetch("/api/admin/check-admin", {
           headers: {
             Authorization: `Bearer ${token}`,
+            'x-firebase-auth-token': token, // Add custom header as fallback
           },
         });
 

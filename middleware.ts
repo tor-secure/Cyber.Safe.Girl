@@ -35,8 +35,12 @@ export async function middleware(request: NextRequest) {
   const authHeader = request.headers.get('authorization')
   const hasAuthHeader = authHeader && authHeader.startsWith('Bearer ')
   
+  // Check for token in custom header (for client-side requests where cookies might fail)
+  const authTokenHeader = request.headers.get('x-firebase-auth-token')
+  const hasAuthTokenHeader = !!authTokenHeader
+  
   // If no authentication found, redirect to login
-  if (!hasAuthCookie && !hasAuthHeader) {
+  if (!hasAuthCookie && !hasAuthHeader && !hasAuthTokenHeader) {
     // For API requests, return 401 Unauthorized
     if (path.startsWith('/api/')) {
       // Skip auth check for public API endpoints
