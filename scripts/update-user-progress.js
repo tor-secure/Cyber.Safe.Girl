@@ -11,7 +11,7 @@ if (!admin.apps.length) {
       privateKey: process.env.NEXT_PUBLIC_FIREBASE_PRIVATE_KEY.replace(/\\n/g, "\n"),})
   });
 }
-
+// test
 const db = admin.firestore();
 
 async function updateUserProgress() {
