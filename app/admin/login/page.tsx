@@ -41,7 +41,6 @@ export default function AdminLoginPage() {
         sessionStorage.setItem('firebase-auth-token', token)
         
         // Set as a cookie with proper security settings
-        // Import the setCookie function
         import('@/lib/cookies').then(({ setCookie }) => {
           if (token) {
             setCookie('firebase-auth-token', token, 30) // 30 days
@@ -94,22 +93,24 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Admin Login</CardTitle>
-          <CardDescription>Enter your credentials to access the admin dashboard</CardDescription>
+    <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+      <Card className="w-full max-w-sm sm:max-w-md lg:max-w-lg mx-auto shadow-lg">
+        <CardHeader className="space-y-1 text-center px-4 sm:px-6">
+          <CardTitle className="text-2xl sm:text-3xl font-bold">Admin Login</CardTitle>
+          <CardDescription className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
+            Enter your credentials to access the admin dashboard
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-4 sm:px-6">
           {error && (
             <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
+              <AlertTriangle className="h-4 sm:h-5 w-4 sm:w-5" />
+              <AlertDescription className="ml-2 text-sm sm:text-base">{error}</AlertDescription>
             </Alert>
           )}
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+          <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="email" className="text-sm sm:text-base font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -117,22 +118,28 @@ export default function AdminLoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="py-1.5 sm:py-2 text-sm sm:text-base"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="password" className="text-sm sm:text-base font-medium">Password</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="py-1.5 sm:py-2 text-sm sm:text-base"
               />
             </div>
-            <Button type="submit" className="w-full" disabled={loading}>
+            <Button 
+              type="submit" 
+              className="w-full py-2 sm:py-2.5 text-base sm:text-lg font-medium sm:font-semibold mt-2" 
+              disabled={loading}
+            >
               {loading ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-4 sm:h-5 w-4 sm:w-5 animate-spin" />
                   Logging in...
                 </>
               ) : (

@@ -10,13 +10,32 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, AlertTriangle, CheckCircle, LogOut } from "lucide-react"
+import { Loader2, AlertTriangle, CheckCircle, LogOut, Share2, Mail, Copy, Check } from "lucide-react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useToast } from "@/components/ui/use-toast"
+import { ToastAction } from "@/components/ui/toast"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function AdminDashboardPage() {
   const { isAdmin, isLoading: adminLoading, idToken } = useAdminAuth()
   const { user, logout } = useAuth()
   const router = useRouter()
+  const { toast } = useToast()
 
   const [activeTab, setActiveTab] = useState("generate")
   const [loading, setLoading] = useState(false)
@@ -30,6 +49,9 @@ export default function AdminDashboardPage() {
   const [generatingMultiple, setGeneratingMultiple] = useState(false)
   const [numberOfCoupons, setNumberOfCoupons] = useState(5)
   const [prefix, setPrefix] = useState("CSG")
+  const [copySuccess, setCopySuccess] = useState<string>("")
+  const [generatedCoupons, setGeneratedCoupons] = useState<any[]>([])
+  const [showShareDialog, setShowShareDialog] = useState(false)
 
   useEffect(() => {
     if (!adminLoading && !isAdmin) {
@@ -80,30 +102,71 @@ export default function AdminDashboardPage() {
         throw new Error("Not authenticated")
       }
       
-      const response = await fetch("/api/admin/generate-coupon", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken // Add custom header as fallback
-        },
-        body: JSON.stringify({
+      try {
+        const response = await fetch("/api/admin/generate-coupon", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
+            "x-firebase-auth-token": idToken // Add custom header as fallback
+          },
+          body: JSON.stringify({
+            code: couponCode,
+            discountPercentage,
+            maxUses,
+            expiryDays,
+          }),
+        })
+
+        const responseData = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(responseData.error || "Failed to generate coupon")
+        }
+        
+        // Create a coupon object with the necessary properties
+        const generatedCoupon = {
           code: couponCode,
-          discountPercentage,
-          maxUses,
-          expiryDays,
-        }),
-      })
-
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Failed to generate coupon")
+          discountPercentage: discountPercentage,
+          maxUses: maxUses,
+          expiryDays: expiryDays
+        };
+        
+        // Show toast with share options
+        toast({
+          title: "Coupon Generated",
+          description: `Code: ${couponCode}`,
+          action: (
+            <div className="flex space-x-2">
+              <ToastAction 
+                altText="WhatsApp" 
+                onClick={() => handleShareCoupon(generatedCoupon, 'whatsapp')}
+              >
+                <Share2 className="h-4 w-4 mr-1" /> WhatsApp
+              </ToastAction>
+              <ToastAction 
+                altText="Email" 
+                onClick={() => handleShareCoupon(generatedCoupon, 'email')}
+              >
+                <Mail className="h-4 w-4 mr-1" /> Email
+              </ToastAction>
+              <ToastAction 
+                altText="Copy" 
+                onClick={() => handleShareCoupon(generatedCoupon, 'copy')}
+              >
+                {copySuccess === couponCode ? <Check className="h-4 w-4 mr-1" /> : <Copy className="h-4 w-4 mr-1" />} Copy
+              </ToastAction>
+            </div>
+          ),
+        })
+        
+        setSuccess(`Coupon generated successfully: ${couponCode}`)
+        setCouponCode("")
+        fetchCoupons()
+      } catch (innerErr: any) {
+        console.error("Failed to generate coupon:", innerErr)
+        setError(innerErr.message || "Failed to generate coupon")
       }
-
-      const data = await response.json()
-      setSuccess(`Coupon generated successfully: ${data.coupon.code}`)
-      setCouponCode("")
-      fetchCoupons()
     } catch (err: any) {
       console.error("Failed to generate coupon:", err)
       setError(err.message || "Failed to generate coupon")
@@ -123,30 +186,49 @@ export default function AdminDashboardPage() {
         throw new Error("Not authenticated")
       }
       
-      const response = await fetch("/api/admin/generate-multiple-coupons", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken // Add custom header as fallback
-        },
-        body: JSON.stringify({
-          count: numberOfCoupons,
-          prefix,
-          discountPercentage,
-          maxUses,
-          expiryDays,
-        }),
-      })
+      try {
+        const response = await fetch("/api/admin/generate-multiple-coupons", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${idToken}`,
+            "x-firebase-auth-token": idToken // Add custom header as fallback
+          },
+          body: JSON.stringify({
+            count: numberOfCoupons,
+            prefix,
+            discountPercentage,
+            maxUses,
+            expiryDays,
+          }),
+        })
 
-      if (!response.ok) {
-        const data = await response.json()
-        throw new Error(data.error || "Failed to generate coupons")
+        const responseData = await response.json()
+        
+        if (!response.ok) {
+          throw new Error(responseData.error || "Failed to generate coupons")
+        }
+        
+        // Create coupon objects with the necessary properties
+        const generatedCouponsList = Array.from({ length: numberOfCoupons }, (_, i) => ({
+          code: `${prefix}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+          discountPercentage: discountPercentage,
+          maxUses: maxUses,
+          expiryDays: expiryDays
+        }));
+        
+        // Store generated coupons for sharing
+        setGeneratedCoupons(generatedCouponsList);
+        
+        // Show share dialog
+        setShowShareDialog(true);
+        
+        setSuccess(`${numberOfCoupons} coupons generated successfully`)
+        fetchCoupons()
+      } catch (innerErr: any) {
+        console.error("Failed to generate coupons:", innerErr)
+        setError(innerErr.message || "Failed to generate coupons")
       }
-
-      const data = await response.json()
-      setSuccess(`${data.coupons.length} coupons generated successfully`)
-      fetchCoupons()
     } catch (err: any) {
       console.error("Failed to generate coupons:", err)
       setError(err.message || "Failed to generate coupons")
@@ -162,6 +244,58 @@ export default function AdminDashboardPage() {
     } catch (err) {
       console.error("Logout failed:", err)
     }
+  }
+  
+  const handleShareCoupon = (coupon: any, method: string) => {
+    const couponText = `Coupon Code: ${coupon.code}\nDiscount: ${coupon.discountPercentage}%\n${coupon.maxUses === 1 ? 'One-time use only' : `Can be used ${coupon.maxUses} times`}${coupon.expiryDays ? `\nExpires in: ${coupon.expiryDays} days` : ''}`
+    
+    switch (method) {
+      case 'whatsapp':
+        window.open(`https://wa.me/?text=${encodeURIComponent(couponText)}`, '_blank')
+        break
+      case 'email':
+        window.open(`mailto:?subject=Your Discount Coupon&body=${encodeURIComponent(couponText)}`, '_blank')
+        break
+      case 'copy':
+        navigator.clipboard.writeText(couponText)
+          .then(() => {
+            setCopySuccess(typeof coupon === 'string' ? coupon : coupon.code);
+            setTimeout(() => setCopySuccess(""), 2000);
+          })
+          .catch(err => console.error("Failed to copy coupon details:", err))
+        break
+      default:
+        break
+    }
+  }
+  
+  const handleShareMultipleCoupons = (method: string) => {
+    if (generatedCoupons.length === 0) return
+    
+    const couponsText = generatedCoupons.map(coupon => 
+      `Coupon Code: ${coupon.code}\nDiscount: ${coupon.discountPercentage}%\n${coupon.maxUses === 1 ? 'One-time use only' : `Can be used ${coupon.maxUses} times`}${coupon.expiryDays ? `\nExpires in: ${coupon.expiryDays} days` : ''}`
+    ).join('\n\n---\n\n')
+    
+    switch (method) {
+      case 'whatsapp':
+        window.open(`https://wa.me/?text=${encodeURIComponent(couponsText)}`, '_blank')
+        break
+      case 'email':
+        window.open(`mailto:?subject=Your Discount Coupons&body=${encodeURIComponent(couponsText)}`, '_blank')
+        break
+      case 'copy':
+        navigator.clipboard.writeText(couponsText)
+          .then(() => {
+            setSuccess("Coupons copied to clipboard!");
+            setTimeout(() => setSuccess(null), 2000);
+          })
+          .catch(err => console.error("Failed to copy coupon details:", err))
+        break
+      default:
+        break
+    }
+    
+    setShowShareDialog(false)
   }
 
   if (adminLoading) {
@@ -197,23 +331,42 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-        <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={debugAuth}>
-            Debug Auth
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => router.push("/admin/coupons")}>
-            Coupon Management
-          </Button>
-          <span className="text-sm text-muted-foreground">
-            Logged in as: {user?.email}
-          </span>
-          <Button variant="outline" size="sm" onClick={handleLogout}>
-            <LogOut className="h-4 w-4 mr-2" />
-            Logout
-          </Button>
+    <div className="container mx-auto py-4 sm:py-6 md:py-8 px-4 sm:px-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold">Admin Dashboard</h1>
+        <div className="flex flex-wrap items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={debugAuth} 
+              className="hidden sm:inline-flex text-xs sm:text-sm h-8 sm:h-9"
+            >
+              Debug Auth
+            </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => router.push("/admin/coupons")}
+              className="text-xs sm:text-sm h-8 sm:h-9"
+            >
+              <span className="whitespace-nowrap">Coupon Management</span>
+            </Button>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto sm:ml-0">
+            <span className="text-xs sm:text-sm text-muted-foreground truncate max-w-[120px] sm:max-w-none">
+              {user?.email}
+            </span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              className="text-xs sm:text-sm h-8 sm:h-9"
+            >
+              <LogOut className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -226,8 +379,8 @@ export default function AdminDashboardPage() {
         <TabsContent value="generate" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Generate Coupon</CardTitle>
-              <CardDescription>Create new coupon codes for users</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Generate Coupon</CardTitle>
+              <CardDescription className="text-sm sm:text-base">Create new coupon codes for users</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               {error && (
@@ -417,13 +570,13 @@ export default function AdminDashboardPage() {
         <TabsContent value="manage" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Manage Coupons</CardTitle>
-              <CardDescription>View and manage existing coupon codes</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Manage Coupons</CardTitle>
+              <CardDescription className="text-sm sm:text-base">View and manage existing coupon codes</CardDescription>
             </CardHeader>
             <CardContent>
               {loading ? (
                 <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <Loader2 className="h-6 sm:h-8 w-6 sm:w-8 animate-spin text-primary" />
                 </div>
               ) : coupons.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
@@ -431,8 +584,9 @@ export default function AdminDashboardPage() {
                 </div>
               ) : (
                 <div className="rounded-md border">
-                  <Table>
-                    <TableHeader>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
                       <TableRow>
                         <TableHead>Code</TableHead>
                         <TableHead>Discount</TableHead>
@@ -477,12 +631,60 @@ export default function AdminDashboardPage() {
                       })}
                     </TableBody>
                   </Table>
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Share Dialog for Multiple Coupons */}
+      <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Share Generated Coupons</DialogTitle>
+            <DialogDescription>
+              Choose how you want to share the {generatedCoupons.length} generated coupons.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col space-y-3 py-4">
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => handleShareMultipleCoupons('whatsapp')}
+            >
+              <Share2 className="mr-2 h-4 w-4" />
+              <span>Share via WhatsApp</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => handleShareMultipleCoupons('email')}
+            >
+              <Mail className="mr-2 h-4 w-4" />
+              <span>Share via Email</span>
+            </Button>
+            <Button 
+              variant="outline" 
+              className="justify-start"
+              onClick={() => handleShareMultipleCoupons('copy')}
+            >
+              <Copy className="mr-2 h-4 w-4" />
+              <span>Copy to Clipboard</span>
+            </Button>
+          </div>
+          <DialogFooter className="sm:justify-start">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setShowShareDialog(false)}
+            >
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
