@@ -8,60 +8,77 @@ import { BookOpen, CheckCircle, Clock, Lock, Loader2 } from "lucide-react"
 import Link from "next/link"
 import { useAuth } from "@/lib/auth-context"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useRouter } from "next/navigation"
 
 interface Chapter {
-  id: number;
-  chapterId: string;
-  title: string;
-  description: string;
-  completed: boolean;
-  locked: boolean;
+  id: number
+  chapterId: string
+  title: string
+  description: string
+  completed: boolean
+  locked: boolean
 }
 
 interface UserProgress {
-  userId: string;
-  completedChapters: string[];
-  unlockedChapters: string[];
-  finalTestUnlocked: boolean;
-  finalTestCompleted: boolean;
-  certificateUnlocked: boolean;
-  lastUpdated: string;
+  userId: string
+  completedChapters: string[]
+  unlockedChapters: string[]
+  finalTestUnlocked: boolean
+  finalTestCompleted: boolean
+  certificateUnlocked: boolean
+  lastUpdated: string
 }
 
 export function ChapterGrid() {
-  const { user } = useAuth();
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const { user } = useAuth()
+  const [chapters, setChapters] = useState<Chapter[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [userProgress, setUserProgress] = useState<UserProgress | null>(null)
+  const router = useRouter()
+
+  // Add a function to handle chapter completion and redirect to payment if needed
+  const handleChapterCompletion = (chapterId: string) => {
+    // Convert chapterId to a number for comparison
+    const chapter = chapters.find((c) => c.id === Number(chapterId))
+    const chapterIdString = chapter?.chapterId
+
+    // If this is the last chapter (CH-070) and it's completed, redirect to payment
+    if (chapterIdString === "CH-070" && userProgress?.completedChapters?.includes(chapterIdString)) {
+      router.push("/payment")
+    } else {
+      // Otherwise, navigate to the chapter
+      router.push(`/chapters/${chapterId}`)
+    }
+  }
 
   // Fetch user progress when component mounts
   useEffect(() => {
     async function fetchUserProgress() {
       if (!user) {
-        setLoading(false);
-        return;
+        setLoading(false)
+        return
       }
 
       try {
-        setLoading(true);
-        setError(null);
+        setLoading(true)
+        setError(null)
 
-        const response = await fetch(`/api/user-progress?userId=${user.id}`);
-        
+        const response = await fetch(`/api/user-progress?userId=${user.id}`)
+
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
+          throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
-        const data = await response.json();
-        setUserProgress(data.progress);
-        
+
+        const data = await response.json()
+        setUserProgress(data.progress)
+
         // Generate chapters based on user progress
-        generateChapters(data.progress);
+        generateChapters(data.progress)
       } catch (err: any) {
-        console.error("Failed to fetch user progress:", err);
-        setError(err.message || "Failed to load chapter data");
-        
+        console.error("Failed to fetch user progress:", err)
+        setError(err.message || "Failed to load chapter data")
+
         // Generate default chapters with only first chapter unlocked
         const defaultProgress = {
           userId: user.id,
@@ -70,37 +87,37 @@ export function ChapterGrid() {
           finalTestUnlocked: false,
           finalTestCompleted: false,
           certificateUnlocked: false,
-          lastUpdated: new Date().toISOString()
-        };
-        generateChapters(defaultProgress);
+          lastUpdated: new Date().toISOString(),
+        }
+        generateChapters(defaultProgress)
       } finally {
-        setLoading(false);
+        setLoading(false)
       }
     }
 
-    fetchUserProgress();
-  }, [user]);
+    fetchUserProgress()
+  }, [user])
 
   // Generate chapters based on user progress
   const generateChapters = (progress: UserProgress) => {
-    if (!progress) return;
+    if (!progress) return
 
     const chapterList = Array.from({ length: 70 }, (_, i) => {
-      const chapterNumber = i + 1;
-      const chapterId = `CH-${chapterNumber.toString().padStart(3, '0')}`;
-      
+      const chapterNumber = i + 1
+      const chapterId = `CH-${chapterNumber.toString().padStart(3, "0")}`
+
       return {
         id: chapterNumber,
         chapterId,
         title: `Chapter ${chapterNumber}`,
         description: `Learn about important cybersecurity concepts in Chapter ${chapterNumber}`,
         completed: progress.completedChapters.includes(chapterId),
-        locked: !progress.unlockedChapters.includes(chapterId)
-      };
-    });
+        locked: !progress.unlockedChapters.includes(chapterId),
+      }
+    })
 
-    setChapters(chapterList);
-  };
+    setChapters(chapterList)
+  }
 
   if (loading) {
     return (
@@ -108,7 +125,7 @@ export function ChapterGrid() {
         <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
         <p>Loading chapters...</p>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -116,7 +133,7 @@ export function ChapterGrid() {
       <Alert variant="destructive" className="mb-4">
         <AlertDescription>{error}</AlertDescription>
       </Alert>
-    );
+    )
   }
 
   return (
@@ -176,7 +193,7 @@ export function ChapterGrid() {
                     Read
                   </Link>
                 </Button>
-                <Button asChild className="flex-1">
+                <Button asChild className="flex-1" onClick={() => handleChapterCompletion(chapter.id.toString())}>
                   <Link href={`/chapters/${chapter.id}`}>Take Quiz</Link>
                 </Button>
               </>

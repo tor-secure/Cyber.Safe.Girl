@@ -3,7 +3,10 @@ import * as React from "react"
 import { cn } from "@/lib/utils"
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
-  ({ className, type, ...props }, ref) => {
+  ({ className, type, value, ...props }, ref) => {
+    // Handle NaN values by converting them to empty strings
+    const safeValue = value !== undefined && Number.isNaN(value) ? "" : value
+    
     return (
       <input
         type={type}
@@ -12,6 +15,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           className
         )}
         ref={ref}
+        value={safeValue}
         {...props}
       />
     )

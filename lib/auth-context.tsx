@@ -59,11 +59,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(true)
       if (firebaseUser) {
         try {
-          // Get the ID token with force refresh to ensure it's up to date
-          const token = await firebaseUser.getIdToken(true);
-          
-          // Store token in a cookie that persists across sessions
-          setCookie('firebase-auth-token', token, 30); // 30 days
+          let token = null;
+          // Check if getIdToken method exists
+          if (typeof firebaseUser.getIdToken === 'function') {
+            // Get the ID token with force refresh to ensure it's up to date
+            token = await firebaseUser.getIdToken(true);
+            
+            // Store token in a cookie that persists across sessions
+            setCookie('firebase-auth-token', token, 30); // 30 days
+          } else {
+            console.warn('getIdToken method not available on firebaseUser object');
+          }
           
           // Convert Firebase user to our User type
           const userData = {
@@ -80,7 +86,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (typeof window !== 'undefined') {
             localStorage.setItem('user', JSON.stringify(userData));
             // Also store the token in localStorage as a backup
-            localStorage.setItem('firebase-auth-token', token);
+            if (token) {
+              localStorage.setItem('firebase-auth-token', token);
+            }
           }
         } catch (error) {
           console.error('Error processing authentication:', error);
@@ -112,15 +120,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Get the user from the credential
       const firebaseUser = userCredential.user;
       
-      // Get the ID token
-      const token = await firebaseUser.getIdToken(true);
-      
-      // Store token in a cookie that persists across sessions
-      setCookie('firebase-auth-token', token, 30); // 30 days
-      
-      // Also store in localStorage as a backup
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('firebase-auth-token', token);
+      let token = null;
+      // Check if getIdToken method exists
+      if (typeof firebaseUser.getIdToken === 'function') {
+        // Get the ID token
+        token = await firebaseUser.getIdToken(true);
+        
+        // Store token in multiple places for redundancy
+        setCookie('firebase-auth-token', token, 30); // 30 days
+        
+        // Also store in localStorage and sessionStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', token);
+          sessionStorage.setItem('firebase-auth-token', token);
+          
+          // Set a custom attribute on document for debugging
+          try {
+            (document as any).firebaseAuthToken = token.substring(0, 10) + '...';
+          } catch (e) {
+            console.warn('Could not set debug token attribute');
+          }
+        }
+      } else {
+        console.warn('getIdToken method not available on firebaseUser object');
       }
       
       // Convert Firebase user to our User type and store in localStorage
@@ -162,15 +184,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: name
       });
       
-      // Get the ID token
-      const token = await firebaseUser.getIdToken(true);
-      
-      // Store token in a cookie that persists across sessions
-      setCookie('firebase-auth-token', token, 30); // 30 days
-      
-      // Also store in localStorage as a backup
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('firebase-auth-token', token);
+      let token = null;
+      // Check if getIdToken method exists
+      if (typeof firebaseUser.getIdToken === 'function') {
+        // Get the ID token
+        token = await firebaseUser.getIdToken(true);
+        
+        // Store token in multiple places for redundancy
+        setCookie('firebase-auth-token', token, 30); // 30 days
+        
+        // Also store in localStorage and sessionStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', token);
+          sessionStorage.setItem('firebase-auth-token', token);
+          
+          // Set a custom attribute on document for debugging
+          try {
+            (document as any).firebaseAuthToken = token.substring(0, 10) + '...';
+          } catch (e) {
+            console.warn('Could not set debug token attribute');
+          }
+        }
+      } else {
+        console.warn('getIdToken method not available on firebaseUser object');
       }
       
       // Convert Firebase user to our User type and store in localStorage
@@ -209,15 +245,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Get the user from the credential
       const firebaseUser = result.user;
       
-      // Get the ID token
-      const token = await firebaseUser.getIdToken(true);
-      
-      // Store token in a cookie that persists across sessions
-      setCookie('firebase-auth-token', token, 30); // 30 days
-      
-      // Also store in localStorage as a backup
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('firebase-auth-token', token);
+      let token = null;
+      // Check if getIdToken method exists
+      if (typeof firebaseUser.getIdToken === 'function') {
+        // Get the ID token
+        token = await firebaseUser.getIdToken(true);
+        
+        // Store token in multiple places for redundancy
+        setCookie('firebase-auth-token', token, 30); // 30 days
+        
+        // Also store in localStorage and sessionStorage as a backup
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('firebase-auth-token', token);
+          sessionStorage.setItem('firebase-auth-token', token);
+          
+          // Set a custom attribute on document for debugging
+          try {
+            (document as any).firebaseAuthToken = token.substring(0, 10) + '...';
+          } catch (e) {
+            console.warn('Could not set debug token attribute');
+          }
+        }
+      } else {
+        console.warn('getIdToken method not available on firebaseUser object');
       }
       
       // Convert Firebase user to our User type and store in localStorage

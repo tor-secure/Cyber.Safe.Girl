@@ -11,8 +11,23 @@ export function setCookie(name: string, value: string, days: number = 30) {
     expires = "; expires=" + date.toUTCString();
   }
   
-  // Set the cookie with less restrictive SameSite policy for better compatibility
-  document.cookie = name + "=" + encodeURIComponent(value) + expires + "; path=/; SameSite=Lax";
+  // Determine if we're in a secure context (HTTPS)
+  const isSecure = window.location.protocol === 'https:';
+  
+  // Set the cookie with appropriate security settings
+  // Use SameSite=None for cross-site requests, but only with Secure flag
+  // For production environments, this ensures cookies work across domains/subdomains
+  const secureFlag = isSecure ? "; Secure" : "";
+  const sameSite = isSecure ? "; SameSite=None" : "; SameSite=Lax";
+  
+  document.cookie = name + "=" + encodeURIComponent(value) + expires + "; path=/" + secureFlag + sameSite;
+  
+  // Always store in localStorage as a fallback
+  try {
+    localStorage.setItem(name, value);
+  } catch (e) {
+    console.error('Error storing in localStorage:', e);
+  }
 }
 
 // Helper function to get a cookie
