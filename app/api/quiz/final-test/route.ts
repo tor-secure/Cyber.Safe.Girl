@@ -135,8 +135,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User ID is required" }, { status: 400 });
     }
 
-
-
     if (!adminDb) {
       console.error("Firebase admin is not initialized");
       return NextResponse.json({ error: "Database connection error" }, { status: 500 });
@@ -197,6 +195,30 @@ export async function POST(request: NextRequest) {
     
     console.log("Final Test API POST - Analytics stored in Firestore");
 
+    // Calculate passing score (30% or higher)
+    const passingScore = Math.ceil(totalQuestionsAttempted * 0.3);
+    const passed = score >= passingScore;
+
+    // If user passed, update their progress to unlock certificate
+    if (passed) {
+      // Get user progress data to retrieve email and name
+      const userProgressRef = adminDb.collection("userProgress").doc(userId);
+      const userProgressSnap = await userProgressRef.get();
+      
+      if (userProgressSnap.exists) {
+        const progressData = userProgressSnap.data();
+        
+        // Update progress to mark final test as completed and certificate as unlocked
+        await userProgressRef.update({
+          finalTestCompleted: true,
+          certificateUnlocked: true,
+          lastUpdated: new Date().toISOString()
+        });
+        
+        console.log("Final Test API POST - User progress updated, certificate unlocked");
+      }
+    }
+
     // --- Send User Analytics back to Frontend ---
     return NextResponse.json({
       message: "Final test evaluated successfully",
@@ -204,6 +226,8 @@ export async function POST(request: NextRequest) {
       totalQuestionsAttempted: totalQuestionsAttempted,
       evaluationDetails: evaluationDetails,
       analytics: userAnalytics,
+      passed: passed,
+      certificateUnlocked: passed
     }, { status: 200 });
 
   } catch (error) {

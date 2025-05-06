@@ -1,0 +1,183 @@
+import { type NextRequest, NextResponse } from "next/server"
+import { adminDb } from "@/lib/firebase-admin"
+import { v4 as uuidv4 } from 'uuid'
+
+// Define the structure for certificate data
+interface Certificate {
+  certificateId: string
+  userId: string
+  email: string
+  name: string
+  issueDate: string
+  expiryDate: string
+  isValid: boolean
+}
+
+// GET: Verify certificate
+export async function GET(request: NextRequest) {
+  try {
+    // Get certificateId from the query parameters
+    const url = new URL(request.url)
+    const certificateId = url.searchParams.get("certificateId")
+    const userId = url.searchParams.get("userId")
+    const email = url.searchParams.get("email")
+
+    if (!certificateId) {
+      return NextResponse.json({ error: "Certificate ID is required" }, { status: 400 })
+    }
+
+    console.log("Certificate API - Certificate ID:", certificateId)
+    if (userId) console.log("Certificate API - User ID:", userId)
+    if (email) console.log("Certificate API - Email:", email)
+
+    if (!adminDb) {
+      console.error("Firebase admin is not initialized")
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+
+    // Query the certificate by ID
+    const certificateQuery = adminDb.collection("certificates").where("certificateId", "==", certificateId)
+    const certificateSnapshot = await certificateQuery.get()
+
+    if (certificateSnapshot.empty) {
+      return NextResponse.json({ 
+        isValid: false, 
+        message: "This certificate is not valid or does not exist in our records." 
+      }, { status: 404 })
+    }
+
+    // Get the certificate data
+    const certificateData = certificateSnapshot.docs[0].data() as Certificate
+
+    // Additional verification if userId or email is provided
+    if (userId && certificateData.userId !== userId) {
+      return NextResponse.json({ 
+        isValid: false, 
+        message: "Certificate does not match the provided user ID" 
+      }, { status: 400 })
+    }
+
+    if (email && certificateData.email !== email) {
+      return NextResponse.json({ 
+        isValid: false, 
+        message: "Certificate does not match the provided email" 
+      }, { status: 400 })
+    }
+
+    // Check if certificate is expired
+    const now = new Date()
+    const expiryDate = new Date(certificateData.expiryDate)
+    const isExpired = now > expiryDate
+
+    if (isExpired || !certificateData.isValid) {
+      return NextResponse.json({ 
+        isValid: false, 
+        message: isExpired ? "This certificate has expired and is no longer valid." : "This certificate has been revoked and is no longer valid.",
+        certificateData: {
+          certificateId: certificateData.certificateId,
+          name: certificateData.name,
+          issueDate: certificateData.issueDate,
+          expiryDate: certificateData.expiryDate,
+          isValid: false
+        }
+      })
+    }
+
+    // Return certificate verification result
+    return NextResponse.json({ 
+      isValid: true, 
+      message: "Certificate is valid",
+      certificateData: {
+        certificateId: certificateData.certificateId,
+        name: certificateData.name,
+        issueDate: certificateData.issueDate,
+        expiryDate: certificateData.expiryDate,
+        isValid: true
+      }
+    })
+  } catch (error) {
+    console.error("Error verifying certificate:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to verify certificate"
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
+  }
+}
+
+// POST: Generate certificate
+export async function POST(request: NextRequest) {
+  try {
+    const { userId } = await request.json()
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+    }
+
+    console.log("Certificate API POST - User ID:", userId)
+
+    if (!adminDb) {
+      console.error("Firebase admin is not initialized")
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+
+    // Get user progress to check if certificate is unlocked
+    const userProgressRef = adminDb.collection("userProgress").doc(userId)
+    const userProgressSnap = await userProgressRef.get()
+
+    if (!userProgressSnap.exists) {
+      return NextResponse.json({ error: "User progress not found" }, { status: 404 })
+    }
+
+    const progress = userProgressSnap.data()
+
+    // Check if certificate is unlocked
+    if (!progress || !progress.certificateUnlocked) {
+      return NextResponse.json({ 
+        error: "Certificate is not unlocked. Complete the final test first." 
+      }, { status: 403 })
+    }
+
+    // Check if user already has a certificate
+    const existingCertQuery = adminDb.collection("certificates").where("userId", "==", userId)
+    const existingCertSnapshot = await existingCertQuery.get()
+
+    // If certificate already exists, return it
+    if (!existingCertSnapshot.empty) {
+      const existingCert = existingCertSnapshot.docs[0].data() as Certificate
+      return NextResponse.json({ 
+        message: "Certificate already exists",
+        certificate: existingCert
+      })
+    }
+
+    // Generate certificate ID
+    const certificateId = `CSG-${uuidv4().substring(0, 8)}`
+    
+    // Set issue date and expiry date (1 year from now)
+    const issueDate = new Date()
+    const expiryDate = new Date(issueDate)
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1)
+
+    // Create certificate data
+    const certificate: Certificate = {
+      certificateId,
+      userId,
+      email: progress?.email || "",
+      name: progress?.name || "",
+      issueDate: issueDate.toISOString(),
+      expiryDate: expiryDate.toISOString(),
+      isValid: true
+    }
+
+    // Store certificate in Firestore
+    await adminDb.collection("certificates").doc(certificateId).set(certificate)
+
+    return NextResponse.json({
+      success: true,
+      message: "Certificate generated successfully",
+      certificate
+    })
+  } catch (error) {
+    console.error("Error generating certificate:", error)
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate certificate"
+    return NextResponse.json({ error: errorMessage }, { status: 500 })
+  }
+}

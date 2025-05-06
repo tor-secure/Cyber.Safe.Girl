@@ -82,7 +82,7 @@ export default function AdminLoginPage() {
       // Wait a moment to ensure token is properly stored
       setTimeout(() => {
         // Redirect to admin dashboard
-        window.location.href = "/admin/dashboard"
+        window.location.href = "/admin"
       }, 1000)
     } catch (err: any) {
       console.error("Login error:", err)
