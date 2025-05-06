@@ -226,27 +226,11 @@ export function FinalTest() {
       // Set the score from the server response
       setScore(result.analytics.score)
       setTotalQuestions(result.analytics.totalQuestionsAttempted)
-
-      // Update user progress to mark final test as completed
-      const progressResponse = await fetch("/api/user-progress", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          finalTestScore: result.analytics.score,
-          totalQuestions: result.analytics.totalQuestionsAttempted,
-        }),
-      })
-
-      if (!progressResponse.ok) {
-        console.error("Failed to update final test completion status")
-      } else {
-        const progressResult = await progressResponse.json()
-        setFinalTestCompleted(true)
-        setCertificateUnlocked(progressResult.certificateUnlocked)
-      }
+      
+      // The final test API now handles updating the user progress
+      // Just update our local state based on the response
+      setFinalTestCompleted(true)
+      setCertificateUnlocked(result.certificateUnlocked || false)
 
       setIsSubmitted(true)
       setShowTestDialog(false)

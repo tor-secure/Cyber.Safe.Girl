@@ -34,6 +34,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       const storedIsAdmin = localStorage.getItem('is-admin');
       if (storedIsAdmin === 'true') {
         setIsAdmin(true);
+        // If we already have admin status in localStorage, we can skip the API check
+        // This prevents unnecessary API calls and potential logout issues when navigating
+        setIsLoading(false);
+        return;
       }
       
       if (!user && !localStorage.getItem('firebase-auth-token')) {
@@ -89,29 +93,45 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         });
 
         if (!response.ok) {
+          // Don't throw an error here, just log it
           console.error(`Admin check failed with status: ${response.status}`);
-          throw new Error(`Admin check failed with status: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        if (data.isAdmin) {
-          console.log("User confirmed as admin via API");
-          setIsAdmin(true);
-          localStorage.setItem('is-admin', 'true');
+          // If we're in an admin route and the check fails, we'll redirect to login
+          if (window.location.pathname.startsWith('/admin') && 
+              window.location.pathname !== '/admin/login') {
+            setIsAdmin(false);
+            localStorage.removeItem('is-admin');
+            router.push("/admin/login");
+          }
         } else {
-          console.log("User is not an admin according to API");
-          setIsAdmin(false);
-          localStorage.removeItem('is-admin');
-          router.push("/admin/login");
+          const data = await response.json();
+
+          if (data.isAdmin) {
+            console.log("User confirmed as admin via API");
+            setIsAdmin(true);
+            localStorage.setItem('is-admin', 'true');
+          } else {
+            console.log("User is not an admin according to API");
+            setIsAdmin(false);
+            localStorage.removeItem('is-admin');
+            
+            // Only redirect if we're in an admin route
+            if (window.location.pathname.startsWith('/admin') && 
+                window.location.pathname !== '/admin/login') {
+              router.push("/admin/login");
+            }
+          }
         }
       } catch (error) {
         console.error("Failed to check admin status:", error);
-        setIsAdmin(false);
-        localStorage.removeItem('is-admin');
+        // Don't immediately remove admin status on error
+        // This prevents logout issues when API calls fail temporarily
         
-        // Only redirect if we're not already on the login page
-        if (window.location.pathname !== '/admin/login') {
+        // Only redirect if we're in an admin route and not already on login page
+        if (window.location.pathname.startsWith('/admin') && 
+            window.location.pathname !== '/admin/login' && 
+            !storedIsAdmin) {
+          setIsAdmin(false);
+          localStorage.removeItem('is-admin');
           router.push("/admin/login");
         }
       } finally {
