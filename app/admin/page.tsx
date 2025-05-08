@@ -36,10 +36,10 @@ export default function AdminDashboardPage() {
       try {
         // Get the auth token from localStorage
         const token = typeof window !== 'undefined' ? localStorage.getItem('firebase-auth-token') : null;
-        const headers = token ? {
+        const headers: HeadersInit = token ? {
           'Authorization': `Bearer ${token}`,
           'x-firebase-auth-token': token
-        } : {};
+        } : { 'Content-Type': 'application/json' };
 
         // Fetch certificate stats
         const certificatesResponse = await fetch("/api/admin/certificates", {

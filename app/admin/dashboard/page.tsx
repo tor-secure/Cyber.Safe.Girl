@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useAdminAuth } from "@/lib/admin-auth"
 import { useAuth } from "@/lib/auth-context"
+import { auth } from "@/lib/firebase"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -67,8 +68,8 @@ export default function AdminDashboardPage() {
     setError(null)
 
     try {
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Try to get token from multiple sources
+      const token = idToken || localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
       
       if (!token) {
         console.warn("Authentication token not available, skipping fetch")
@@ -104,11 +105,31 @@ export default function AdminDashboardPage() {
     setLoading(true)
 
     try {
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Get token from multiple sources
+      let token = idToken;
+      
+      // If no token in context, try localStorage and sessionStorage
+      if (!token) {
+        token = localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
+      }
+      
+      // If still no token, try to get a fresh one from Firebase
+      if (!token && auth.currentUser) {
+        try {
+          token = await auth.currentUser.getIdToken(true);
+          if (token) {
+            localStorage.setItem('firebase-auth-token', token);
+            sessionStorage.setItem('firebase-auth-token', token);
+          }
+        } catch (tokenError) {
+          console.error("Error getting fresh token:", tokenError);
+        }
+      }
       
       if (!token) {
-        throw new Error("Not authenticated")
+        setError("Authentication token not available. Please refresh the page or log in again.");
+        setLoading(false);
+        return;
       }
       
       try {
@@ -191,11 +212,31 @@ export default function AdminDashboardPage() {
     setLoading(true)
 
     try {
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Get token from multiple sources
+      let token = idToken;
+      
+      // If no token in context, try localStorage and sessionStorage
+      if (!token) {
+        token = localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
+      }
+      
+      // If still no token, try to get a fresh one from Firebase
+      if (!token && auth.currentUser) {
+        try {
+          token = await auth.currentUser.getIdToken(true);
+          if (token) {
+            localStorage.setItem('firebase-auth-token', token);
+            sessionStorage.setItem('firebase-auth-token', token);
+          }
+        } catch (tokenError) {
+          console.error("Error getting fresh token:", tokenError);
+        }
+      }
       
       if (!token) {
-        throw new Error("Not authenticated")
+        setError("Authentication token not available. Please refresh the page or log in again.");
+        setLoading(false);
+        return;
       }
       
       try {

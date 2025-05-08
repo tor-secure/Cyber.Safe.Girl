@@ -62,6 +62,9 @@ export default function UsersPage() {
   const [refreshing, setRefreshing] = useState(false)
   const [showAddUserDialog, setShowAddUserDialog] = useState(false)
   const [showUserProgressDialog, setShowUserProgressDialog] = useState(false)
+  const [showUserDetailsDialog, setShowUserDetailsDialog] = useState(false)
+  const [showEditUserDialog, setShowEditUserDialog] = useState(false)
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false)
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [isAdmin, setIsAdmin] = useState(true) // Assuming admin access for now
   const [idToken, setIdToken] = useState<string | null>(null) // Will be set in useEffect
@@ -71,9 +74,19 @@ export default function UsersPage() {
     role: "user",
     status: "active",
   })
+  const [editUserData, setEditUserData] = useState({
+    name: "",
+    email: "",
+    role: "user",
+    status: "active",
+  })
   const [addingUser, setAddingUser] = useState(false)
+  const [editingUser, setEditingUser] = useState(false)
+  const [deletingUser, setDeletingUser] = useState(false)
   const [userProgress, setUserProgress] = useState<any[]>([])
   const [progressLoading, setProgressLoading] = useState(false)
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
 
   // Get authentication token
   useEffect(() => {
@@ -309,6 +322,141 @@ export default function UsersPage() {
     setShowUserProgressDialog(true)
   }
 
+  // View user details
+  const handleViewDetails = (user: User) => {
+    setSelectedUser(user)
+    setShowUserDetailsDialog(true)
+  }
+
+  // Edit user
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user)
+    setEditUserData({
+      name: user.name || "",
+      email: user.email || "",
+      role: user.role || "user",
+      status: user.status || "active",
+    })
+    setShowEditUserDialog(true)
+  }
+
+  // Save edited user
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setEditingUser(true)
+    setActionError(null)
+    setActionSuccess(null)
+
+    try {
+      const token = idToken
+
+      if (!token || !selectedUser) {
+        throw new Error("Authentication token not available or no user selected")
+      }
+
+      // Prepare user data with isAdmin flag for Firestore
+      const userData = {
+        ...editUserData,
+        isAdmin: editUserData.role === "admin",
+        status: editUserData.status,
+        updatedAt: new Date().toISOString(),
+      }
+
+      const response = await fetch("/api/admin/users", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token,
+        },
+        body: JSON.stringify({
+          userId: selectedUser.id,
+          userData,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to update user: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success && data.user) {
+        // Update the user in the list
+        const updatedUsers = users.map((u) => (u.id === selectedUser.id ? data.user : u))
+        setUsers(updatedUsers)
+        setFilteredUsers(
+          filteredUsers.map((u) => (u.id === selectedUser.id ? data.user : u))
+        )
+        setActionSuccess("User updated successfully")
+        
+        // Close dialog after a delay
+        setTimeout(() => {
+          setShowEditUserDialog(false)
+          setActionSuccess(null)
+        }, 1500)
+      }
+    } catch (err: any) {
+      console.error("Failed to update user:", err)
+      setActionError(err.message || "Failed to update user")
+    } finally {
+      setEditingUser(false)
+    }
+  }
+
+  // Delete user
+  const handleDeleteUser = (user: User) => {
+    setSelectedUser(user)
+    setShowDeleteConfirmDialog(true)
+  }
+
+  // Confirm delete user
+  const handleConfirmDelete = async () => {
+    setDeletingUser(true)
+    setActionError(null)
+    setActionSuccess(null)
+
+    try {
+      const token = idToken
+
+      if (!token || !selectedUser) {
+        throw new Error("Authentication token not available or no user selected")
+      }
+
+      const response = await fetch(`/api/admin/users?userId=${selectedUser.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token,
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error(`Failed to delete user: ${response.status}`)
+      }
+
+      const data = await response.json()
+
+      if (data.success) {
+        // Remove the user from the list
+        setUsers(users.filter((u) => u.id !== selectedUser.id))
+        setFilteredUsers(filteredUsers.filter((u) => u.id !== selectedUser.id))
+        setActionSuccess("User deleted successfully")
+        
+        // Close dialog after a delay
+        setTimeout(() => {
+          setShowDeleteConfirmDialog(false)
+          setActionSuccess(null)
+        }, 1500)
+      }
+    } catch (err: any) {
+      console.error("Failed to delete user:", err)
+      setActionError(err.message || "Failed to delete user")
+    } finally {
+      setDeletingUser(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -459,11 +607,27 @@ export default function UsersPage() {
                               <BookOpen className="h-4 w-4 mr-2" />
                               View Progress
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(user)}>
                               <Eye className="h-4 w-4 mr-2" />
                               View Details
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive">Delete User</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2">
+                                <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path>
+                              </svg>
+                              Edit User
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteUser(user)} 
+                              className="text-destructive"
+                            >
+                              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 mr-2">
+                                <path d="M3 6h18"></path>
+                                <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
+                                <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
+                              </svg>
+                              Delete User
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -630,6 +794,241 @@ export default function UsersPage() {
               <Button onClick={() => setShowUserProgressDialog(false)}>Close</Button>
             </DialogFooter>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* User Details Dialog */}
+      <Dialog open={showUserDetailsDialog} onOpenChange={setShowUserDetailsDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>Detailed information about the user.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            {selectedUser && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">User ID</Label>
+                    <div className="font-mono text-sm mt-1 break-all">{selectedUser.id}</div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Auth Provider</Label>
+                    <div className="font-medium mt-1">{selectedUser.authProvider || "Email/Password"}</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-muted-foreground">Name</Label>
+                  <div className="font-medium mt-1">{selectedUser.name || "Not set"}</div>
+                </div>
+                
+                <div>
+                  <Label className="text-muted-foreground">Email</Label>
+                  <div className="font-medium mt-1">{selectedUser.email}</div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Role</Label>
+                    <div className="mt-1">
+                      <Badge variant={selectedUser.role === "admin" ? "default" : "outline"} className={selectedUser.role === "admin" ? "bg-purple-600" : ""}>
+                        {selectedUser.role === "admin" ? "Admin" : "User"}
+                      </Badge>
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Status</Label>
+                    <div className="mt-1">
+                      <Badge 
+                        variant={selectedUser.status === "active" ? "default" : selectedUser.status === "completed" ? "secondary" : "outline"}
+                        className={selectedUser.status === "active" ? "bg-green-600" : ""}
+                      >
+                        {selectedUser.status === "active" ? "Active" : selectedUser.status === "completed" ? "Completed" : "Inactive"}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Created</Label>
+                    <div className="font-medium mt-1">{formatDate(selectedUser.createdAt)}</div>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Last Login</Label>
+                    <div className="font-medium mt-1">{formatDate(selectedUser.lastLogin)}</div>
+                  </div>
+                </div>
+                
+                <div>
+                  <Label className="text-muted-foreground">Progress</Label>
+                  <div className="mt-1">
+                    <Progress value={selectedUser.progress?.completionPercentage || 0} className="h-2" />
+                    <div className="text-sm mt-1">
+                      {selectedUser.progress?.completionPercentage || 0}% Complete ({selectedUser.progress?.completedChapters?.length || 0} of 10 chapters)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button onClick={() => setShowUserDetailsDialog(false)}>Close</Button>
+            <Button onClick={() => {
+              setShowUserDetailsDialog(false)
+              if (selectedUser) handleEditUser(selectedUser)
+            }} variant="outline">Edit User</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={showEditUserDialog} onOpenChange={setShowEditUserDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information.</DialogDescription>
+          </DialogHeader>
+          <form onSubmit={handleSaveUser}>
+            <div className="space-y-4 py-2">
+              {actionSuccess && (
+                <Alert className="bg-green-50 text-green-800 border-green-200">
+                  <AlertTitle>Success</AlertTitle>
+                  <AlertDescription>{actionSuccess}</AlertDescription>
+                </Alert>
+              )}
+              
+              {actionError && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{actionError}</AlertDescription>
+                </Alert>
+              )}
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Name</Label>
+                <Input
+                  id="edit-name"
+                  value={editUserData.name}
+                  onChange={(e) => setEditUserData({ ...editUserData, name: e.target.value })}
+                  placeholder="User's name"
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="edit-email">Email</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editUserData.email}
+                  onChange={(e) => setEditUserData({ ...editUserData, email: e.target.value })}
+                  placeholder="user@example.com"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Role</Label>
+                  <Select
+                    value={editUserData.role}
+                    onValueChange={(value) => setEditUserData({ ...editUserData, role: value as "user" | "admin" })}
+                  >
+                    <SelectTrigger id="edit-role">
+                      <SelectValue placeholder="Select role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-status">Status</Label>
+                  <Select
+                    value={editUserData.status}
+                    onValueChange={(value) => setEditUserData({ ...editUserData, status: value as "active" | "inactive" | "completed" })}
+                  >
+                    <SelectTrigger id="edit-status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </div>
+            
+            <DialogFooter className="mt-6">
+              <Button variant="outline" type="button" onClick={() => setShowEditUserDialog(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={editingUser}>
+                {editingUser ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this user? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            {actionSuccess && (
+              <Alert className="bg-green-50 text-green-800 border-green-200">
+                <AlertTitle>Success</AlertTitle>
+                <AlertDescription>{actionSuccess}</AlertDescription>
+              </Alert>
+            )}
+            
+            {actionError && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{actionError}</AlertDescription>
+              </Alert>
+            )}
+            
+            {selectedUser && (
+              <div className="mt-2 space-y-2">
+                <div>
+                  <span className="font-medium">Name:</span> {selectedUser.name}
+                </div>
+                <div>
+                  <span className="font-medium">Email:</span> {selectedUser.email}
+                </div>
+                <div>
+                  <span className="font-medium">User ID:</span> <span className="font-mono text-sm">{selectedUser.id}</span>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowDeleteConfirmDialog(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={handleConfirmDelete}
+              disabled={deletingUser}
+            >
+              {deletingUser ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+              Delete User
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

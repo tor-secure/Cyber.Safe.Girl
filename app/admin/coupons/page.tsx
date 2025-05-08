@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useAdminAuth } from "@/lib/admin-auth"
+import { auth } from "@/lib/firebase"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -110,8 +111,8 @@ export default function CouponsPage() {
       setLoading(true)
       setError(null)
 
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Try to get token from multiple sources
+      const token = idToken || localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
       
       if (!token) {
         // Instead of throwing an error, just log a warning and return
@@ -143,8 +144,8 @@ export default function CouponsPage() {
 
   const fetchCouponUsage = async () => {
     try {
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Try to get token from multiple sources
+      const token = idToken || localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
       
       if (!token) {
         // Instead of throwing an error, just log a warning and return
@@ -178,14 +179,18 @@ export default function CouponsPage() {
       setCreateSuccess(null)
 
       if (!newCouponCode) {
-        throw new Error("Coupon code is required")
+        setCreateError("Coupon code is required");
+        setCreateLoading(false);
+        return;
       }
 
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Try to get token from multiple sources
+      const token = idToken || localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
       
       if (!token) {
-        throw new Error("Authentication token not available")
+        setCreateError("Authentication token not available. Please refresh the page or log in again.");
+        setCreateLoading(false);
+        return;
       }
 
       const response = await fetch("/api/admin/coupons", {
@@ -236,11 +241,13 @@ export default function CouponsPage() {
     try {
       setLoading(true)
 
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Try to get token from multiple sources
+      const token = idToken || localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
       
       if (!token) {
-        throw new Error("Authentication token not available")
+        setError("Authentication token not available. Please refresh the page or log in again.");
+        setLoading(false);
+        return;
       }
 
       const response = await fetch(`/api/admin/coupons?id=${couponId}`, {
@@ -363,11 +370,13 @@ export default function CouponsPage() {
       setLoading(true)
       setError(null)
 
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Try to get token from multiple sources
+      const token = idToken || localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
       
       if (!token) {
-        throw new Error("Authentication token not available")
+        setError("Authentication token not available. Please refresh the page or log in again.");
+        setLoading(false);
+        return;
       }
 
       // Generate multiple coupons
@@ -425,11 +434,31 @@ export default function CouponsPage() {
       setCreateError(null)
       setCreateSuccess(null)
 
-      // Use only idToken from context for server components
-      const token = idToken;
+      // Get token from multiple sources
+      let token = idToken;
+      
+      // If no token in context, try localStorage and sessionStorage
+      if (!token) {
+        token = localStorage.getItem('firebase-auth-token') || sessionStorage.getItem('firebase-auth-token');
+      }
+      
+      // If still no token, try to get a fresh one from Firebase
+      if (!token && auth.currentUser) {
+        try {
+          token = await auth.currentUser.getIdToken(true);
+          if (token) {
+            localStorage.setItem('firebase-auth-token', token);
+            sessionStorage.setItem('firebase-auth-token', token);
+          }
+        } catch (tokenError) {
+          console.error("Error getting fresh token:", tokenError);
+        }
+      }
       
       if (!token) {
-        throw new Error("Authentication token not available")
+        setCreateError("Authentication token not available. Please refresh the page or log in again.");
+        setCreateLoading(false);
+        return;
       }
 
       // Generate a random code
