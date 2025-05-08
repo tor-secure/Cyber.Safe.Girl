@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get request body
-    const { code, discountPercentage, maxUses, expiresAt } = await request.json()
+    const { code, discountPercentage, maxUses, expiryDays } = await request.json()
     
     // Validate input
     if (!code) {
@@ -141,6 +141,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Coupon code already exists" }, { status: 400 })
     }
     
+    // Calculate expiry date if expiryDays is provided
+    let expiresAt = null;
+    if (expiryDays && expiryDays > 0) {
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + expiryDays);
+      expiresAt = expiryDate.toISOString();
+    }
+    
     // Create new coupon
     const newCoupon = {
       code,
@@ -148,7 +156,7 @@ export async function POST(request: NextRequest) {
       maxUses: maxUses || 1,
       usedCount: 0,
       createdAt: new Date().toISOString(),
-      expiresAt: expiresAt || null,
+      expiresAt: expiresAt,
       createdBy: uid
     }
     

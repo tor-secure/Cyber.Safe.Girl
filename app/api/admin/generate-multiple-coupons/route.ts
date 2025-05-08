@@ -119,7 +119,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get request body
-    const { count, prefix, discountPercentage, maxUses, expiresAt } = await request.json()
+    const { count, prefix, discountPercentage, maxUses, expiryDays } = await request.json()
     
     // Validate input
     if (!count || count <= 0 || count > 100) {
@@ -131,6 +131,14 @@ export async function POST(request: NextRequest) {
     if (!db) {
       console.error("Firebase admin is not initialized")
       return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+    
+    // Calculate expiry date if expiryDays is provided
+    let expiresAt = null;
+    if (expiryDays && expiryDays > 0) {
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + expiryDays);
+      expiresAt = expiryDate.toISOString();
     }
     
     const couponsRef = db.collection("coupons")
@@ -149,7 +157,7 @@ export async function POST(request: NextRequest) {
         maxUses: maxUses || 1,
         usedCount: 0,
         createdAt: new Date().toISOString(),
-        expiresAt: expiresAt || null,
+        expiresAt: expiresAt,
         createdBy: uid
       }
       
