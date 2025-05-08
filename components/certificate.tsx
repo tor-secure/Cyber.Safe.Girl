@@ -150,11 +150,11 @@ export function Certificate() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-lg font-medium">Checking certificate access...</p>
+          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+            <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
+            <p className="text-base sm:text-lg font-medium text-center">Checking certificate access...</p>
           </CardContent>
         </Card>
       </div>
@@ -163,10 +163,10 @@ export function Certificate() {
 
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
         <Card>
           <CardHeader>
-            <CardTitle className="text-2xl">Certificate Access</CardTitle>
+            <CardTitle className="text-xl sm:text-2xl">Certificate Access</CardTitle>
           </CardHeader>
           <CardContent>
             <Alert variant="destructive">
@@ -174,10 +174,10 @@ export function Certificate() {
               <AlertTitle>Access Denied</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
-            <div className="flex flex-col items-center justify-center py-12">
-              <Lock className="h-16 w-16 text-muted-foreground mb-4" />
-              <p className="text-lg font-medium mb-2">Certificate Not Available</p>
-              <p className="text-center text-muted-foreground mb-6">
+            <div className="flex flex-col items-center justify-center py-8 sm:py-12">
+              <Lock className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
+              <p className="text-base sm:text-lg font-medium mb-2 text-center">Certificate Not Available</p>
+              <p className="text-center text-sm sm:text-base text-muted-foreground mb-6 px-2">
                 You need to complete all chapters and pass the final test to receive your certificate.
               </p>
               <Button asChild>
@@ -192,11 +192,11 @@ export function Certificate() {
 
   if (!certificate) {
     return (
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-            <p className="text-lg font-medium">Generating your certificate...</p>
+          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
+            <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
+            <p className="text-base sm:text-lg font-medium text-center">Generating your certificate...</p>
           </CardContent>
         </Card>
       </div>
@@ -206,174 +206,111 @@ export function Certificate() {
   const verificationUrl = `${baseUrl}/verify-certificate?certificateId=${certificate.certificateId}`
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <Card className="border-0 shadow-none">
-        <CardContent className="p-0">
-          <div ref={certificateRef} className="relative bg-white border-[3px] border-blue-100 rounded-lg p-12 shadow-2xl">
-            {/* Security Background Pattern */}
-            <div className="absolute inset-0 bg-[url('/path/to/subtle-pattern.svg')] opacity-10 z-0"></div>
-            
-            {/* Official Border */}
-            <div className="absolute inset-0 border-[12px] border-blue-50/30 rounded-lg pointer-events-none"></div>
-
-            {/* Watermark */}
-            <div className="absolute inset-0 flex items-center justify-center opacity-15 z-0">
-              <div className="text-[10rem] font-black tracking-widest text-blue-100 rotate-45">
-                CERTIFIED
-              </div>
-            </div>
-
-            <div className="relative z-10">
-              {/* Letterhead */}
-              <div className="flex justify-between items-start mb-12 border-b-2 border-blue-100 pb-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center">
-                    <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h1 className="text-2xl font-bold text-blue-900">Cyber Safe Girl Initiative</h1>
-                    <p className="text-sm text-blue-600">An ISO 9001:2015 Certified Organization</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm text-blue-600">Registration No: CSGI/2024/00865</p>
-                  <p className="text-sm text-blue-600">CIN: U80302KA2024NPL00865</p>
-                </div>
+    <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl sm:text-2xl">Your Certificate</CardTitle>
+          <CardDescription>Congratulations on completing the Cyber Safe Girl course</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div ref={certificateRef} className="border rounded-lg p-4 sm:p-6 md:p-8 bg-slate-50 overflow-hidden">
+            <div className="text-center space-y-4 sm:space-y-6">
+              <div className="mb-4 sm:mb-6">
+                <h2 className="text-2xl sm:text-3xl font-bold text-blue-600">Cyber Safe Girl</h2>
+                <p className="text-xs sm:text-sm text-muted-foreground">Certificate of Completion</p>
               </div>
 
-              {/* Main Content */}
-              <div className="text-center space-y-8 mb-16">
-                <p className="text-lg text-blue-600 font-medium">This is to Certify That</p>
-                <div className="mx-auto w-fit border-b-2 border-blue-200 pb-4">
-                  <h2 className="text-4xl font-bold text-gray-900 font-serif">
-                    {certificate.name || user?.name || "Participant Name"}
-                  </h2>
-                </div>
-                <p className="text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
-                  has successfully completed the requirements of the
-                  <span className="block text-2xl text-blue-900 font-semibold mt-2">
-                    Cyber Security Fundamentals Certification Program
-                  </span>
-                  with distinction and demonstrated exemplary proficiency in cybersecurity best practices.
-                </p>
+              <div className="space-y-1 sm:space-y-2">
+                <p className="text-base sm:text-lg">This is to certify that</p>
+                <p className="text-xl sm:text-2xl font-semibold">{certificate.name || user?.name || "User"}</p>
+                <p className="text-base sm:text-lg">has successfully completed the</p>
+                <p className="text-lg sm:text-xl font-medium">Cyber Safe Girl Course</p>
+                <p className="text-base sm:text-lg">with a score of</p>
+                <p className="text-xl sm:text-2xl font-semibold">80%</p>
               </div>
 
-              {/* Accreditation */}
-              <div className="text-center mb-12">
-                <p className="text-sm text-gray-500 mb-4">
-                  Accredited by the International Cybersecurity Education Board (ICEB)
-                </p>
-                <div className="flex justify-center gap-8 items-center">
-                  <img src="/path/to/accreditation-logo1.png" className="h-12 w-auto grayscale" alt="ICEB Accreditation" />
-                  <img src="/path/to/accreditation-logo2.png" className="h-12 w-auto grayscale" alt="ISO Certification" />
+              <div className="pt-4 sm:pt-6 border-t mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between items-center sm:items-end gap-6 sm:gap-2">
+                <div className="text-center sm:text-left w-full sm:w-auto">
+                  <p className="text-xs sm:text-sm font-medium">Date Issued</p>
+                  <p className="text-xs sm:text-sm">{formatDate(certificate.issueDate)}</p>
+                  <p className="text-xs sm:text-sm font-medium mt-2">Valid Until</p>
+                  <p className="text-xs sm:text-sm">{formatDate(certificate.expiryDate)}</p>
+                </div>
+                <div className="flex flex-col items-center order-first sm:order-none">
+                  <QRCodeSVG 
+                    value={verificationUrl}
+                    size={80}
+                    level="H"
+                    includeMargin={true}
+                  />
+                  <p className="text-xs mt-1 text-muted-foreground">Scan to verify</p>
+                </div>
+                <div className="text-center sm:text-right w-full sm:w-auto">
+                  <p className="text-xs sm:text-sm font-medium">Certificate ID</p>
+                  <p className="text-xs sm:text-sm">{certificate.certificateId}</p>
+                  <p className="text-xs sm:text-sm font-medium mt-2">Issued By</p>
+                  <p className="text-xs sm:text-sm">Dr. Ananth Prabhu G</p>
                 </div>
               </div>
-
-              {/* Footer */}
-              <div className="grid grid-cols-3 gap-8 border-t-2 border-blue-100 pt-8">
-                {/* Issuance Details */}
-                <div className="text-left">
-                  <p className="text-sm font-medium text-gray-600">Date of Issue</p>
-                  <p className="text-lg text-gray-900">{formatDate(certificate.issueDate)}</p>
-                  <p className="text-sm font-medium text-gray-600 mt-4">Certificate ID</p>
-                  <p className="text-lg text-gray-900 font-mono tracking-tight">{certificate.certificateId}</p>
-                </div>
-
-                {/* Verification QR */}
-                <div className="flex flex-col items-center">
-                  <div className="p-2 bg-white border-2 border-blue-100 rounded-lg">
-                    <QRCodeSVG 
-                      value={verificationUrl}
-                      size={120}
-                      level="H"
-                      fgColor="#1e3a8a"
-                      bgColor="#ffffff"
-                      includeMargin={false}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Scan to Verify Authenticity</p>
-                </div>
-
-                {/* Authorized Signatory */}
-                <div className="text-right">
-                  <div className="mb-2">
-                    <img src="/path/to/signature.png" className="h-16 w-auto inline-block" alt="Authorized Signature" />
-                  </div>
-                  <div className="border-t-2 border-blue-100 pt-2">
-                    <p className="text-sm font-semibold text-gray-900">Dr. Ananth Prabhu G</p>
-                    <p className="text-xs text-gray-600">Program Director</p>
-                    <p className="text-xs text-gray-600">Cyber Safe Girl Initiative</p>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </div>
         </CardContent>
-
-        {/* Actions */}
-        <CardFooter className="flex justify-center gap-4 mt-8 bg-gray-50/50 py-6 rounded-b-xl">
-          <Button 
-            className="px-8 py-6 shadow-lg hover:shadow-md transition-shadow"
-            onClick={handleDownload}
-            disabled={downloadLoading}
-          >
+        <CardFooter className="flex flex-col sm:flex-row gap-2">
+          <Button className="w-full sm:flex-1" onClick={handleDownload} disabled={downloadLoading}>
             {downloadLoading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
-              <Download className="mr-2 h-5 w-5" />
+              <Download className="mr-2 h-4 w-4" />
             )}
-            Download Official Copy
+            Download Certificate
           </Button>
-          <Button 
-            variant="outline" 
-            className="px-8 py-6 border-blue-200 hover:bg-blue-50 text-blue-900 shadow-lg hover:shadow-md transition-shadow"
-            asChild
-          >
+          <Button variant="outline" className="w-full sm:flex-1" asChild>
             <Link href={verificationUrl} target="_blank">
-              <Share2 className="mr-2 h-5 w-5" />
-              Share Verified Certificate
+              <Share2 className="mr-2 h-4 w-4" />
+              Share Certificate
             </Link>
           </Button>
         </CardFooter>
       </Card>
 
-      {/* Verification Panel */}
-      <Card className="mt-8 border-blue-100">
-        <CardHeader className="bg-blue-50/30">
-          <CardTitle className="text-blue-900">Certificate Verification</CardTitle>
-          <CardDescription className="text-blue-700">
-            Validate this certificate using the following security features
-          </CardDescription>
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-xl sm:text-2xl">Verification</CardTitle>
+          <CardDescription>Your certificate can be verified using the details below</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
+        <CardContent>
           <div className="space-y-4">
-            <div className="p-4 bg-white border-2 border-blue-100 rounded-lg">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">Digital Verification</h3>
-              <p className="text-sm text-gray-600 mb-4">
-                Verify authenticity through our blockchain-based verification system
-              </p>
-              <div className="flex items-center gap-4">
-                <div className="flex-1">
-                  <QRCodeSVG
-                    value={verificationUrl}
-                    size={120}
-                    level="H"
-                    fgColor="#1e3a8a"
-                    bgColor="#ffffff"
-                  />
-                </div>
-                <div className="flex-1 space-y-2">
-                  <p className="text-sm font-medium text-gray-600">Certificate ID</p>
-                  <p className="font-mono text-gray-900 break-all">{certificate.certificateId}</p>
-                </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm font-medium">Certificate ID</p>
+                <p className="text-sm break-all">{certificate.certificateId}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Verification URL</p>
+                <p className="text-sm break-all">{verificationUrl}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Issued By</p>
+                <p className="text-sm">Dr. Ananth Prabhu G</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Valid Until</p>
+                <p className="text-sm">{formatDate(certificate.expiryDate)}</p>
+              </div>
+            </div>
+            
+            <div className="flex justify-center mt-6">
+              <div className="text-center">
+                <QRCodeSVG 
+                  value={verificationUrl}
+                  size={150}
+                  level="H"
+                  includeMargin={true}
+                />
+                <p className="text-sm mt-2">Scan this QR code to verify the certificate</p>
               </div>
             </div>
           </div>
-          
-
         </CardContent>
       </Card>
     </div>

@@ -110,7 +110,10 @@ export default function CouponsPage() {
       setLoading(true)
       setError(null)
 
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         // Instead of throwing an error, just log a warning and return
         console.warn("Authentication token not available, skipping fetch")
         setLoading(false)
@@ -119,8 +122,8 @@ export default function CouponsPage() {
 
       const response = await fetch("/api/admin/coupons", {
         headers: {
-          Authorization: `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken, // Add custom header as fallback
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token, // Add custom header as fallback
         },
       })
 
@@ -140,7 +143,10 @@ export default function CouponsPage() {
 
   const fetchCouponUsage = async () => {
     try {
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         // Instead of throwing an error, just log a warning and return
         console.warn("Authentication token not available, skipping fetch")
         return
@@ -148,8 +154,8 @@ export default function CouponsPage() {
 
       const response = await fetch("/api/admin/coupon-usage", {
         headers: {
-          Authorization: `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken,
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token,
         },
       })
 
@@ -175,7 +181,10 @@ export default function CouponsPage() {
         throw new Error("Coupon code is required")
       }
 
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         throw new Error("Authentication token not available")
       }
 
@@ -183,8 +192,8 @@ export default function CouponsPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken,
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token,
         },
         body: JSON.stringify({
           code: newCouponCode,
@@ -227,15 +236,18 @@ export default function CouponsPage() {
     try {
       setLoading(true)
 
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         throw new Error("Authentication token not available")
       }
 
       const response = await fetch(`/api/admin/coupons?id=${couponId}`, {
         method: "DELETE",
         headers: {
-          Authorization: `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken,
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token,
         },
       })
 
@@ -351,7 +363,10 @@ export default function CouponsPage() {
       setLoading(true)
       setError(null)
 
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         throw new Error("Authentication token not available")
       }
 
@@ -360,8 +375,8 @@ export default function CouponsPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken,
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token,
         },
         body: JSON.stringify({
           count: count || 1,
@@ -410,7 +425,10 @@ export default function CouponsPage() {
       setCreateError(null)
       setCreateSuccess(null)
 
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         throw new Error("Authentication token not available")
       }
 
@@ -421,8 +439,8 @@ export default function CouponsPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${idToken}`,
-          "x-firebase-auth-token": idToken,
+          Authorization: `Bearer ${token}`,
+          "x-firebase-auth-token": token,
         },
         body: JSON.stringify({
           code,

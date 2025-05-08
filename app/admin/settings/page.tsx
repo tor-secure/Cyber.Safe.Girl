@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,12 +11,94 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { CheckCircle, AlertTriangle, Save } from "lucide-react"
+import { CheckCircle, AlertTriangle, Save, Loader2 } from "lucide-react"
+import { useAdminAuth } from "@/lib/admin-auth"
+import { useRouter } from "next/navigation"
+
+interface Settings {
+  siteName: string
+  siteDescription: string
+  contactEmail: string
+  maintenanceMode: boolean
+  allowRegistration: boolean
+  emailNotifications: boolean
+  userRegistrationAlerts: boolean
+  certificateIssuedAlerts: boolean
+  sessionTimeout: number
+  requireTwoFactor: boolean
+  ipRestriction: boolean
+}
 
 export default function SettingsPage() {
+  const { isAdmin, isLoading: adminLoading, idToken } = useAdminAuth()
+  const router = useRouter()
   const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [success, setSuccess] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [settings, setSettings] = useState<Settings>({
+    siteName: "Cyber Safe Girl",
+    siteDescription: "Empowering women with cybersecurity knowledge",
+    contactEmail: "contact@cybersafegirl.com",
+    maintenanceMode: false,
+    allowRegistration: true,
+    emailNotifications: true,
+    userRegistrationAlerts: true,
+    certificateIssuedAlerts: true,
+    sessionTimeout: 60,
+    requireTwoFactor: false,
+    ipRestriction: false
+  })
+
+  // Fetch settings when component mounts
+  useEffect(() => {
+    if (!adminLoading && !isAdmin) {
+      router.push("/admin/login")
+    } else if (!adminLoading && isAdmin && idToken) {
+      fetchSettings()
+    }
+  }, [adminLoading, isAdmin, idToken, router])
+
+  const fetchSettings = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
+        console.warn("Authentication token not available, skipping fetch")
+        setLoading(false)
+        return
+      }
+      
+      const response = await fetch("/api/admin/settings", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-firebase-auth-token': token // Add custom header as fallback
+        }
+      })
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/admin/login")
+          return
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      if (data.settings) {
+        setSettings(data.settings)
+      }
+    } catch (err: any) {
+      console.error("Failed to fetch settings:", err)
+      setError(err.message || "Failed to fetch settings")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,15 +107,44 @@ export default function SettingsPage() {
     setError(null)
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
+        throw new Error("Not authenticated")
+      }
+      
+      const response = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "x-firebase-auth-token": token
+        },
+        body: JSON.stringify(settings)
+      })
+      
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || "Failed to save settings")
+      }
+      
       setSuccess("Settings saved successfully")
-    } catch (err) {
-      setError("Failed to save settings")
+    } catch (err: any) {
+      console.error("Failed to save settings:", err)
+      setError(err.message || "Failed to save settings")
     } finally {
       setSaving(false)
     }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mr-2" />
+        <span>Loading settings...</span>
+      </div>
+    )
   }
 
   return (
@@ -76,17 +187,30 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label htmlFor="siteName">Site Name</Label>
-                    <Input id="siteName" defaultValue="Cyber Safe Girl" />
+                    <Input 
+                      id="siteName" 
+                      value={settings.siteName}
+                      onChange={(e) => setSettings({...settings, siteName: e.target.value})}
+                    />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="siteDescription">Site Description</Label>
-                    <Input id="siteDescription" defaultValue="Empowering women with cybersecurity knowledge" />
+                    <Input 
+                      id="siteDescription" 
+                      value={settings.siteDescription}
+                      onChange={(e) => setSettings({...settings, siteDescription: e.target.value})}
+                    />
                   </div>
 
                   <div className="grid gap-2">
                     <Label htmlFor="contactEmail">Contact Email</Label>
-                    <Input id="contactEmail" type="email" defaultValue="contact@cybersafegirl.com" />
+                    <Input 
+                      id="contactEmail" 
+                      type="email" 
+                      value={settings.contactEmail}
+                      onChange={(e) => setSettings({...settings, contactEmail: e.target.value})}
+                    />
                   </div>
 
                   <Separator />
@@ -100,7 +224,11 @@ export default function SettingsPage() {
                         When enabled, the site will display a maintenance message to all users.
                       </p>
                     </div>
-                    <Switch id="maintenance" />
+                    <Switch 
+                      id="maintenance" 
+                      checked={settings.maintenanceMode}
+                      onCheckedChange={(checked) => setSettings({...settings, maintenanceMode: checked})}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -112,7 +240,11 @@ export default function SettingsPage() {
                         When enabled, new users can register for an account.
                       </p>
                     </div>
-                    <Switch id="registration" defaultChecked />
+                    <Switch 
+                      id="registration" 
+                      checked={settings.allowRegistration}
+                      onCheckedChange={(checked) => setSettings({...settings, allowRegistration: checked})}
+                    />
                   </div>
                 </div>
 
@@ -147,7 +279,11 @@ export default function SettingsPage() {
                       </Label>
                       <p className="text-sm text-muted-foreground">Receive email notifications for important events.</p>
                     </div>
-                    <Switch id="emailNotifications" defaultChecked />
+                    <Switch 
+                      id="emailNotifications" 
+                      checked={settings.emailNotifications}
+                      onCheckedChange={(checked) => setSettings({...settings, emailNotifications: checked})}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -157,7 +293,11 @@ export default function SettingsPage() {
                       </Label>
                       <p className="text-sm text-muted-foreground">Get notified when a new user registers.</p>
                     </div>
-                    <Switch id="userRegistration" defaultChecked />
+                    <Switch 
+                      id="userRegistration" 
+                      checked={settings.userRegistrationAlerts}
+                      onCheckedChange={(checked) => setSettings({...settings, userRegistrationAlerts: checked})}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -167,7 +307,11 @@ export default function SettingsPage() {
                       </Label>
                       <p className="text-sm text-muted-foreground">Get notified when a certificate is issued.</p>
                     </div>
-                    <Switch id="certificateIssued" defaultChecked />
+                    <Switch 
+                      id="certificateIssued" 
+                      checked={settings.certificateIssuedAlerts}
+                      onCheckedChange={(checked) => setSettings({...settings, certificateIssuedAlerts: checked})}
+                    />
                   </div>
                 </div>
 
@@ -197,7 +341,15 @@ export default function SettingsPage() {
                 <div className="space-y-4">
                   <div className="grid gap-2">
                     <Label htmlFor="sessionTimeout">Session Timeout (minutes)</Label>
-                    <Input id="sessionTimeout" type="number" defaultValue="60" />
+                    <Input 
+                      id="sessionTimeout" 
+                      type="number" 
+                      value={settings.sessionTimeout}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        setSettings({...settings, sessionTimeout: isNaN(value) ? 60 : value});
+                      }}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -209,7 +361,11 @@ export default function SettingsPage() {
                         Require administrators to use two-factor authentication.
                       </p>
                     </div>
-                    <Switch id="twoFactor" />
+                    <Switch 
+                      id="twoFactor" 
+                      checked={settings.requireTwoFactor}
+                      onCheckedChange={(checked) => setSettings({...settings, requireTwoFactor: checked})}
+                    />
                   </div>
 
                   <div className="flex items-center justify-between">
@@ -219,7 +375,11 @@ export default function SettingsPage() {
                       </Label>
                       <p className="text-sm text-muted-foreground">Restrict admin access to specific IP addresses.</p>
                     </div>
-                    <Switch id="ipRestriction" />
+                    <Switch 
+                      id="ipRestriction" 
+                      checked={settings.ipRestriction}
+                      onCheckedChange={(checked) => setSettings({...settings, ipRestriction: checked})}
+                    />
                   </div>
                 </div>
 

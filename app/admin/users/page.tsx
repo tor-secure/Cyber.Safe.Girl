@@ -51,6 +51,8 @@ export default function UsersPage() {
   const [searchField, setSearchField] = useState<"name" | "email" | "id">("name")
   const [refreshing, setRefreshing] = useState(false)
   const [showAddUserDialog, setShowAddUserDialog] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(true) // Assuming admin access for now
+  const [idToken, setIdToken] = useState<string | null>(null) // Will be set in useEffect
   const [newUserData, setNewUserData] = useState({
     name: "",
     email: "",
@@ -59,60 +61,72 @@ export default function UsersPage() {
   })
   const [addingUser, setAddingUser] = useState(false)
 
-  // Mock data for demonstration
+  // Get authentication token
   useEffect(() => {
-    const mockUsers: User[] = [
-      {
-        id: "usr_1",
-        name: "Jane Smith",
-        email: "jane.smith@example.com",
-        status: "active",
-        role: "admin",
-        createdAt: "2023-01-15T10:30:00Z",
-        lastLogin: "2023-05-08T14:22:00Z",
-      },
-      {
-        id: "usr_2",
-        name: "John Doe",
-        email: "john.doe@example.com",
-        status: "completed",
-        role: "user",
-        createdAt: "2023-02-20T09:15:00Z",
-        lastLogin: "2023-05-07T11:45:00Z",
-      },
-      {
-        id: "usr_3",
-        name: "Alice Johnson",
-        email: "alice.johnson@example.com",
-        status: "active",
-        role: "user",
-        createdAt: "2023-03-10T14:45:00Z",
-        lastLogin: "2023-05-06T16:30:00Z",
-      },
-      {
-        id: "usr_4",
-        name: "Bob Williams",
-        email: "bob.williams@example.com",
-        status: "inactive",
-        role: "user",
-        createdAt: "2023-04-05T11:20:00Z",
-        lastLogin: "2023-04-25T10:15:00Z",
-      },
-      {
-        id: "usr_5",
-        name: "Carol Brown",
-        email: "carol.brown@example.com",
-        status: "completed",
-        role: "user",
-        createdAt: "2023-03-22T08:50:00Z",
-        lastLogin: "2023-05-05T09:40:00Z",
-      },
-    ]
+    // For client-side only
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('firebase-auth-token') || 
+                   sessionStorage.getItem('firebase-auth-token');
+      if (token) {
+        setIdToken(token);
+      }
+    }
+  }, []);
 
-    setUsers(mockUsers)
-    setFilteredUsers(mockUsers)
-    setLoading(false)
-  }, [])
+  // Fetch real users data from API
+  useEffect(() => {
+    if (isAdmin && idToken) {
+      fetchUsers()
+    }
+  }, [isAdmin, idToken])
+
+  const fetchUsers = async () => {
+    setLoading(true)
+    setError(null)
+
+    try {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
+        console.warn("Authentication token not available, skipping fetch")
+        setLoading(false)
+        return
+      }
+      
+      const response = await fetch("/api/admin/users", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-firebase-auth-token': token // Add custom header as fallback
+        }
+      })
+      
+      if (!response.ok) {
+        if (response.status === 401) {
+          router.push("/admin/login")
+          return
+        }
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+
+      const data = await response.json()
+      console.log("Fetched users data:", data);
+      
+      if (!data.users || data.users.length === 0) {
+        console.log("No users found in response");
+        // If no users are found, check if we need to refresh the page
+        setError("No users found. Try refreshing the page or check the database connection.");
+      }
+      
+      setUsers(data.users || [])
+      setFilteredUsers(data.users || [])
+    } catch (err: any) {
+      console.error("Failed to fetch users:", err)
+      setError(err.message || "Failed to fetch users")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   // Handle search
   const handleSearch = () => {
@@ -132,9 +146,13 @@ export default function UsersPage() {
   // Handle refresh
   const handleRefresh = async () => {
     setRefreshing(true)
-    // In a real app, you would fetch users from an API here
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-    setRefreshing(false)
+    try {
+      await fetchUsers()
+    } catch (error) {
+      console.error("Error refreshing users:", error)
+    } finally {
+      setRefreshing(false)
+    }
   }
 
   // Format date

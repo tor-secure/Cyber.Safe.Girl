@@ -34,8 +34,17 @@ export default function AdminDashboardPage() {
     async function fetchDashboardStats() {
       setLoading(true)
       try {
+        // Get the auth token from localStorage
+        const token = typeof window !== 'undefined' ? localStorage.getItem('firebase-auth-token') : null;
+        const headers = token ? {
+          'Authorization': `Bearer ${token}`,
+          'x-firebase-auth-token': token
+        } : {};
+
         // Fetch certificate stats
-        const certificatesResponse = await fetch("/api/admin/certificates")
+        const certificatesResponse = await fetch("/api/admin/certificates", {
+          headers
+        });
 
         if (!certificatesResponse.ok) {
           if (certificatesResponse.status === 401) {
@@ -53,14 +62,52 @@ export default function AdminDashboardPage() {
         const validCertificates = certificates.filter((cert: any) => cert.isValid).length
         const revokedCertificates = totalCertificates - validCertificates
 
-        // For user stats, we would fetch from a users API
-        // For now, we'll use the certificate data to estimate
-        const uniqueUsers = new Set(certificates.map((cert: any) => cert.userId)).size
+        // Fetch user stats
+        const usersResponse = await fetch("/api/admin/users", {
+          headers
+        });
+        
+        if (!usersResponse.ok) {
+          console.error(`Error fetching users: ${usersResponse.status}`);
+          throw new Error(`HTTP error when fetching users! status: ${usersResponse.status}`)
+        }
+        
+        const usersData = await usersResponse.json()
+        const users = usersData.users || []
+        
+        console.log("Fetched users:", users);
+        
+        // Calculate user stats
+        const totalUsers = users.length
+        const activeUsers = users.filter((user: any) => user.status === "active").length
+        
+        // Fetch user progress to determine completed users
+        const progressResponse = await fetch("/api/admin/user-progress", {
+          headers
+        });
+        
+        let completedUsers = 0;
+        
+        if (progressResponse.ok) {
+          const progressData = await progressResponse.json();
+          const progress = progressData.progress || [];
+          
+          // Count users who have completed at least 10 chapters
+          completedUsers = progress.filter((p: any) => 
+            p.completedChapters && p.completedChapters.length >= 10
+          ).length;
+        } else {
+          // Fallback: estimate completed users from certificates
+          completedUsers = certificates.filter((cert: any) => cert.isValid)
+            .map((cert: any) => cert.userId)
+            .filter((v: any, i: number, a: any[]) => a.indexOf(v) === i) // unique user IDs
+            .length;
+        }
 
         setStats({
-          totalUsers: uniqueUsers * 3, // Estimate total users as 3x certificate holders
-          activeUsers: uniqueUsers * 2, // Estimate active users as 2x certificate holders
-          completedUsers: uniqueUsers, // Users with certificates have completed the course
+          totalUsers,
+          activeUsers,
+          completedUsers,
           totalCertificates,
           validCertificates,
           revokedCertificates,

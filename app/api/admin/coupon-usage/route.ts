@@ -60,14 +60,32 @@ function getDb() {
 
 // Helper function to verify admin token
 async function verifyAdminToken(request: NextRequest) {
-  const authHeader = request.headers.get("authorization")
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return { isAdmin: false, error: "Unauthorized: Missing or invalid token" }
+  // Get the authorization token from the request - try multiple sources
+  const authHeader = request.headers.get("authorization");
+  const customTokenHeader = request.headers.get("x-firebase-auth-token");
+  
+  // Try to get token from authorization header
+  let token: string | null = null;
+  if (authHeader && authHeader.startsWith("Bearer ")) {
+    token = authHeader.split("Bearer ")[1];
   }
-
-  const token = authHeader.split("Bearer ")[1]
+  
+  // If no token from auth header, try custom header
+  if (!token && customTokenHeader) {
+    token = customTokenHeader;
+  }
+  
+  // If still no token, check cookies
   if (!token) {
-    return { isAdmin: false, error: "Unauthorized: Missing token" }
+    const cookies = request.cookies;
+    const tokenCookie = cookies.get("firebase-auth-token");
+    if (tokenCookie) {
+      token = tokenCookie.value;
+    }
+  }
+  
+  if (!token) {
+    return { isAdmin: false, error: "Unauthorized: No token found in request" }
   }
 
   try {

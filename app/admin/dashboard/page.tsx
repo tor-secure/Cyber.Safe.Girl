@@ -67,7 +67,10 @@ export default function AdminDashboardPage() {
     setError(null)
 
     try {
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         console.warn("Authentication token not available, skipping fetch")
         setLoading(false)
         return
@@ -75,8 +78,8 @@ export default function AdminDashboardPage() {
       
       const response = await fetch("/api/admin/coupons", {
         headers: {
-          Authorization: `Bearer ${idToken}`,
-          'x-firebase-auth-token': idToken // Add custom header as fallback
+          Authorization: `Bearer ${token}`,
+          'x-firebase-auth-token': token // Add custom header as fallback
         }
       })
       
@@ -101,7 +104,10 @@ export default function AdminDashboardPage() {
     setLoading(true)
 
     try {
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         throw new Error("Not authenticated")
       }
       
@@ -110,8 +116,8 @@ export default function AdminDashboardPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${idToken}`,
-            "x-firebase-auth-token": idToken // Add custom header as fallback
+            "Authorization": `Bearer ${token}`,
+            "x-firebase-auth-token": token // Add custom header as fallback
           },
           body: JSON.stringify({
             code: couponCode,
@@ -185,7 +191,10 @@ export default function AdminDashboardPage() {
     setLoading(true)
 
     try {
-      if (!idToken) {
+      // Use only idToken from context for server components
+      const token = idToken;
+      
+      if (!token) {
         throw new Error("Not authenticated")
       }
       
@@ -194,8 +203,8 @@ export default function AdminDashboardPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${idToken}`,
-            "x-firebase-auth-token": idToken // Add custom header as fallback
+            "Authorization": `Bearer ${token}`,
+            "x-firebase-auth-token": token // Add custom header as fallback
           },
           body: JSON.stringify({
             count: numberOfCoupons,
