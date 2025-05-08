@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Loader2, AlertTriangle, CheckCircle, LogOut, Share2, Mail, Copy, Check } from "lucide-react"
+import { Loader2, AlertTriangle, CheckCircle, LogOut, Share2, Mail, Copy, Check, ArrowLeft } from 'lucide-react'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { useToast } from "@/components/ui/use-toast"
 import { ToastAction } from "@/components/ui/toast"
@@ -30,6 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import Link from "next/link"
 
 export default function AdminDashboardPage() {
   const { isAdmin, isLoading: adminLoading, idToken } = useAdminAuth()
@@ -67,7 +68,9 @@ export default function AdminDashboardPage() {
 
     try {
       if (!idToken) {
-        throw new Error("Not authenticated")
+        console.warn("Authentication token not available, skipping fetch")
+        setLoading(false)
+        return
       }
       
       const response = await fetch("/api/admin/coupons", {
@@ -331,7 +334,7 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <div className="container mx-auto py-4 sm:py-6 md:py-8 px-4 sm:px-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6 md:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold">Admin Dashboard</h1>
         <div className="flex flex-wrap items-start sm:items-center gap-2 sm:gap-3 w-full sm:w-auto mt-2 sm:mt-0">

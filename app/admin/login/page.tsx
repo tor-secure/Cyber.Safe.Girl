@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { signInWithEmailAndPassword } from "firebase/auth"
@@ -28,36 +30,36 @@ export default function AdminLoginPage() {
       const userCredential = await signInWithEmailAndPassword(auth, email, password)
       const user = userCredential.user
 
-      let token: string | null = null;
-      let idTokenResult: any = null;
-      
+      let token: string | null = null
+      let idTokenResult: any = null
+
       // Check if getIdToken method exists
-      if (typeof user.getIdToken === 'function') {
+      if (typeof user.getIdToken === "function") {
         // Get the ID token
         token = await user.getIdToken(true)
-        
+
         // Store token in multiple places for redundancy
-        localStorage.setItem('firebase-auth-token', token)
-        sessionStorage.setItem('firebase-auth-token', token)
-        
+        localStorage.setItem("firebase-auth-token", token)
+        sessionStorage.setItem("firebase-auth-token", token)
+
         // Set as a cookie with proper security settings
-        import('@/lib/cookies').then(({ setCookie }) => {
+        import("@/lib/cookies").then(({ setCookie }) => {
           if (token) {
-            setCookie('firebase-auth-token', token, 30) // 30 days
+            setCookie("firebase-auth-token", token, 30) // 30 days
           }
         })
-        
+
         // Check if user has admin role
-        if (typeof user.getIdTokenResult === 'function') {
+        if (typeof user.getIdTokenResult === "function") {
           idTokenResult = await user.getIdTokenResult()
         } else {
-          console.warn('getIdTokenResult method not available on user object')
+          console.warn("getIdTokenResult method not available on user object")
           setError("Authentication error: Unable to verify admin status")
           setLoading(false)
           return
         }
       } else {
-        console.warn('getIdToken method not available on user object')
+        console.warn("getIdToken method not available on user object")
         setError("Authentication error: Unable to get authentication token")
         setLoading(false)
         return
@@ -67,18 +69,18 @@ export default function AdminLoginPage() {
       if (!isAdmin) {
         // Sign out if not admin
         await auth.signOut()
-        localStorage.removeItem('firebase-auth-token')
-        sessionStorage.removeItem('firebase-auth-token')
+        localStorage.removeItem("firebase-auth-token")
+        sessionStorage.removeItem("firebase-auth-token")
         setError("You do not have permission to access the admin dashboard")
         setLoading(false)
         return
       }
 
       // Store admin status in localStorage
-      localStorage.setItem('is-admin', 'true')
-      
+      localStorage.setItem("is-admin", "true")
+
       console.log("Admin login successful, redirecting to dashboard...")
-      
+
       // Wait a moment to ensure token is properly stored
       setTimeout(() => {
         // Redirect to admin dashboard
@@ -110,7 +112,9 @@ export default function AdminLoginPage() {
           )}
           <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
             <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="email" className="text-sm sm:text-base font-medium">Email</Label>
+              <Label htmlFor="email" className="text-sm sm:text-base font-medium">
+                Email
+              </Label>
               <Input
                 id="email"
                 type="email"
@@ -122,7 +126,9 @@ export default function AdminLoginPage() {
               />
             </div>
             <div className="space-y-1 sm:space-y-2">
-              <Label htmlFor="password" className="text-sm sm:text-base font-medium">Password</Label>
+              <Label htmlFor="password" className="text-sm sm:text-base font-medium">
+                Password
+              </Label>
               <Input
                 id="password"
                 type="password"
@@ -132,9 +138,9 @@ export default function AdminLoginPage() {
                 className="py-1.5 sm:py-2 text-sm sm:text-base"
               />
             </div>
-            <Button 
-              type="submit" 
-              className="w-full py-2 sm:py-2.5 text-base sm:text-lg font-medium sm:font-semibold mt-2" 
+            <Button
+              type="submit"
+              className="w-full py-2 sm:py-2.5 text-base sm:text-lg font-medium sm:font-semibold mt-2"
               disabled={loading}
             >
               {loading ? (
