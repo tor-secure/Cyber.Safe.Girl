@@ -21,7 +21,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { fetchQuizQuestions, type QuizQuestion } from "@/lib/quiz-service"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
-import CouponForm from "@/components/coupon-form"
+import { FullscreenQuizContainer } from "./fullscreen-quiz-container"
 
 export function FinalTest() {
   const { user } = useAuth()
@@ -30,7 +30,7 @@ export function FinalTest() {
   const [totalQuestions, setTotalQuestions] = useState<number | null>(null)
   const [passingScore, setPassingScore] = useState(9) // 30% of 30 questions
   const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-  // Removed voucher dialog in favor of integrated coupon form
+  const [showVoucherDialog, setShowVoucherDialog] = useState(false)
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -40,17 +40,10 @@ export function FinalTest() {
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [testLoading, setTestLoading] = useState(false)
-  interface UserProgress {
-    finalTestCompleted?: boolean;
-    certificateUnlocked?: boolean;
-    paymentCompleted?: boolean;
-    finalTestUnlocked?: boolean;
-    [key: string]: any;
-  }
-  
-  const [userProgress, setUserProgress] = useState<UserProgress | null>(null)
+  const [userProgress, setUserProgress] = useState<any>(null)
   const [certificateUnlocked, setCertificateUnlocked] = useState(false)
   const [finalTestCompleted, setFinalTestCompleted] = useState(false)
+  const [testStarted, setTestStarted] = useState(false)
 
   // Check if user is allowed to take the final test
   useEffect(() => {
@@ -64,44 +57,6 @@ export function FinalTest() {
       setError(null)
 
       try {
-        // Initialize auth header
-        let authHeader = {}
-        
-        // Get token from localStorage or cookies
-        const token = typeof window !== 'undefined' ? 
-          localStorage.getItem('firebase-auth-token') : null;
-          
-        if (token) {
-          authHeader = {
-            "Authorization": `Bearer ${token}`
-          }
-        } else {
-          console.warn("No authentication token found in localStorage")
-        }
-        
-        // Check if user is eligible to take the final test (has a valid coupon or has paid)
-        const eligibilityResponse = await fetch("/api/check-final-test-eligibility", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...authHeader
-          },
-          body: JSON.stringify({
-            couponCode: null // Just checking current eligibility status
-          }),
-        })
-        
-        const eligibilityData = await eligibilityResponse.json()
-        
-        if (!eligibilityResponse.ok) {
-          throw new Error(eligibilityData.error || "Failed to check eligibility")
-        }
-        
-        // If not eligible, show payment/coupon dialog
-        if (!eligibilityData.eligible) {
-          setShowPaymentDialog(true)
-        }
-        
         // Fetch user progress to check if final test is unlocked
         const progressResponse = await fetch(`/api/user-progress?userId=${user.id}`)
 
@@ -137,9 +92,9 @@ export function FinalTest() {
           setScore(0)
           setTotalQuestions(30)
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to check user progress:", err)
-        setError(err instanceof Error ? err.message : "Failed to check if you're eligible for the final test.")
+        setError(err.message || "Failed to check if you're eligible for the final test.")
         setScore(0)
         setTotalQuestions(0)
       } finally {
@@ -161,6 +116,7 @@ export function FinalTest() {
     setCurrentQuestion(0)
     setSelectedAnswers({})
     setIsSubmitted(false)
+    setTestStarted(false)
 
     try {
       // Fetch final test questions
@@ -226,17 +182,45 @@ export function FinalTest() {
       // Set the score from the server response
       setScore(result.analytics.score)
       setTotalQuestions(result.analytics.totalQuestionsAttempted)
-      
-      // The final test API now handles updating the user progress
-      // Just update our local state based on the response
-      setFinalTestCompleted(true)
-      setCertificateUnlocked(result.certificateUnlocked || false)
+
+      // Update user progress to mark final test as completed
+      const progressResponse = await fetch("/api/user-progress", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user.id,
+          finalTestScore: result.analytics.score,
+          totalQuestions: result.analytics.totalQuestionsAttempted,
+        }),
+      })
+
+      if (!progressResponse.ok) {
+        console.error("Failed to update final test completion status")
+      } else {
+        const progressResult = await progressResponse.json()
+        setFinalTestCompleted(true)
+        setCertificateUnlocked(progressResult.certificateUnlocked)
+      }
 
       setIsSubmitted(true)
       setShowTestDialog(false)
-    } catch (err) {
+      setTestStarted(false)
+    } catch (err: any) {
       console.error("Failed to submit final test:", err)
-      setError(err instanceof Error ? err.message : "Failed to submit final test. Please try again.")
+      setError(err.message || "Failed to submit final test. Please try again.")
+    }
+  }
+
+  const handleBeginTest = () => {
+    setTestStarted(true)
+  }
+
+  const handleExitFullscreen = () => {
+    // Only allow exiting if the test is submitted
+    if (isSubmitted || !testStarted) {
+      setShowTestDialog(false)
     }
   }
 
@@ -401,154 +385,296 @@ export function FinalTest() {
       <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Access the Final Test</DialogTitle>
-            <DialogDescription>
-              You need to either apply a coupon code or make a payment to access the final test.
-            </DialogDescription>
+            <DialogTitle>Payment Required</DialogTitle>
+            <DialogDescription>A payment of ₹499 is required to take the final test again.</DialogDescription>
           </DialogHeader>
-          <div className="space-y-6 py-4">
-            <Tabs defaultValue="coupon" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="coupon">Apply Coupon</TabsTrigger>
-                <TabsTrigger value="payment">Make Payment</TabsTrigger>
-              </TabsList>
-              <TabsContent value="coupon" className="pt-4">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Enter your coupon code</h4>
-                  <CouponForm onCouponApplied={() => {
-                    setShowPaymentDialog(false)
-                    window.location.reload() // Reload to check eligibility again
-                  }} />
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <h4 className="font-medium">Select Payment Method</h4>
+              <RadioGroup value={paymentMethod || ""} onValueChange={setPaymentMethod}>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
+                  <RadioGroupItem value="credit-card" id="credit-card" />
+                  <Label htmlFor="credit-card" className="flex items-center gap-2 cursor-pointer">
+                    <CreditCard className="h-4 w-4" />
+                    Credit/Debit Card
+                  </Label>
                 </div>
-              </TabsContent>
-              <TabsContent value="payment" className="pt-4">
-                <div className="space-y-4">
-                  <h4 className="font-medium">Select a payment method</h4>
-                  <RadioGroup value={paymentMethod || ""} onValueChange={setPaymentMethod}>
-                    <div className="flex items-center space-x-2 mb-3">
-                      <RadioGroupItem value="credit-card" id="credit-card" />
-                      <Label htmlFor="credit-card" className="flex items-center">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Credit Card
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="paypal" id="paypal" />
-                      <Label htmlFor="paypal">PayPal</Label>
-                    </div>
-                  </RadioGroup>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
+                  <RadioGroupItem value="upi" id="upi" />
+                  <Label htmlFor="upi" className="cursor-pointer">
+                    UPI
+                  </Label>
                 </div>
-              </TabsContent>
-            </Tabs>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
+                  <RadioGroupItem value="netbanking" id="netbanking" />
+                  <Label htmlFor="netbanking" className="cursor-pointer">
+                    Net Banking
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
+                  <RadioGroupItem value="voucher" id="voucher" />
+                  <Label htmlFor="voucher" className="cursor-pointer">
+                    Redeem Voucher
+                  </Label>
+                </div>
+              </RadioGroup>
+            </div>
           </div>
-          <DialogFooter className="flex flex-col sm:flex-row sm:justify-between">
-            <Button variant="outline" className="mb-2 sm:mb-0" onClick={() => setShowPaymentDialog(false)}>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2">
+            <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="sm:w-auto w-full">
               Cancel
             </Button>
-            <Button type="submit" disabled={!paymentMethod}>
-              Continue to Payment
+            {paymentMethod === "voucher" ? (
+              <Button
+                onClick={() => {
+                  setShowPaymentDialog(false)
+                  setShowVoucherDialog(true)
+                }}
+                className="sm:w-auto w-full"
+              >
+                Apply Voucher
+              </Button>
+            ) : (
+              <Button disabled={!paymentMethod} className="sm:w-auto w-full">
+                Pay ₹499
+              </Button>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Voucher Dialog */}
+      <Dialog open={showVoucherDialog} onOpenChange={setShowVoucherDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Redeem Voucher</DialogTitle>
+            <DialogDescription>Enter your voucher code to get access to the final test.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="voucher-code">Voucher Code</Label>
+              <div className="flex gap-2">
+                <input
+                  id="voucher-code"
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Enter voucher code"
+                />
+                <Button variant="outline">Verify</Button>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <h4 className="font-medium">How to get a voucher?</h4>
+              <Tabs defaultValue="purchase">
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="purchase">Purchase</TabsTrigger>
+                  <TabsTrigger value="earn">Earn Free</TabsTrigger>
+                </TabsList>
+                <TabsContent value="purchase" className="p-4 border rounded-md mt-2">
+                  <p className="text-sm">You can purchase vouchers from our partners or directly from our website.</p>
+                  <Button className="mt-4 w-full">Buy Voucher</Button>
+                </TabsContent>
+                <TabsContent value="earn" className="p-4 border rounded-md mt-2">
+                  <p className="text-sm">Complete challenges or refer friends to earn free vouchers.</p>
+                  <Button className="mt-4 w-full">View Challenges</Button>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowVoucherDialog(false)}>
+              Cancel
             </Button>
+            <Button>Apply Voucher</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Test Dialog */}
-      <Dialog open={showTestDialog} onOpenChange={setShowTestDialog}>
-        <DialogContent className="sm:max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Final Assessment</DialogTitle>
-            <DialogDescription>
-              Answer all questions to complete the final test. You can navigate between questions.
-            </DialogDescription>
-          </DialogHeader>
-
-          {testLoading ? (
-            <div className="flex flex-col items-center justify-center py-12">
-              <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
-              <p className="text-lg font-medium">Loading questions...</p>
-            </div>
-          ) : questions.length > 0 ? (
-            <div className="space-y-6 py-4">
-              <div className="flex justify-between items-center">
-                <div className="text-sm font-medium">
-                  Question {currentQuestion + 1} of {questions.length}
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  {Object.values(selectedAnswers).filter(Boolean).length} of {questions.length} answered
-                </div>
+      <Dialog
+        open={showTestDialog}
+        onOpenChange={(open) => {
+          // Only allow closing if not in the middle of a test
+          if (!open || isSubmitted || !testStarted) {
+            setShowTestDialog(open)
+          }
+        }}
+      >
+        <DialogContent
+          className="sm:max-w-2xl max-w-[95vw] max-h-[90vh] overflow-y-auto bg-background text-foreground p-0"
+          onInteractOutside={(e) => {
+            // Prevent closing by clicking outside if test is in progress
+            if (testStarted && !isSubmitted) {
+              e.preventDefault()
+            }
+          }}
+        >
+          {!testStarted ? (
+            // Test start screen
+            <>
+              <DialogHeader className="p-6">
+                <DialogTitle>Final Assessment</DialogTitle>
+                <DialogDescription>
+                  You are about to start the final assessment. This test will be in fullscreen mode and must be
+                  completed once started.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 px-6 py-2">
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Important Information</AlertTitle>
+                  <AlertDescription>
+                    <ul className="list-disc pl-5 space-y-1 mt-2">
+                      <li>The test will be in fullscreen mode to ensure academic integrity</li>
+                      <li>Once started, you must complete the test</li>
+                      <li>Exiting fullscreen or refreshing the page will be recorded</li>
+                      <li>Make sure you have a stable internet connection</li>
+                      <li>You need to score at least {passingScore} points to pass</li>
+                    </ul>
+                  </AlertDescription>
+                </Alert>
               </div>
-
-              <Progress
-                value={(Object.values(selectedAnswers).filter(Boolean).length / questions.length) * 100}
-                className="h-2"
-              />
-
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">{questions[currentQuestion].question}</h3>
-
-                <RadioGroup
-                  value={selectedAnswers[questions[currentQuestion].id] || ""}
-                  onValueChange={(value) => {
-                    setSelectedAnswers({
-                      ...selectedAnswers,
-                      [questions[currentQuestion].id]: value,
-                    })
-                  }}
-                >
-                  {Object.entries(questions[currentQuestion].options).map(([key, option], index) => (
-                    <div key={index} className="flex items-center space-x-2 py-2">
-                      <RadioGroupItem
-                        value={option}
-                        id={`option-${index}`}
-                        disabled={isSubmitted}
-                      />
-                      <Label htmlFor={`option-${index}`}>{option}</Label>
-                    </div>
-                  ))}
-                </RadioGroup>
-              </div>
-
-              <div className="flex justify-between pt-4">
-                <Button
-                  variant="outline"
-                  onClick={handlePrevious}
-                  disabled={currentQuestion === 0}
-                  className="flex items-center"
-                >
-                  <ChevronLeft className="h-4 w-4 mr-2" />
-                  Previous
+              <DialogFooter className="p-6">
+                <Button variant="outline" onClick={() => setShowTestDialog(false)}>
+                  Cancel
                 </Button>
-
-                {currentQuestion < questions.length - 1 ? (
-                  <Button onClick={handleNext} className="flex items-center">
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-2" />
-                  </Button>
-                ) : (
-                  <Button
-                    onClick={handleSubmitTest}
-                    disabled={Object.values(selectedAnswers).some((answer) => !answer)}
-                  >
-                    Submit Test
-                  </Button>
-                )}
-              </div>
-            </div>
+                <Button onClick={handleBeginTest}>Begin Final Test</Button>
+              </DialogFooter>
+            </>
           ) : (
-            <div className="py-6">
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Error</AlertTitle>
-                <AlertDescription>No questions available for the final test.</AlertDescription>
-              </Alert>
-            </div>
-          )}
+            <FullscreenQuizContainer isActive={testStarted && !isSubmitted} onExit={handleExitFullscreen}>
+              {testLoading ? (
+                // Loading state
+                <div className="flex flex-col items-center justify-center py-12">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+                  <p className="text-lg font-medium">Loading final test questions...</p>
+                </div>
+              ) : error ? (
+                // Error state
+                <div className="py-8 px-6">
+                  <Alert variant="destructive">
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                  <DialogFooter className="mt-6">
+                    <Button onClick={() => setShowTestDialog(false)}>Close</Button>
+                  </DialogFooter>
+                </div>
+              ) : questions.length === 0 ? (
+                // No questions available
+                <div className="py-8 px-6">
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertDescription>No questions available for the final test.</AlertDescription>
+                  </Alert>
+                  <DialogFooter className="mt-6">
+                    <Button onClick={() => setShowTestDialog(false)}>Close</Button>
+                  </DialogFooter>
+                </div>
+              ) : (
+                // Test questions screen
+                <>
+                  <DialogHeader className="p-6">
+                    <div className="flex items-center justify-between">
+                      <DialogTitle>Final Assessment</DialogTitle>
+                      <div className="text-sm font-medium">
+                        Question {currentQuestion + 1} of {questions.length}
+                      </div>
+                    </div>
+                    <DialogDescription>
+                      Test your knowledge of all cybersecurity concepts covered in the course
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 px-6">
+                    <Progress value={((currentQuestion + 1) / questions.length) * 100} className="h-2" />
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowTestDialog(false)}>
-              Close
-            </Button>
-          </DialogFooter>
+                    <div className="select-none">
+                      <Alert className="mb-6">
+                        <AlertCircle className="h-4 w-4" />
+                        <AlertDescription>
+                          Select an answer to proceed. You must remain in fullscreen mode until you submit all answers.
+                        </AlertDescription>
+                      </Alert>
+
+                      <div className="space-y-6">
+                        <div>
+                          <h3 className="text-lg font-medium mb-4">
+                            {currentQuestion + 1}. {questions[currentQuestion]?.question}
+                            {questions[currentQuestion]?.chapter && (
+                              <span className="text-sm text-muted-foreground ml-2">
+                                (From Chapter {questions[currentQuestion].chapter.replace("CH-", "")})
+                              </span>
+                            )}
+                          </h3>
+
+                          <RadioGroup
+                            value={selectedAnswers[questions[currentQuestion]?.id] || ""}
+                            onValueChange={(value) => {
+                              setSelectedAnswers((prev) => ({
+                                ...prev,
+                                [questions[currentQuestion].id]: value,
+                              }))
+                            }}
+                            className="space-y-3"
+                          >
+                            {Object.entries(questions[currentQuestion]?.options || {})
+                              .sort()
+                              .map(([optionKey, optionText]) => (
+                                <div
+                                  key={optionKey}
+                                  className={`flex items-center space-x-2 rounded-lg border p-4 transition-colors ${
+                                    selectedAnswers[questions[currentQuestion]?.id] === optionKey ? "bg-muted" : ""
+                                  }`}
+                                  onClick={() => {
+                                    setSelectedAnswers((prev) => ({
+                                      ...prev,
+                                      [questions[currentQuestion].id]: optionKey,
+                                    }))
+                                  }}
+                                >
+                                  <RadioGroupItem value={optionKey} id={`option-${optionKey}`} />
+                                  <Label htmlFor={`option-${optionKey}`} className="flex-1 cursor-pointer text-base">
+                                    {optionKey}: {optionText}
+                                  </Label>
+                                </div>
+                              ))}
+                          </RadioGroup>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <DialogFooter className="flex flex-col sm:flex-row justify-between gap-2 mt-4 p-6">
+                    <div className="flex gap-2 w-full sm:w-auto">
+                      <Button
+                        variant="outline"
+                        onClick={handlePrevious}
+                        disabled={currentQuestion === 0}
+                        className="flex-1"
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-2" />
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={handleNext}
+                        disabled={currentQuestion === questions.length - 1}
+                        className="flex-1"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </Button>
+                    </div>
+                    <Button
+                      onClick={handleSubmitTest}
+                      disabled={Object.values(selectedAnswers).some((answer) => !answer)}
+                      className="w-full sm:w-auto mt-2 sm:mt-0"
+                    >
+                      Submit
+                    </Button>
+                  </DialogFooter>
+                </>
+              )}
+            </FullscreenQuizContainer>
+          )}
         </DialogContent>
       </Dialog>
     </div>
