@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Shield, Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react'
+import { Shield, Eye, EyeOff, Mail, Lock, User, AlertCircle, Home } from 'lucide-react'
 import { useAuth } from "@/lib/auth-context"
 import { RedirectLoader } from "@/components/redirect-loader"
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,16 @@ function LoginForm() {
   // Check if user is already authenticated
   useEffect(() => {
     const checkAuth = () => {
+      // Check if we just logged out (URL has a logout parameter)
+      const justLoggedOut = window.location.search.includes('logout=true');
+      
+      if (justLoggedOut) {
+        // If we just logged out, don't redirect
+        setIsAuthenticated(false);
+        setIsCheckingAuth(false);
+        return;
+      }
+      
       // Check for auth tokens in various storage mechanisms
       const hasAuthCookie = document.cookie.includes('firebase-auth-token')
       const hasLocalStorageToken = !!localStorage.getItem('firebase-auth-token')
@@ -441,6 +451,14 @@ function LoginForm() {
           )}
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
+          <Button 
+            variant="outline" 
+            className="w-full flex items-center justify-center gap-2"
+            onClick={() => router.push('/homepage')}
+          >
+            <Home className="h-4 w-4" />
+            Back to Homepage
+          </Button>
           <div className="text-center text-sm">
             <span className="text-muted-foreground">By continuing, you agree to our </span>
             <Button variant="link" className="p-0 h-auto">

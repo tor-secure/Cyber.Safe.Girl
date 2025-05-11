@@ -232,6 +232,16 @@ export default function HomePage() {
   // Check authentication status
   useEffect(() => {
     const checkAuth = () => {
+      // Check if we just logged out (URL has a logout parameter)
+      const justLoggedOut = window.location.search.includes('logout=true');
+      
+      if (justLoggedOut) {
+        // If we just logged out, don't redirect
+        setIsAuthenticated(false);
+        setIsCheckingAuth(false);
+        return;
+      }
+      
       // Check for auth tokens in various storage mechanisms
       const hasAuthCookie = document.cookie.includes('firebase-auth-token');
       const hasLocalStorageToken = !!localStorage.getItem('firebase-auth-token');
