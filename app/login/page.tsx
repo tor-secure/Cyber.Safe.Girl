@@ -2,10 +2,11 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Shield, Eye, EyeOff, Mail, Lock, User, AlertCircle } from 'lucide-react'
 import { useAuth } from "@/lib/auth-context"
+import { RedirectLoader } from "@/components/redirect-loader"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -28,9 +29,30 @@ function LoginForm() {
   const [resetSent, setResetSent] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showResetForm, setShowResetForm] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const { login, register, loginWithGoogle, resetPassword, isLoading } = useAuth()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState("login")
+  
+  // Check if user is already authenticated
+  useEffect(() => {
+    const checkAuth = () => {
+      // Check for auth tokens in various storage mechanisms
+      const hasAuthCookie = document.cookie.includes('firebase-auth-token')
+      const hasLocalStorageToken = !!localStorage.getItem('firebase-auth-token')
+      const hasSessionStorageToken = !!sessionStorage.getItem('firebase-auth-token')
+      
+      // If any auth token exists, user is authenticated
+      const authenticated = hasAuthCookie || hasLocalStorageToken || hasSessionStorageToken
+      setIsAuthenticated(authenticated)
+      setIsCheckingAuth(false)
+    }
+    
+    // Small delay to ensure all storage is checked properly
+    const timer = setTimeout(checkAuth, 100)
+    return () => clearTimeout(timer)
+  }, [])
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -115,6 +137,13 @@ function LoginForm() {
         backgroundAttachment: 'fixed',
       }}
     >
+      {/* Show loader and redirect if authenticated */}
+      {!isCheckingAuth && isAuthenticated && (
+        <RedirectLoader 
+          redirectTo="/dashboard" 
+          message="You're already logged in. Redirecting to dashboard..." 
+        />
+      )}
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-2 text-center">
           <div className="flex justify-center">

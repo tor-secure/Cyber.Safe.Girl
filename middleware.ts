@@ -42,18 +42,40 @@ export async function middleware(request: NextRequest) {
   const hasAuthHeader = authHeader.startsWith('Bearer ')
   const hasAuthTokenHeader = !!request.headers.get('x-firebase-auth-token')
 
-  // 4) If authenticated user hits any login page, send them to dashboard
+  // 4) Check if user is trying to access admin routes
+  if (pathname.startsWith('/admin/') && pathname !== '/admin/login') {
+    // Check if user has admin cookie
+    const isAdmin = request.cookies.has('is-admin') && request.cookies.get('is-admin')?.value === 'true'
+    
+    // If not admin, redirect to admin login
+    if (!isAdmin) {
+      return NextResponse.redirect(new URL('/admin/login', origin))
+    }
+  }
+
+  // 5) If authenticated user hits any login page or homepage, send them to dashboard
   if (
     hasAuthCookie &&
-    (pathname === '/login' ||
-     pathname === '/register' ||
-     pathname === '/admin/login')
+    (pathname === '/' ||
+     pathname === '/homepage' ||
+     pathname === '/login' ||
+     pathname === '/register')
   ) {
-    // Change "/admin" here to wherever your admin dashboard lives
+    // For regular login/homepage, redirect to user dashboard
+    return NextResponse.redirect(new URL('/dashboard', origin))
+  }
+
+  // 6) If authenticated admin hits admin login, redirect to admin dashboard
+  if (
+    hasAuthCookie && 
+    request.cookies.has('is-admin') && 
+    request.cookies.get('is-admin')?.value === 'true' && 
+    pathname === '/admin/login'
+  ) {
     return NextResponse.redirect(new URL('/admin', origin))
   }
 
-  // 5) If no auth, handle API vs pages
+  // 7) If no auth, handle API vs pages
   if (!hasAuthCookie && !hasAuthHeader && !hasAuthTokenHeader) {
     // a) API routes → 401 (but skip public APIs)
     if (pathname.startsWith('/api/')) {
@@ -70,7 +92,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/login', origin))
   }
 
-  // 6) Authenticated, non-login, non-public → allow!
+  // 8) Authenticated, non-login, non-public → allow!
   return NextResponse.next()
 }
 

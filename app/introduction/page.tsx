@@ -4,7 +4,7 @@ const Introduction: React.FC = () => {
   
 
   return (
-    <div className="p-4 bg-gray-900 text-white space-y-4">
+    <div className="p-4 bg-card text-card-foreground space-y-4">
       {/* YouTube Video */}
       <div className="aspect-w-16 aspect-h-9">
         <iframe
@@ -21,7 +21,7 @@ const Introduction: React.FC = () => {
       
 
       {/* Introduction Content */}
-     { <div className="text-sm leading-6 text-justify">
+     { <div className="text-sm leading-6 text-justify text-card-foreground">
         <p>
           Welcome to Cyber Safe Girl Version 5 Beta Release of the Online
           Learning Program. I am Dr. Ananth Prabhu G, the curator of this

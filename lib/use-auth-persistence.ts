@@ -5,9 +5,12 @@ import { useAuth } from './auth-context';
 import { getCookie } from './cookies';
 import { auth } from './firebase';
 import { signInWithCustomToken, Auth } from 'firebase/auth';
+import { useRouter, usePathname } from 'next/navigation';
 
 export function useAuthPersistence() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, login } = useAuth();
+  const router = useRouter();
+  const pathname = usePathname();
   
   useEffect(() => {
     // Only run this effect on the client side
@@ -31,23 +34,64 @@ export function useAuthPersistence() {
           // If Firebase auth is already initialized with a user, we don't need to do anything
           if (auth.currentUser) {
             console.log('Firebase auth already has a current user');
+            
+            // If we're on a public path that should redirect to dashboard when logged in
+            const publicAuthPaths = ['/', '/homepage', '/login', '/register'];
+            if (publicAuthPaths.includes(pathname)) {
+              console.log('Redirecting from public path to dashboard');
+              router.push('/dashboard');
+            }
             return;
           }
           
-          // If we don't have a current user but have a token, force a reload
-          // This will trigger the Firebase auth state listener to re-authenticate
-          window.location.reload();
+          // If we don't have a current user but have a token, try to restore the session
+          // without reloading the page
+          if (localStorageToken && storedUser.email) {
+            try {
+              // We can't directly use the token to sign in, but we can trigger the auth state listener
+              // by forcing a reload only if absolutely necessary
+              console.log('Attempting to restore session without reload');
+              
+              // Set a flag to prevent infinite reload loops
+              const lastReloadAttempt = localStorage.getItem('last-reload-attempt');
+              const now = Date.now();
+              
+              if (!lastReloadAttempt || (now - parseInt(lastReloadAttempt)) > 10000) {
+                localStorage.setItem('last-reload-attempt', now.toString());
+                window.location.reload();
+              } else {
+                console.log('Skipping reload to prevent loop');
+              }
+            } catch (e) {
+              console.error('Error during session restoration:', e);
+            }
+          }
         }
       } catch (e) {
         console.error('Failed to restore authentication state:', e);
       }
     };
     
-    // Only attempt to restore session if we're not already loading and don't have a user
-    if (!isLoading && !user) {
-      restoreSession();
+    // Check if we're on a public path that should redirect when logged in
+    const checkPathAndRedirect = () => {
+      if (user && !isLoading) {
+        const publicAuthPaths = ['/', '/homepage', '/login', '/register'];
+        if (publicAuthPaths.includes(pathname)) {
+          console.log('User is authenticated, redirecting from public path to dashboard');
+          router.push('/dashboard');
+        }
+      }
+    };
+    
+    // Run both checks
+    if (!isLoading) {
+      if (!user) {
+        restoreSession();
+      } else {
+        checkPathAndRedirect();
+      }
     }
-  }, [user, isLoading]);
+  }, [user, isLoading, pathname, router]);
   
   return { user, isLoading };
 }

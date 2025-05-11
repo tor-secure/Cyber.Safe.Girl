@@ -11,6 +11,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { RedirectLoader } from "@/components/redirect-loader";
 import {
   Shield,
   Code,
@@ -196,6 +197,8 @@ export default function HomePage() {
   const [moduleIndex, setModuleIndex] = useState(1);
   const [posterIndex, setPosterIndex] = useState(1);
   const [isEbookMenuOpen, setIsEbookMenuOpen] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
   // Refs for sections
   const aboutRef = useRef<HTMLElement>(null);
@@ -225,6 +228,25 @@ export default function HomePage() {
       behavior: "smooth",
     });
   };
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = () => {
+      // Check for auth tokens in various storage mechanisms
+      const hasAuthCookie = document.cookie.includes('firebase-auth-token');
+      const hasLocalStorageToken = !!localStorage.getItem('firebase-auth-token');
+      const hasSessionStorageToken = !!sessionStorage.getItem('firebase-auth-token');
+      
+      // If any auth token exists, user is authenticated
+      const authenticated = hasAuthCookie || hasLocalStorageToken || hasSessionStorageToken;
+      setIsAuthenticated(authenticated);
+      setIsCheckingAuth(false);
+    };
+    
+    // Small delay to ensure all storage is checked properly
+    const timer = setTimeout(checkAuth, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Handle scroll events
   useEffect(() => {
@@ -309,6 +331,14 @@ export default function HomePage() {
 
   return (
     <div className="flex flex-col min-h-screen">
+      {/* Show loader and redirect if authenticated */}
+      {!isCheckingAuth && isAuthenticated && (
+        <RedirectLoader 
+          redirectTo="/dashboard" 
+          message="You're already logged in. Redirecting to dashboard..." 
+        />
+      )}
+      
       {/* Top Bar - Added from original site */}
       <div className="hidden md:block bg-gray-900 text-white py-2">
         <div className="container mx-auto flex justify-between items-center">

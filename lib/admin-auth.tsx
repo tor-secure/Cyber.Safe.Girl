@@ -103,6 +103,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           // If we had admin status but lost the token, try to recover
           console.log("Admin status exists but token missing - clearing admin status");
           localStorage.removeItem('is-admin');
+          // Remove the admin cookie
+          document.cookie = "is-admin=false; path=/; max-age=0; SameSite=Lax";
         }
         
         router.push("/admin/login");
@@ -149,10 +151,14 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               console.log("User confirmed as admin via API");
               setIsAdmin(true);
               localStorage.setItem('is-admin', 'true');
+              // Also set a cookie for server-side checks
+              document.cookie = "is-admin=true; path=/; max-age=86400; SameSite=Lax";
             } else {
               console.log("User is not an admin according to API");
               setIsAdmin(false);
               localStorage.removeItem('is-admin');
+              // Remove the admin cookie
+              document.cookie = "is-admin=false; path=/; max-age=0; SameSite=Lax";
               
               // Only redirect if we're in an admin route
               if (window.location.pathname.startsWith('/admin') && 
@@ -172,6 +178,8 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               !storedIsAdmin) {
             setIsAdmin(false);
             localStorage.removeItem('is-admin');
+            // Remove the admin cookie
+            document.cookie = "is-admin=false; path=/; max-age=0; SameSite=Lax";
             router.push("/admin/login");
           }
         } finally {

@@ -169,7 +169,7 @@ export function FullscreenQuizContainer({ children, isActive, onExit }: Fullscre
         </div>
       ) : null}
 
-      <div className={`${isFullscreen ? "p-4 max-h-screen overflow-auto" : ""}`}>{children}</div>
+      <div className={`${isFullscreen ? "p-4 min-h-screen flex flex-col justify-center items-center bg-background text-foreground" : ""}`}>{children}</div>
     </div>
   )
 }
