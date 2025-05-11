@@ -307,13 +307,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Logout
   const logout = async () => {
     try {
-      // Clear the auth cookie
+      // Clear all auth cookies
       deleteCookie('firebase-auth-token');
+      deleteCookie('is-admin'); // Also clear admin cookie if it exists
       
-      // Clear localStorage
+      // Clear all storage mechanisms
       if (typeof window !== 'undefined') {
+        // Clear localStorage
         localStorage.removeItem('user');
         localStorage.removeItem('firebase-auth-token');
+        
+        // Clear sessionStorage
+        sessionStorage.removeItem('firebase-auth-token');
+        sessionStorage.removeItem('user');
+        
+        // Clear any custom attributes
+        try {
+          delete (document as any).firebaseAuthToken;
+        } catch (e) {
+          console.warn('Could not delete debug token attribute');
+        }
+        
+        // Force a small delay to ensure all tokens are cleared
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
       
       // Sign out from Firebase
@@ -321,6 +337,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       // Update state
       setUser(null);
+      
+      // Force a page reload to clear any in-memory state
+      if (typeof window !== 'undefined') {
+        window.location.href = '/login?logout=true';
+      }
     } catch (error) {
       console.error("Logout failed:", error);
       throw error;

@@ -159,7 +159,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
   // Loading authentication state
   if (authLoading) {
     return (
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl mx-auto bg-card text-card-foreground">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
           <p className="text-lg font-medium">Checking authentication...</p>
@@ -171,7 +171,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
   // Show start prompt
   if (showStartPrompt) {
     return (
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl mx-auto bg-card text-card-foreground">
         <CardHeader>
           <CardTitle>Take a Quiz</CardTitle>
           <CardDescription>Chapter {chapterId}</CardDescription>
@@ -206,7 +206,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
   // Loading questions state
   if (loading) {
     return (
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl mx-auto bg-card text-card-foreground">
         <CardContent className="flex flex-col items-center justify-center py-12">
           <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
           <p className="text-lg font-medium">Loading quiz questions...</p>
@@ -218,7 +218,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
   // Error state (fetch or submit)
   if (error && !submitting) {
     return (
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl mx-auto bg-card text-card-foreground">
         <CardContent className="py-8">
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -238,7 +238,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
     const totalQuestionsInQuiz = questions.length
 
     return (
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl mx-auto bg-card text-card-foreground">
         <CardHeader>
           <CardTitle>Quiz Results</CardTitle>
           <CardDescription>Chapter {chapterId}</CardDescription>
@@ -285,7 +285,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
   // If no questions loaded (and not loading/error)
   if (!loading && questions.length === 0 && !error) {
     return (
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl mx-auto bg-card text-card-foreground">
         <CardContent className="py-8">
           <Alert>
             <AlertCircle className="h-4 w-4" />
@@ -305,7 +305,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
 
   return (
     <FullscreenQuizContainer isActive={quizStarted && !isSubmitted} onExit={handleExitFullscreen}>
-      <Card className="max-w-3xl mx-auto">
+      <Card className="max-w-3xl w-full mx-auto bg-card text-card-foreground shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -334,7 +334,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
 
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium mb-4">
+                <h3 className="text-lg font-semibold mb-4 text-foreground quiz-question">
                   {currentQuestionIndex + 1}. {currentQuestionData.question}
                 </h3>
 
@@ -353,10 +353,10 @@ export function QuizContent({ chapterId }: QuizContentProps) {
                     .map(([optionKey, optionText]) => (
                       <div
                         key={optionKey}
-                        className={`flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors ${
+                        className={`flex items-center space-x-2 rounded-lg border p-4 cursor-pointer transition-colors quiz-option ${
                           selectedAnswers[currentQuestionData.id] === optionKey
-                            ? "bg-muted border-primary"
-                            : "hover:bg-muted/50"
+                            ? "selected bg-primary/10 border-primary text-foreground"
+                            : "hover:bg-muted/50 text-foreground"
                         }`}
                         onClick={() => {
                           setSelectedAnswers((prev) => ({
@@ -366,7 +366,7 @@ export function QuizContent({ chapterId }: QuizContentProps) {
                         }}
                       >
                         <RadioGroupItem value={optionKey} id={`option-${optionKey}`} />
-                        <Label htmlFor={`option-${optionKey}`} className="flex-1 cursor-pointer text-base">
+                        <Label htmlFor={`option-${optionKey}`} className="flex-1 cursor-pointer text-base font-medium">
                           {optionKey}: {optionText}
                         </Label>
                       </div>
