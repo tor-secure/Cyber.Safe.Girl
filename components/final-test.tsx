@@ -69,9 +69,51 @@ export function FinalTest() {
           setFinalTestCompleted(true)
           setCertificateUnlocked(progressData.progress.certificateUnlocked)
 
-          // Set placeholder score for now (in a real app, you'd fetch the actual score)
-          setScore(progressData.progress.certificateUnlocked ? 20 : 6)
-          setTotalQuestions(50)
+          // Fetch the actual final test score from the database
+          try {
+            const analyticsResponse = await fetch(`/api/final-test-analytics?userId=${user.id}`)
+            
+            if (analyticsResponse.ok) {
+              const analyticsData = await analyticsResponse.json()
+              
+              if (analyticsData.finalTestAnalytics && analyticsData.finalTestAnalytics.length > 0) {
+                // Get the most recent test result (already sorted by submittedAt in descending order)
+                const latestResult = analyticsData.finalTestAnalytics[0]
+                setScore(latestResult.score)
+                setTotalQuestions(latestResult.totalQuestionsAttempted)
+                console.log("Fetched actual final test score:", latestResult.score, "out of", latestResult.totalQuestionsAttempted)
+              } else {
+                // Fallback if no test results found in analytics
+                if (progressData.progress.finalTestScore !== undefined && progressData.progress.finalTestTotalQuestions !== undefined) {
+                  setScore(progressData.progress.finalTestScore)
+                  setTotalQuestions(progressData.progress.finalTestTotalQuestions)
+                } else {
+                  // Fallback to default values if not available anywhere
+                  setScore(progressData.progress.certificateUnlocked ? 20 : 6)
+                  setTotalQuestions(50)
+                }
+              }
+            } else {
+              // Fallback if API call fails
+              console.error("Failed to fetch final test analytics")
+              if (progressData.progress.finalTestScore !== undefined && progressData.progress.finalTestTotalQuestions !== undefined) {
+                setScore(progressData.progress.finalTestScore)
+                setTotalQuestions(progressData.progress.finalTestTotalQuestions)
+              } else {
+                setScore(progressData.progress.certificateUnlocked ? 20 : 6)
+                setTotalQuestions(50)
+              }
+            }
+          } catch (analyticsErr) {
+            console.error("Error fetching final test analytics:", analyticsErr)
+            if (progressData.progress.finalTestScore !== undefined && progressData.progress.finalTestTotalQuestions !== undefined) {
+              setScore(progressData.progress.finalTestScore)
+              setTotalQuestions(progressData.progress.finalTestTotalQuestions)
+            } else {
+              setScore(progressData.progress.certificateUnlocked ? 20 : 6)
+              setTotalQuestions(50)
+            }
+          }
         } else {
           // Check if user has paid for the final test
           if (!progressData.progress.paymentCompleted) {
@@ -179,27 +221,11 @@ export function FinalTest() {
       // Set the score from the server response
       setScore(result.analytics.score)
       setTotalQuestions(result.analytics.totalQuestionsAttempted)
-
-      // Update user progress to mark final test as completed
-      const progressResponse = await fetch("/api/user-progress", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          userId: user.id,
-          finalTestScore: result.analytics.score,
-          totalQuestions: result.analytics.totalQuestionsAttempted,
-        }),
-      })
-
-      if (!progressResponse.ok) {
-        console.error("Failed to update final test completion status")
-      } else {
-        const progressResult = await progressResponse.json()
-        setFinalTestCompleted(true)
-        setCertificateUnlocked(progressResult.certificateUnlocked)
-      }
+      
+      // The backend already updates the user progress in the final-test API
+      // including storing the score and updating certificate status
+      setFinalTestCompleted(true)
+      setCertificateUnlocked(result.certificateUnlocked)
 
       setIsSubmitted(true)
       setShowTestDialog(false)

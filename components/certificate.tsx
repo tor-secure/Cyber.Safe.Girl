@@ -37,6 +37,8 @@ interface UserProgress {
   certificateUnlocked: boolean
   lastUpdated: string
   paymentCompleted: boolean
+  finalTestScore?: number
+  finalTestTotalQuestions?: number
 }
 
 interface Certificate {
@@ -331,8 +333,12 @@ export function Certificate() {
                 <p className="text-xl sm:text-2xl font-semibold text-gray-900">{certificate.name || user?.name || "User"}</p>
                 <p className="text-base sm:text-lg text-gray-800">has successfully completed the</p>
                 <p className="text-lg sm:text-xl font-medium text-gray-900">Cyber Safe Girl Course</p>
-                {/* <p className="text-base sm:text-lg text-gray-800">with a score of</p>
-                <p className="text-xl sm:text-2xl font-semibold text-gray-900">80%</p> */}
+                <p className="text-base sm:text-lg text-gray-800 mt-2">with a score of</p>
+                <p className="text-xl sm:text-2xl font-semibold text-gray-900">
+                  {userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions 
+                    ? `${Math.round((userProgress.finalTestScore / userProgress.finalTestTotalQuestions) * 100)}%` 
+                    : "Passing Score"}
+                </p>
               </div>
 
               <div className="pt-4 sm:pt-6 border-t border-gray-300 mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between items-center sm:items-end gap-6 sm:gap-2">

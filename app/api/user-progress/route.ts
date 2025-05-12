@@ -12,6 +12,9 @@ interface UserProgress {
   finalTestCompleted: boolean
   certificateUnlocked: boolean
   paymentCompleted: boolean
+  finalTestScore?: number
+  finalTestTotalQuestions?: number
+  chapterQuizScores?: Record<string, { score: number, totalQuestions: number }>
   lastUpdated: string
 }
 
@@ -144,6 +147,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Store the chapter quiz score
+    if (!progress.chapterQuizScores) {
+      progress.chapterQuizScores = {};
+    }
+    
+    // Store the score for this chapter
+    progress.chapterQuizScores[chapterId] = {
+      score: score,
+      totalQuestions: totalQuestions
+    };
+
     // If user passed the quiz
     if (passed) {
       // Add chapter to completed chapters if not already there
@@ -230,6 +244,10 @@ export async function PATCH(request: NextRequest) {
 
     // Update final test completion
     progress.finalTestCompleted = true
+    
+    // Store the final test score and total questions
+    progress.finalTestScore = finalTestScore
+    progress.finalTestTotalQuestions = totalQuestions
 
     // Unlock certificate if passed
     if (passed) {
