@@ -90,7 +90,7 @@ export function FinalTest() {
 
           // Set default values
           setScore(0)
-          setTotalQuestions(30)
+          setTotalQuestions(50)
         }
       } catch (err: any) {
         console.error("Failed to check user progress:", err)

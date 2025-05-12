@@ -31,17 +31,24 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       }
       
       // Always try to get a fresh token first
-      let token = null;
+      let token: string | null = null;
       
       // Try to get token from Firebase user first (most reliable source)
       if (auth.currentUser) {
         try {
           console.log("Getting fresh token from Firebase");
           if (typeof auth.currentUser.getIdToken === 'function') {
-            token = await auth.currentUser.getIdToken(true);
+            const freshToken = await auth.currentUser.getIdToken(true);
+            token = freshToken;
             // Store the refreshed token in both storages for redundancy
-            localStorage.setItem('firebase-auth-token', token);
-            sessionStorage.setItem('firebase-auth-token', token);
+            localStorage.setItem('firebase-auth-token', freshToken);
+            sessionStorage.setItem('firebase-auth-token', freshToken);
+            
+            // Also set the token as a cookie for server-side checks
+            import("@/lib/cookies").then(({ setCookie }) => {
+              setCookie("firebase-auth-token", freshToken, 30); // 30 days
+            });
+            
             console.log("Fresh token obtained from Firebase");
           } else {
             console.warn("getIdToken method not available on currentUser object");
@@ -80,9 +87,16 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
             if (response.ok) {
               const data = await response.json();
               if (data.token) {
-                token = data.token;
-                localStorage.setItem('firebase-auth-token', token);
-                sessionStorage.setItem('firebase-auth-token', token);
+                const newToken = data.token;
+                token = newToken;
+                localStorage.setItem('firebase-auth-token', newToken);
+                sessionStorage.setItem('firebase-auth-token', newToken);
+                
+                // Also set the token as a cookie for server-side checks
+                import("@/lib/cookies").then(({ setCookie }) => {
+                  setCookie("firebase-auth-token", newToken, 30); // 30 days
+                });
+                
                 console.log("Special token obtained for test@test.com");
               }
             }
@@ -103,8 +117,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
           // If we had admin status but lost the token, try to recover
           console.log("Admin status exists but token missing - clearing admin status");
           localStorage.removeItem('is-admin');
-          // Remove the admin cookie
-          document.cookie = "is-admin=false; path=/; max-age=0; SameSite=Lax";
+          // Remove the admin cookie using the cookies utility
+          import("@/lib/cookies").then(({ deleteCookie }) => {
+            deleteCookie("is-admin");
+          });
         }
         
         router.push("/admin/login");
@@ -118,6 +134,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
       // If we have stored admin status, use it for quick UI response
       if (storedIsAdmin === 'true') {
         setIsAdmin(true);
+        // Make sure the admin cookie is set properly
+        import("@/lib/cookies").then(({ setCookie }) => {
+          setCookie("is-admin", "true", 1); // 1 day
+        });
         setIsLoading(false);
         console.log("Using cached admin status");
       }
@@ -142,6 +162,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
                 window.location.pathname !== '/admin/login') {
               setIsAdmin(false);
               localStorage.removeItem('is-admin');
+              // Remove the admin cookie using the cookies utility
+              import("@/lib/cookies").then(({ deleteCookie }) => {
+                deleteCookie("is-admin");
+              });
               router.push("/admin/login");
             }
           } else {
@@ -151,14 +175,18 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               console.log("User confirmed as admin via API");
               setIsAdmin(true);
               localStorage.setItem('is-admin', 'true');
-              // Also set a cookie for server-side checks
-              document.cookie = "is-admin=true; path=/; max-age=86400; SameSite=Lax";
+              // Set the admin cookie using the cookies utility
+              import("@/lib/cookies").then(({ setCookie }) => {
+                setCookie("is-admin", "true", 1); // 1 day
+              });
             } else {
               console.log("User is not an admin according to API");
               setIsAdmin(false);
               localStorage.removeItem('is-admin');
-              // Remove the admin cookie
-              document.cookie = "is-admin=false; path=/; max-age=0; SameSite=Lax";
+              // Remove the admin cookie using the cookies utility
+              import("@/lib/cookies").then(({ deleteCookie }) => {
+                deleteCookie("is-admin");
+              });
               
               // Only redirect if we're in an admin route
               if (window.location.pathname.startsWith('/admin') && 
@@ -178,8 +206,10 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
               !storedIsAdmin) {
             setIsAdmin(false);
             localStorage.removeItem('is-admin');
-            // Remove the admin cookie
-            document.cookie = "is-admin=false; path=/; max-age=0; SameSite=Lax";
+            // Remove the admin cookie using the cookies utility
+            import("@/lib/cookies").then(({ deleteCookie }) => {
+              deleteCookie("is-admin");
+            });
             router.push("/admin/login");
           }
         } finally {
@@ -192,12 +222,23 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
         if (auth.currentUser) {
           try {
             const freshToken = await auth.currentUser.getIdToken(true);
-            if (freshToken) {
-              localStorage.setItem('firebase-auth-token', freshToken);
-              sessionStorage.setItem('firebase-auth-token', freshToken);
-              setIdToken(freshToken);
-              console.log("Token refreshed automatically");
+            localStorage.setItem('firebase-auth-token', freshToken);
+            sessionStorage.setItem('firebase-auth-token', freshToken);
+            setIdToken(freshToken);
+            
+            // Also refresh the token cookie
+            import("@/lib/cookies").then(({ setCookie }) => {
+              setCookie("firebase-auth-token", freshToken, 30); // 30 days
+            });
+            
+            // Also refresh the admin cookie if user is admin
+            if (localStorage.getItem('is-admin') === 'true') {
+              import("@/lib/cookies").then(({ setCookie }) => {
+                setCookie("is-admin", "true", 1); // 1 day
+              });
             }
+            
+            console.log("Token refreshed automatically");
           } catch (err) {
             console.error("Failed to refresh token:", err);
             
@@ -215,6 +256,12 @@ export function AdminAuthProvider({ children }: { children: ReactNode }) {
                              sessionStorage.getItem('firebase-auth-token');
           if (storedToken && storedToken !== idToken) {
             setIdToken(storedToken);
+            
+            // Also refresh the token cookie
+            import("@/lib/cookies").then(({ setCookie }) => {
+              setCookie("firebase-auth-token", storedToken, 30); // 30 days
+            });
+            
             console.log("Using stored token when no current user available");
           }
         }

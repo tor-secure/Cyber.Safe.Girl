@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Reference to the document containing the questions for the final test
-    const questionsRef = adminDb.doc('Quiz-DB/final-test/question-set/questions');
+    const questionsRef = adminDb.doc('Quiz-DB/FINAL/question-set/questions');
     const questionsSnap = await questionsRef.get();
 
     if (!questionsSnap.exists) {
@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       await questionsRef.set(defaultQuestions);
       
       // Save default answer key
-      const answerKeyRef = adminDb.doc('Quiz-DB/final-test/answer-key/answers');
+      const answerKeyRef = adminDb.doc('Quiz-DB/FINAL/answer-key/answers');
       await answerKeyRef.set(defaultAnswerKey);
       
       // Convert questions object to an array for response
@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Reference to the document containing the correct answers for the final test
-    const answersRef = adminDb.doc('Quiz-DB/final-test/answer-key/answers');
+    const answersRef = adminDb.doc('Quiz-DB/FINAL/answer-key/answers');
     const answersSnap = await answersRef.get();
 
     if (!answersSnap.exists) {
@@ -182,7 +182,7 @@ export async function POST(request: NextRequest) {
 
     // --- Prepare User Analytics ---
     const userAnalytics = {
-      testId: "final-test",
+      testId: "FINAL",
       userId: userId,
       score: score,
       totalQuestionsAttempted: totalQuestionsAttempted,

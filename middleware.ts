@@ -47,8 +47,11 @@ export async function middleware(request: NextRequest) {
     // Check if user has admin cookie
     const isAdmin = request.cookies.has('is-admin') && request.cookies.get('is-admin')?.value === 'true'
     
-    // If not admin, redirect to admin login
-    if (!isAdmin) {
+    // Also check if user has auth token
+    const hasAuthToken = request.cookies.has('firebase-auth-token')
+    
+    // If not admin or no auth token, redirect to admin login
+    if (!isAdmin || !hasAuthToken) {
       return NextResponse.redirect(new URL('/admin/login', origin))
     }
   }
