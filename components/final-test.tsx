@@ -28,10 +28,7 @@ export function FinalTest() {
   const router = useRouter()
   const [score, setScore] = useState<number | null>(null)
   const [totalQuestions, setTotalQuestions] = useState<number | null>(null)
-  const [passingScore, setPassingScore] = useState(9) // 30% of 30 questions
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false)
-  const [showVoucherDialog, setShowVoucherDialog] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
+  const [passingScore, setPassingScore] = useState(15) // 30% of 30 questions
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showTestDialog, setShowTestDialog] = useState(false)
@@ -74,7 +71,7 @@ export function FinalTest() {
 
           // Set placeholder score for now (in a real app, you'd fetch the actual score)
           setScore(progressData.progress.certificateUnlocked ? 20 : 6)
-          setTotalQuestions(30)
+          setTotalQuestions(50)
         } else {
           // Check if user has paid for the final test
           if (!progressData.progress.paymentCompleted) {
@@ -380,114 +377,6 @@ export function FinalTest() {
           </Button>
         </CardFooter>
       </Card>
-
-      {/* Payment Dialog */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Payment Required</DialogTitle>
-            <DialogDescription>A payment of ₹499 is required to take the final test again.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <h4 className="font-medium">Select Payment Method</h4>
-              <RadioGroup value={paymentMethod || ""} onValueChange={setPaymentMethod}>
-                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
-                  <RadioGroupItem value="credit-card" id="credit-card" />
-                  <Label htmlFor="credit-card" className="flex items-center gap-2 cursor-pointer">
-                    <CreditCard className="h-4 w-4" />
-                    Credit/Debit Card
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
-                  <RadioGroupItem value="upi" id="upi" />
-                  <Label htmlFor="upi" className="cursor-pointer">
-                    UPI
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
-                  <RadioGroupItem value="netbanking" id="netbanking" />
-                  <Label htmlFor="netbanking" className="cursor-pointer">
-                    Net Banking
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2 rounded-lg border p-3 cursor-pointer">
-                  <RadioGroupItem value="voucher" id="voucher" />
-                  <Label htmlFor="voucher" className="cursor-pointer">
-                    Redeem Voucher
-                  </Label>
-                </div>
-              </RadioGroup>
-            </div>
-          </div>
-          <DialogFooter className="flex flex-col sm:flex-row gap-2">
-            <Button variant="outline" onClick={() => setShowPaymentDialog(false)} className="sm:w-auto w-full">
-              Cancel
-            </Button>
-            {paymentMethod === "voucher" ? (
-              <Button
-                onClick={() => {
-                  setShowPaymentDialog(false)
-                  setShowVoucherDialog(true)
-                }}
-                className="sm:w-auto w-full"
-              >
-                Apply Voucher
-              </Button>
-            ) : (
-              <Button disabled={!paymentMethod} className="sm:w-auto w-full">
-                Pay ₹499
-              </Button>
-            )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Voucher Dialog */}
-      <Dialog open={showVoucherDialog} onOpenChange={setShowVoucherDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Redeem Voucher</DialogTitle>
-            <DialogDescription>Enter your voucher code to get access to the final test.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="voucher-code">Voucher Code</Label>
-              <div className="flex gap-2">
-                <input
-                  id="voucher-code"
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Enter voucher code"
-                />
-                <Button variant="outline">Verify</Button>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h4 className="font-medium">How to get a voucher?</h4>
-              <Tabs defaultValue="purchase">
-                <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="purchase">Purchase</TabsTrigger>
-                  <TabsTrigger value="earn">Earn Free</TabsTrigger>
-                </TabsList>
-                <TabsContent value="purchase" className="p-4 border rounded-md mt-2">
-                  <p className="text-sm">You can purchase vouchers from our partners or directly from our website.</p>
-                  <Button className="mt-4 w-full">Buy Voucher</Button>
-                </TabsContent>
-                <TabsContent value="earn" className="p-4 border rounded-md mt-2">
-                  <p className="text-sm">Complete challenges or refer friends to earn free vouchers.</p>
-                  <Button className="mt-4 w-full">View Challenges</Button>
-                </TabsContent>
-              </Tabs>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowVoucherDialog(false)}>
-              Cancel
-            </Button>
-            <Button>Apply Voucher</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Test Dialog */}
       <Dialog
