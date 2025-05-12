@@ -29,7 +29,7 @@ interface QuizContentProps {
 export function QuizContent({ chapterId }: QuizContentProps) {
   const router = useRouter()
   const { user, isLoading: authLoading } = useAuth()
-  const { refreshProgress } = useProgress()
+  const { refreshProgress, progress } = useProgress()
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, string>>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
@@ -40,9 +40,17 @@ export function QuizContent({ chapterId }: QuizContentProps) {
   const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [quizStarted, setQuizStarted] = useState(false)
   const [showStartPrompt, setShowStartPrompt] = useState(true)
+  const [previousScore, setPreviousScore] = useState<{ score: number, totalQuestions: number } | null>(null)
 
   // Format chapter ID for API endpoint (e.g., "1" -> "CH-001")
   const chapter = `CH-${chapterId.padStart(3, "0")}`
+
+  // Check for previous quiz scores
+  useEffect(() => {
+    if (progress && progress.chapterQuizScores && progress.chapterQuizScores[chapter]) {
+      setPreviousScore(progress.chapterQuizScores[chapter]);
+    }
+  }, [progress, chapter]);
 
   // Fetch quiz questions from the backend API
   useEffect(() => {
@@ -177,6 +185,18 @@ export function QuizContent({ chapterId }: QuizContentProps) {
           <CardDescription>Chapter {chapterId}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          {previousScore && (
+            <div className="bg-muted p-4 rounded-lg mb-4">
+              <h3 className="font-medium mb-2">Previous Attempt</h3>
+              <p>Your previous score: <span className="font-bold">{previousScore.score}/{previousScore.totalQuestions}</span></p>
+              <p className="text-sm text-muted-foreground mt-1">
+                {previousScore.score >= previousScore.totalQuestions * 0.3 
+                  ? "You passed this quiz. You can retake it to improve your score." 
+                  : "You didn't pass this quiz. You need to score at least 30% to pass."}
+              </p>
+            </div>
+          )}
+          
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Important Information</AlertTitle>

@@ -199,23 +199,31 @@ export async function POST(request: NextRequest) {
     const passingScore = Math.ceil(totalQuestionsAttempted * 0.3);
     const passed = score >= passingScore;
 
-    // If user passed, update their progress to unlock certificate
-    if (passed) {
-      // Get user progress data to retrieve email and name
-      const userProgressRef = adminDb.collection("userProgress").doc(userId);
-      const userProgressSnap = await userProgressRef.get();
+    // Get user progress data to retrieve email and name
+    const userProgressRef = adminDb.collection("userProgress").doc(userId);
+    const userProgressSnap = await userProgressRef.get();
+    
+    if (userProgressSnap.exists) {
+      const progressData = userProgressSnap.data();
       
-      if (userProgressSnap.exists) {
-        const progressData = userProgressSnap.data();
-        
-        // Update progress to mark final test as completed and certificate as unlocked
-        await userProgressRef.update({
-          finalTestCompleted: true,
-          certificateUnlocked: true,
-          lastUpdated: new Date().toISOString()
-        });
-        
-        console.log("Final Test API POST - User progress updated, certificate unlocked");
+      // Update progress to mark final test as completed and store score
+      const updateData: any = {
+        finalTestCompleted: true,
+        finalTestScore: score,
+        finalTestTotalQuestions: totalQuestionsAttempted,
+        lastUpdated: new Date().toISOString()
+      };
+      
+      // If user passed, unlock certificate
+      if (passed) {
+        updateData.certificateUnlocked = true;
+      }
+      
+      await userProgressRef.update(updateData);
+      
+      console.log("Final Test API POST - User progress updated with score:", score, "out of", totalQuestionsAttempted);
+      if (passed) {
+        console.log("Final Test API POST - Certificate unlocked");
       }
     }
 

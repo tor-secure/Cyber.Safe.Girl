@@ -29,14 +29,17 @@ interface UserProgress {
   finalTestCompleted: boolean;
   certificateUnlocked: boolean;
   lastUpdated: string;
+  finalTestScore?: number;
+  finalTestTotalQuestions?: number;
+  chapterQuizScores?: Record<string, { score: number, totalQuestions: number }>;
 }
 
 export default function Dashboard() {
   const { user } = useAuth()
   const [totalChapters] = useState(70)
-  const [finalTestScore] = useState(6)
-  const [totalTestQuestions] = useState(30)
-  const [passingScore] = useState(9) // 30% of 30 questions
+  const [finalTestScore, setFinalTestScore] = useState(0)
+  const [totalTestQuestions, setTotalTestQuestions] = useState(0)
+  const [passingScore, setPassingScore] = useState(0) // Will be calculated as 30% of total questions
   const [quizAnalytics, setQuizAnalytics] = useState<QuizAnalytics[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -60,6 +63,55 @@ export default function Dashboard() {
         const data = await response.json();
         setUserProgress(data.progress);
         setCompletedChaptersCount(data.progress.completedChapters.length);
+        
+        // Set final test score and total questions if available
+        if (data.progress.finalTestScore !== undefined && data.progress.finalTestTotalQuestions !== undefined) {
+          setFinalTestScore(data.progress.finalTestScore);
+          setTotalTestQuestions(data.progress.finalTestTotalQuestions);
+          
+          // Calculate passing score (30% of total questions)
+          const calculatedPassingScore = Math.ceil(data.progress.finalTestTotalQuestions * 0.3);
+          setPassingScore(calculatedPassingScore);
+          
+          console.log("Final test score from progress:", data.progress.finalTestScore);
+          console.log("Total questions from progress:", data.progress.finalTestTotalQuestions);
+          console.log("Calculated passing score:", calculatedPassingScore);
+        } else if (data.progress.finalTestCompleted) {
+          // If final test is completed but no score is available, try to fetch from analytics
+          try {
+            const analyticsResponse = await fetch(`/api/final-test-analytics?userId=${user.id}`);
+            if (analyticsResponse.ok) {
+              const analyticsData = await analyticsResponse.json();
+              if (analyticsData.finalTestAnalytics && analyticsData.finalTestAnalytics.length > 0) {
+                const latestResult = analyticsData.finalTestAnalytics[0];
+                setFinalTestScore(latestResult.score);
+                setTotalTestQuestions(latestResult.totalQuestionsAttempted);
+                
+                // Calculate passing score (30% of total questions)
+                const calculatedPassingScore = Math.ceil(latestResult.totalQuestionsAttempted * 0.3);
+                setPassingScore(calculatedPassingScore);
+                
+                console.log("Final test score from analytics:", latestResult.score);
+                console.log("Total questions from analytics:", latestResult.totalQuestionsAttempted);
+              } else {
+                // Default values if no analytics found
+                setFinalTestScore(data.progress.certificateUnlocked ? 20 : 6);
+                setTotalTestQuestions(30);
+                setPassingScore(9); // 30% of 30
+              }
+            }
+          } catch (analyticsErr) {
+            console.error("Failed to fetch final test analytics:", analyticsErr);
+            // Use default values
+            setFinalTestScore(data.progress.certificateUnlocked ? 20 : 6);
+            setTotalTestQuestions(30);
+            setPassingScore(9); // 30% of 30
+          }
+        } else {
+          // Default values if final test not completed
+          setTotalTestQuestions(30);
+          setPassingScore(9); // 30% of 30
+        }
       } catch (err: any) {
         console.error("Failed to fetch user progress:", err);
         // Don't set error here as we'll still try to fetch quiz analytics
