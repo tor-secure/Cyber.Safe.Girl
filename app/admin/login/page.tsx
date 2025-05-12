@@ -78,6 +78,11 @@ export default function AdminLoginPage() {
 
       // Store admin status in localStorage
       localStorage.setItem("is-admin", "true")
+      
+      // Set admin cookie for server-side checks
+      import("@/lib/cookies").then(({ setCookie }) => {
+        setCookie("is-admin", "true", 1); // 1 day
+      });
 
       console.log("Admin login successful, redirecting to dashboard...")
 
