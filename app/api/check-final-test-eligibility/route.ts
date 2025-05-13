@@ -147,11 +147,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Check if payment is already completed or final test is unlocked
+    // We still return eligibility status, but we don't prevent the user from applying new coupons
+    // or making payments if they want to
     if (progress.paymentCompleted || progress.finalTestUnlocked) {
       return NextResponse.json({
         eligible: true,
         reason: "PAYMENT_COMPLETED",
-        message: "You are eligible to take the final test"
+        message: "You are eligible to take the final test",
+        canStillApplyCoupon: true  // This flag indicates that the user can still apply coupons
       })
     }
     

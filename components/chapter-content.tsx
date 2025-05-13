@@ -328,7 +328,7 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
                       variant="outline"
                       asChild
                       className={`justify-start ${
-                        !chapterCompleted ? "pointer-events-none opacity-50" : ""
+                        !chapterCompleted || Number.parseInt(chapterId) >= 70 ? "pointer-events-none opacity-50" : ""
                       }`}
                     >
                       <Link href={`/chapters/${Number.parseInt(chapterId) + 1}`}>

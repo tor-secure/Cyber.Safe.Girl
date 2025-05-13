@@ -1410,8 +1410,8 @@ export default function HomePage() {
                 <span className="font-bold text-xl">Cyber Safe Girl</span>
               </motion.div>
               <p className="text-gray-400 mb-4">
-                Empowering women and girls with cybersecurity knowledge to stay
-                safe online.
+                Empowering women and girls with cybersecurity <br />
+                knowledge to stay safe online.
               </p>
               <div className="flex space-x-4">
                 <motion.a
