@@ -29,7 +29,7 @@ interface UserProgress {
   lastUpdated: string
 }
 
-export function ChapterGrid() {
+export function ChapterGrid({ filter = "all" }: { filter?: "all" | "completed" | "pending" }) {
   const { user } = useAuth()
   const [chapters, setChapters] = useState<Chapter[]>([])
   const [loading, setLoading] = useState(true)
@@ -119,6 +119,14 @@ export function ChapterGrid() {
     setChapters(chapterList)
   }
 
+  // Filter chapters based on the selected filter
+  const filteredChapters = chapters.filter((chapter) => {
+    if (filter === "all") return true
+    if (filter === "completed") return chapter.completed
+    if (filter === "pending") return !chapter.completed && !chapter.locked
+    return true
+  })
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -136,64 +144,82 @@ export function ChapterGrid() {
     )
   }
 
+  if (filteredChapters.length === 0) {
+    return (
+      <div className="text-center py-8 text-muted-foreground">
+        <p>No {filter} chapters found.</p>
+      </div>
+    )
+  }
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {chapters.map((chapter) => (
-        <Card key={chapter.id} className={`overflow-hidden ${chapter.locked ? "opacity-80" : ""}`}>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      {filteredChapters.map((chapter) => (
+        <Card
+          key={chapter.id}
+          className={`overflow-hidden transition-all duration-200 hover:shadow-md ${chapter.locked ? "opacity-80" : ""}`}
+        >
           <CardContent className="p-0">
-            <div className="p-4 border-b">
+            <div className="p-3 sm:p-4 border-b">
               <div className="flex items-center justify-between mb-2">
                 {chapter.locked ? (
-                  <Badge variant="outline" className="px-2 py-1 bg-gray-100 dark:bg-gray-800">
+                  <Badge
+                    variant="outline"
+                    className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-gray-100 dark:bg-gray-800"
+                  >
                     <span className="flex items-center gap-1">
-                      <Lock className="h-3 w-3" />
-                      Locked
+                      <Lock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      <span className="text-[10px] sm:text-xs">Locked</span>
                     </span>
                   </Badge>
                 ) : chapter.completed ? (
                   <Badge
                     variant="default"
-                    className="px-2 py-1 bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
+                    className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100"
                   >
                     <span className="flex items-center gap-1">
-                      <CheckCircle className="h-3 w-3" />
-                      Completed
+                      <CheckCircle className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      <span className="text-[10px] sm:text-xs">Completed</span>
                     </span>
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="px-2 py-1">
+                  <Badge variant="outline" className="px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs">
                     <span className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      Pending
+                      <Clock className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                      <span className="text-[10px] sm:text-xs">Pending</span>
                     </span>
                   </Badge>
                 )}
-                <span className="text-sm font-medium text-muted-foreground">#{chapter.id}</span>
+                <span className="text-xs sm:text-sm font-medium text-muted-foreground">#{chapter.id}</span>
               </div>
-              <h3 className="font-semibold text-lg">{chapter.title}</h3>
-              <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{chapter.description}</p>
+              <h3 className="font-semibold text-sm sm:text-lg">{chapter.title}</h3>
+              <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2 mt-1">{chapter.description}</p>
             </div>
           </CardContent>
-          <CardFooter className="p-4 pt-2 flex gap-2">
+          <CardFooter className="p-3 sm:p-4 pt-2 flex gap-2">
             {chapter.locked ? (
               <>
-                <Button variant="outline" disabled className="flex-1">
-                  <Lock className="h-4 w-4 mr-2" />
+                <Button variant="outline" disabled className="flex-1 text-xs sm:text-sm h-8 sm:h-10">
+                  <Lock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                   Locked
                 </Button>
-                <Button disabled className="flex-1">
+                <Button disabled className="flex-1 text-xs sm:text-sm h-8 sm:h-10">
                   Take Quiz
                 </Button>
               </>
             ) : (
               <>
-                <Button asChild variant="outline" className="flex-1">
+                <Button asChild variant="outline" className="flex-1 text-xs sm:text-sm h-8 sm:h-10">
                   <Link href={`/chapters/${chapter.id}`}>
-                    <BookOpen className="h-4 w-4 mr-2" />
+                    <BookOpen className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                     Read
                   </Link>
                 </Button>
-                <Button asChild className="flex-1" onClick={() => handleChapterCompletion(chapter.id.toString())}>
+                <Button
+                  asChild
+                  className="flex-1 text-xs sm:text-sm h-8 sm:h-10"
+                  onClick={() => handleChapterCompletion(chapter.id.toString())}
+                >
                   <Link href={`/chapters/${chapter.id}`}>Take Quiz</Link>
                 </Button>
               </>
