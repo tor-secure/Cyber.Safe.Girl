@@ -27,6 +27,7 @@ interface UserProgress {
   finalTestCompleted: boolean;
   certificateUnlocked: boolean;
   lastUpdated: string;
+  chapterQuizScores?: Record<string, { score: number, totalQuestions: number }>;
 }
 
 export function ChapterContent({ chapterId }: { chapterId: string }) {
@@ -75,6 +76,13 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
         const isUnlocked = data.progress.unlockedChapters.includes(formattedChapterId);
         setChapterUnlocked(isUnlocked);
         
+        // Check if we have stored scores for this chapter
+        if (data.progress.chapterQuizScores && data.progress.chapterQuizScores[formattedChapterId]) {
+          const chapterScore = data.progress.chapterQuizScores[formattedChapterId];
+          setChapterScore(chapterScore.score);
+          setTotalQuestions(chapterScore.totalQuestions);
+        }
+        
         // If chapter is not unlocked, redirect to dashboard
         if (!isUnlocked) {
           toast({
@@ -94,13 +102,20 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
               const analyticsData = await analyticsResponse.json();
               
               if (analyticsData.quizAnalytics && analyticsData.quizAnalytics.length > 0) {
-                // Get the most recent attempt
-                const latestAttempt = analyticsData.quizAnalytics.sort(
-                  (a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
-                )[0];
+                // Filter analytics for the current chapter only
+                const chapterAnalytics = analyticsData.quizAnalytics.filter(
+                  (analytics: any) => analytics.chapterId === formattedChapterId
+                );
                 
-                setChapterScore(latestAttempt.score);
-                setTotalQuestions(latestAttempt.totalQuestionsAttempted);
+                if (chapterAnalytics.length > 0) {
+                  // Get the most recent attempt for this chapter
+                  const latestAttempt = chapterAnalytics.sort(
+                    (a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+                  )[0];
+                  
+                  setChapterScore(latestAttempt.score);
+                  setTotalQuestions(latestAttempt.totalQuestionsAttempted);
+                }
               }
             }
           } catch (err) {
@@ -176,6 +191,7 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
   };
 
   const handleQuizComplete = (score: number, totalQuestions: number, passed: boolean) => {
+    // Set the score specifically for this chapter
     setChapterScore(score);
     setTotalQuestions(totalQuestions);
 
@@ -189,6 +205,17 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
         if (!updatedProgress.completedChapters.includes(formattedChapterId)) {
           updatedProgress.completedChapters.push(formattedChapterId);
         }
+        
+        // Store the chapter score in the progress object if it doesn't exist
+        if (!updatedProgress.chapterQuizScores) {
+          updatedProgress.chapterQuizScores = {};
+        }
+        
+        // Update the score for this specific chapter
+        updatedProgress.chapterQuizScores[formattedChapterId] = {
+          score: score,
+          totalQuestions: totalQuestions
+        };
         
         // Unlock next chapter
         const chapterNumber = parseInt(chapterId);
