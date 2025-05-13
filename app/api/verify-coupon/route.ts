@@ -158,16 +158,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if payment is already completed or final test is already unlocked
-    if (progress.paymentCompleted || progress.finalTestUnlocked) {
-      return NextResponse.json(
-        {
-          valid: true,
-          message: "You already have access to the final test",
-        },
-        { status: 200 },
-      )
-    }
+    // We're removing this check to allow users to apply coupons even if they already have access
+    // This allows users to use coupons or make payments regardless of their current access status
 
     // Check if coupon exists and is valid
     const couponsRef = db.collection("coupons")
