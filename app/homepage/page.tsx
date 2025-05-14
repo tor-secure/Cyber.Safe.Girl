@@ -1333,7 +1333,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Call Us</h3>
                 <p className="text-gray-600 dark:text-gray-300">
-                  +91 95356 45357
+                  +91 89515 11111
                 </p>
               </motion.div>
 
