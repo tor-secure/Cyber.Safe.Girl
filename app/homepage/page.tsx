@@ -102,7 +102,7 @@ const ModuleCarousel = ({ imagesPerSlide = 4 }) => {
     (_, index) => index + 1
   );
 
-  return (
+ return (
     <section id="modules" className="py-20 bg-gray-100 dark:bg-gray-800">
       <div className="container mx-auto">
         <motion.div
@@ -121,7 +121,7 @@ const ModuleCarousel = ({ imagesPerSlide = 4 }) => {
             <motion.div key={num} whileHover={{ scale: 1.05 }} className="p-2">
               <div className="bg-white dark:bg-gray-700 rounded-lg overflow-hidden shadow-lg">
                 <Image
-                  src={`https://www.cybersafegirl.com/youtubethumbnails1/${num}.png?height=200&width=300&text=Module`}
+                  src={`/modules/${num}.webp?height=200&width=300&text=Module`}
                   width={300}
                   height={200}
                   alt={`Module ${num}`}
@@ -171,7 +171,7 @@ const PosterCarousel = ({ imagesPerSlide = 4 }) => {
                   rel="noopener noreferrer"
                 >
                   <Image
-                    src={`https://www.cybersafegirl.com/posterThumnail/post${num}.png?height=300&width=200&text=Poster`}
+                    src={`/posters/${num}.webp?height=300&width=200&text=Poster`}
                     width={200}
                     height={300}
                     alt={`Poster ${num}`}
