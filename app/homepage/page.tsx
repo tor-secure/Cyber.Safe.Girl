@@ -762,7 +762,7 @@ export default function HomePage() {
                   className="text-center inline-flex items-center justify-center w-20 h-20 mb-6 shadow-lg rounded-full bg-white dark:bg-gray-700"
                 >
                   <Image
-                    src="https://www.cybersafegirl.com/Images/Author.png"
+                    src="/author/Author.webp"
                     width={80}
                     height={80}
                     alt="Dr. Ananth Prabhu G"
@@ -1111,7 +1111,7 @@ export default function HomePage() {
                       <div className="px-4 py-3">
                         <div className="text-gray-500 p-3 inline-flex items-center justify-center w-32 h-32 mb-5 shadow-lg rounded-full bg-white dark:bg-gray-700">
                           <Image
-                            src="https://cybersafegirl.com/Images/govtOfKarnataka.png?height=64&width=64"
+                            src="/partners/govtOfKarnataka.webp"
                             width={128}
                             height={128}
                             alt="Government of Karnataka"
@@ -1131,7 +1131,7 @@ export default function HomePage() {
                       <div className="px-4 py-1">
                         <div className="text-gray-500 p-3 bg-white dark:bg-gray-700 inline-flex items-center justify-center w-32 h-32 mb-5 shadow-lg rounded-full">
                           <Image
-                            src="https://cybersafegirl.vercel.app/static/media/ISEA.ecc9b185646d68183cd0.png?height=64&width=64"
+                            src="/partners/ISEA.webp"
                             width={128}
                             height={128}
                             alt="ISEA"
@@ -1153,7 +1153,7 @@ export default function HomePage() {
                       <div className="px-4 py-3">
                         <div className="text-gray-500 p-3 inline-flex items-center justify-center w-32 h-32 mb-5 shadow-lg rounded-full bg-white dark:bg-gray-700">
                           <Image
-                            src="https://cybersafegirl.vercel.app/static/media/sp.d27fb5237869262928fd.png?height=64&width=64"
+                            src="/partners/surePass.webp"
                             width={128}
                             height={128}
                             alt="SurePass"
@@ -1173,7 +1173,7 @@ export default function HomePage() {
                       <div className="px-4">
                         <div className="text-gray-500 p-3 inline-flex items-center justify-center w-32 h-32 mb-5 shadow-lg rounded-full bg-white dark:bg-gray-700">
                           <Image
-                            src="https://cybersafegirl.com/Images/cyber-jagrithi.png?height=64&width=64"
+                            src="/partners/cyber-jagrithi.webp"
                             width={128}
                             height={128}
                             alt="Cyber Jagrithi"
