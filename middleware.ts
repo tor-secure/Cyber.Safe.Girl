@@ -32,7 +32,7 @@ export async function middleware(request: NextRequest) {
     pathname.includes('/images/') ||
     pathname.includes('/favicon.ico')||
     pathname.startsWith('/public/')||
-    pathname.match(/\.(jpg|jpeg|png|gif|svg|webp|ico|avif)$/i) !== null
+    pathname.match(/\.(jpg|jpeg|png|gif|svg|webp|ico|avif|pdf)$/i) !== null
 
   if (isPublicPath) {
     return NextResponse.next()
