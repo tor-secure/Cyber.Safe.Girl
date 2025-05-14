@@ -1552,11 +1552,11 @@ export default function HomePage() {
                 Designed and Developed By:
               </h3>
               {/* Container with overlapping effect */}
-              <div className="flex items-center space-x-[-20px]">
-                {devs.map((dev) => (
+              <div className="flex items-center">
+                {devs.map((dev, index) => (
                   <div
                     key={dev.name}
-                    className="group flex flex-col items-center cursor-pointer transition-transform duration-300 hover:scale-110"
+                    className={`group flex flex-col items-center cursor-pointer transition-transform duration-300 hover:scale-110 ${index !== 0 ? '-ml-6' : '-mr-5'}`}
                   >
                     <a href={dev.url} target="_blank" rel="noopener noreferrer">
                       <div className="relative w-16 h-16">
@@ -1568,7 +1568,6 @@ export default function HomePage() {
                         />
                       </div>
                     </a>
-                    {/* The name appears below on hover */}
                     <span className="mt-2 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       {dev.name}
                     </span>
