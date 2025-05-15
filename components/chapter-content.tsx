@@ -42,10 +42,41 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
+  const [relevantSections, setRelevantSections] = useState<string | null>(null);
+  const [loadingRelevantSections, setLoadingRelevantSections] = useState(false);
+  const [relevantSectionsError, setRelevantSectionsError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Format chapter ID for API calls (e.g., "1" -> "CH-001")
   const formattedChapterId = `CH-${chapterId.padStart(3, '0')}`;
+
+  // Fetch relevant sections from Firebase
+  useEffect(() => {
+    async function fetchRelevantSections() {
+      if (!formattedChapterId) return;
+      
+      setLoadingRelevantSections(true);
+      setRelevantSectionsError(null);
+      
+      try {
+        const response = await fetch(`/api/relevant-sections?chapterId=${formattedChapterId}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setRelevantSections(data.content);
+      } catch (err: any) {
+        console.error("Failed to fetch relevant sections:", err);
+        setRelevantSectionsError("Failed to load relevant sections for this chapter.");
+      } finally {
+        setLoadingRelevantSections(false);
+      }
+    }
+    
+    fetchRelevantSections();
+  }, [formattedChapterId]);
 
   // Fetch user progress when component mounts
   useEffect(() => {
@@ -156,26 +187,12 @@ The scamster may even install a hidden camera near the ATM to capture your card 
     sections: [
       {
         title: "Relevant Sections",
-        content:
-          chapterId === "1"
-            ? `IPC Sections (to be applied to the Shop Keeper)
-IPC Section 354A - Sexual Harassment and punishment for Sexual Harassment
-IPC Section 354C - Voyeurism
-IPC Section 383/384 - Extortion (IF ANY DEMAND)
-IPC Section 503 - Criminal Intimidation
-IPC Section 506 - Punishment for Criminal Intimidation
-IPC Section 509 - Word, gesture or act intended to insult modesty of a woman
-IT Act:
-IT Act Section 66E - Punishment for violation of privacy Mobile Number Sale to Stalkers by Recharge Shop`
-            : chapterId === "2"
-            ? `IPC Sections:
-IPC Section 420 - Cheating and dishonestly inducing delivery of property
-IPC Section 467 - Forgery of valuable security, will, etc.
-IPC Section 468 - Forgery for purpose of cheating
-IT Act:
-IT Act Section 66C - Punishment for identity theft
-IT Act Section 66D - Punishment for cheating by personation by using computer resource`
-            : "This section would contain relevant legal sections for this chapter.",
+        content: relevantSections || 
+          (loadingRelevantSections 
+            ? "Loading relevant sections..." 
+            : relevantSectionsError 
+              ? relevantSectionsError 
+              : "No relevant sections available for this chapter."),
       },
       {
         title: "Tips / Precautions",
@@ -391,7 +408,34 @@ IT Act Section 66D - Punishment for cheating by personation by using computer re
                     <CardTitle>{section.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="whitespace-pre-line">{section.content}</div>
+                    {section.title === "Relevant Sections" && typeof section.content === 'string' ? (
+                      <div className="space-y-2">
+                        {section.content.split('\n').map((line, lineIndex) => {
+                          // Check if the line is a category header (ends with a colon)
+                          if (line.trim().endsWith(':')) {
+                            return (
+                              <h3 key={lineIndex} className="font-bold text-lg mt-4 text-blue-600">
+                                {line}
+                              </h3>
+                            );
+                          } 
+                          // Check if it's an empty line
+                          else if (line.trim() === '') {
+                            return <div key={lineIndex} className="h-2"></div>;
+                          }
+                          // Regular content line
+                          else {
+                            return (
+                              <p key={lineIndex} className="ml-4">
+                                {line}
+                              </p>
+                            );
+                          }
+                        })}
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-line">{section.content}</div>
+                    )}
                   </CardContent>
                 </Card>
               ))}
