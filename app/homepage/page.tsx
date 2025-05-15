@@ -846,7 +846,7 @@ export default function HomePage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-gray-50 dark:bg-gray-800 p-8 rounded-lg shadow-lg text-center"
               >
-                <div className="text-4xl font-bold text-blue-600 mb-2">60+</div>
+                <div className="text-4xl font-bold text-blue-600 mb-2">70+</div>
                 <div className="text-xl font-semibold">Chapters / Episodes</div>
               </motion.div>
 
@@ -1003,7 +1003,7 @@ export default function HomePage() {
                   Services
                 </h3>
                 <p className="text-lg font-light text-justify leading-relaxed mt-4 mb-4 text-gray-600 dark:text-gray-300">
-                  Cyber Safe Girl is an E-Learning Program, containing 60+
+                  Cyber Safe Girl is an E-Learning Program, containing 70+
                   animated infotoons, explained in detail by Dr. Ananth Prabhu
                   G.
                 </p>
