@@ -846,7 +846,7 @@ export default function HomePage() {
                 whileHover={{ scale: 1.05 }}
                 className="bg-gray-50 dark:bg-gray-800 p-8 rounded-lg shadow-lg text-center"
               >
-                <div className="text-4xl font-bold text-blue-600 mb-2">50+</div>
+                <div className="text-4xl font-bold text-blue-600 mb-2">60+</div>
                 <div className="text-xl font-semibold">Chapters / Episodes</div>
               </motion.div>
 
@@ -1003,8 +1003,8 @@ export default function HomePage() {
                   Services
                 </h3>
                 <p className="text-lg font-light text-justify leading-relaxed mt-4 mb-4 text-gray-600 dark:text-gray-300">
-                  Cyber Safe Girl is an E-Learning Program, containing 50+
-                  animated info toons, explained in detail by Dr. Ananth Prabhu
+                  Cyber Safe Girl is an E-Learning Program, containing 60+
+                  animated infotoons, explained in detail by Dr. Ananth Prabhu
                   G.
                 </p>
                 <div className="block pb-6">
@@ -1552,11 +1552,11 @@ export default function HomePage() {
                 Designed and Developed By:
               </h3>
               {/* Container with overlapping effect */}
-              <div className="flex items-center space-x-[-20px]">
-                {devs.map((dev) => (
+              <div className="flex items-center">
+                {devs.map((dev, index) => (
                   <div
                     key={dev.name}
-                    className="group flex flex-col items-center cursor-pointer transition-transform duration-300 hover:scale-110"
+                    className={`group flex flex-col items-center cursor-pointer transition-transform duration-300 hover:scale-110 ${index !== 0 ? '-ml-6' : '-mr-5'}`}
                   >
                     <a href={dev.url} target="_blank" rel="noopener noreferrer">
                       <div className="relative w-16 h-16">
@@ -1568,7 +1568,6 @@ export default function HomePage() {
                         />
                       </div>
                     </a>
-                    {/* The name appears below on hover */}
                     <span className="mt-2 text-sm font-bold opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                       {dev.name}
                     </span>
