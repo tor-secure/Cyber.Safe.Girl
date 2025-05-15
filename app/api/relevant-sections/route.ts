@@ -39,9 +39,9 @@ export async function GET(request: NextRequest) {
     // Format the content based on the available fields
     if (sectionsData) {
       // Add the name/title if available
-      if (sectionsData.Name) {
-        formattedContent += `${sectionsData.Name}\n\n`;
-      }
+      // if (sectionsData.Name) {
+        // formattedContent += `${sectionsData.Name}\n\n`;
+      // }
 
       // Handle the specific structure shown in the example
       if (sectionsData["IT Sections Applicable"] && typeof sectionsData["IT Sections Applicable"] === 'object') {
