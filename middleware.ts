@@ -15,6 +15,9 @@ export async function middleware(request: NextRequest) {
   const isPublicPath =
     pathname === '/' ||
     pathname === '/homepage' ||
+    pathname === '/terms-of-service' ||
+    pathname === '/privacy-policy' ||
+    pathname === '/refund-policy' ||
     pathname === '/login' ||
     pathname === '/register' ||
     pathname === '/introduction' ||
