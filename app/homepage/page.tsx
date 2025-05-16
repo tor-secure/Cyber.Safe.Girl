@@ -61,7 +61,7 @@ const devs = [
 
 // Reusable Carousel settings
 const getSliderSettings = (slidesToShow = 4) => ({
-  dots: true,
+  dots: false,
   infinite: true,
   speed: 500,
   slidesToShow,
@@ -73,7 +73,7 @@ const getSliderSettings = (slidesToShow = 4) => ({
         slidesToShow: slidesToShow > 3 ? 3 : slidesToShow,
         slidesToScroll: slidesToShow > 3 ? 3 : slidesToShow,
         infinite: true,
-        dots: true,
+        dots: false,
       },
     },
     {
@@ -745,7 +745,7 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.8 }}
-                className="w-full md:w-4/12 px-12 md:px-4 ml-auto mr-auto mt-12"
+                className="w-full md:w-4/12 px-4 md:px-12 ml-auto mr-auto mt-12"
               >
                 <h3 className="text-3xl mb-2 font-semibold leading-normal">
                   Our Mission
@@ -902,9 +902,9 @@ export default function HomePage() {
             </motion.div>
 
             <div className="flex flex-wrap items-center">
-              <div className="w-full md:w-6/12 px-4 mr-auto ml-auto">
+              <div className="w-full md:w-6/12 px-2 md:px-4 mr-auto ml-auto">
                 <div className="justify-center flex flex-wrap relative">
-                  <div className="my-4 w-full lg:w-6/12 px-4">
+                  <div className="my-4 w-full lg:w-6/12 px-2 lg:px-4">
                     <motion.div
                       initial={{ opacity: 0, y: 50 }}
                       whileInView={{ opacity: 1, y: 0 }}
@@ -994,7 +994,7 @@ export default function HomePage() {
                 whileInView={{ opacity: 1, x: 0 }}
                 viewport={{ once: true, margin: "-100px" }}
                 transition={{ duration: 0.8, delay: 0.2 }}
-                className="w-full md:w-4/12 px-12 md:px-4 ml-auto mr-auto"
+                className="w-full md:w-4/12 px-4 md:px-12 ml-auto mr-auto mt-12"
               >
                 <div className="text-gray-500 p-3 text-center inline-flex items-center justify-center w-16 h-16 mb-6 shadow-lg rounded-full bg-white dark:bg-gray-700">
                   <FileText className="h-8 w-8" />
