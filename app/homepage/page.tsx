@@ -59,6 +59,20 @@ const devs = [
   }
 ];
 
+//Resources
+type ResourceItem = {
+  label: string;
+  href: string;
+};
+
+const resources: ResourceItem[] = [
+  { label: "E-Book", href: "/ebook" },
+  { label: "Certification", href: "/certification" },
+  { label: "Privacy Policy", href: "/privacy-policy" },
+  { label: "Terms of Service", href: "/terms-of-service" },
+  { label: "Refund Policy", href: "/refund-policy" },
+];
+
 // Reusable Carousel settings
 const getSliderSettings = (slidesToShow = 4) => ({
   dots: false,
@@ -1416,7 +1430,7 @@ export default function HomePage() {
               <div className="flex space-x-4">
                 <motion.a
                   whileHover={{ scale: 1.2, y: -5 }}
-                  href="https://www.facebook.com/educatorananth/"
+                  href="https://www.facebook.com/educatorananth/" target="_blank"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   <svg
@@ -1434,7 +1448,7 @@ export default function HomePage() {
                 </motion.a>
                 <motion.a
                   whileHover={{ scale: 1.2, y: -5 }}
-                  href="https://x.com/i/flow/login?redirect_after_login=%2Feducatorananth"
+                  href="https://x.com/i/flow/login?redirect_after_login=%2Feducatorananth" target="_blank"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   <svg
@@ -1446,16 +1460,16 @@ export default function HomePage() {
                     <path d="M8.29 20.251c7.547 0 11.675-6.253 11.675-11.675 0-.178 0-.355-.012-.53A8.348 8.348 0 0022 5.92a8.19 8.19 0 01-2.357.646 4.118 4.118 0 001.804-2.27 8.224 8.224 0 01-2.605.996 4.107 4.107 0 00-6.993 3.743 11.65 11.65 0 01-8.457-4.287 4.106 4.106 0 001.27 5.477A4.072 4.072 0 012.8 9.713v.052a4.105 4.105 0 003.292 4.022 4.095 4.095 0 01-1.853.07 4.108 4.108 0 003.834 2.85A8.233 8.233 0 012 18.407a11.616 11.616 0 006.29 1.84" />
                   </svg>
                 </motion.a>
-                <motion.a
+                {/* <motion.a
                   whileHover={{ scale: 1.2, y: -5 }}
                   href="https://github.com/ashwinbekal"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
                   <Github className="h-6 w-6" />
-                </motion.a>
+                </motion.a> */}
                 <motion.a
                   whileHover={{ scale: 1.2, y: -5 }}
-                  href="https://ananthprabhu.com/"
+                  href="https://ananthprabhu.com/" target="_blank"
                   className="text-gray-400 hover:text-white transition-colors ml-2"
                 >
                   <svg
@@ -1520,15 +1534,7 @@ export default function HomePage() {
             <div className="w-full md:w-2/12 mb-8 md:mb-0">
               <h3 className="font-semibold text-lg mb-4">Resources</h3>
               <ul className="space-y-2">
-                {[
-                  "E-Book",
-                  "Certification",
-                  "Workshops",
-                  "Blog",
-                  "Privacy Policy",
-                  "Terms of Service",
-                  "Refund Policy",
-                ].map((item, index) => (
+                {resources.map((item, index) => (
                   <motion.li
                     key={index}
                     initial={{ opacity: 0, x: -20 }}
@@ -1536,12 +1542,11 @@ export default function HomePage() {
                     viewport={{ once: true }}
                     transition={{ delay: 0.1 * index }}
                   >
-                    <a
-                      href="#"
-                      className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block"
-                    >
-                      {item}
-                    </a>
+                    <Link legacyBehavior href={item.href} passHref>
+                      <a className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
+                        {item.label}
+                      </a>
+                    </Link>
                   </motion.li>
                 ))}
               </ul>
