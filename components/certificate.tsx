@@ -3,29 +3,20 @@
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Download, Share2, Loader2, AlertTriangle, Lock, RefreshCw, ExternalLink, Copy, Check } from 'lucide-react'
+import { Download, Share2, Loader2, AlertTriangle, Lock, ExternalLink, Copy, Check } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
 import { useRouter } from "next/navigation"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import Link from "next/link"
-import { QRCodeSVG } from "qrcode.react"
-import html2canvas from "html2canvas"
-import { 
+import { generateCertificateURL } from "@/lib/certificate-utils"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
-  DialogClose
 } from "@/components/ui/dialog"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 import { useToast } from "@/hooks/use-toast"
 
 interface UserProgress {
@@ -63,8 +54,9 @@ export function Certificate() {
   const [downloadLoading, setDownloadLoading] = useState(false)
   const [shareLoading, setShareLoading] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [certificateUrl, setCertificateUrl] = useState<string | null>(null)
   const certificateRef = useRef<HTMLDivElement>(null)
-  const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
   useEffect(() => {
     async function checkCertificateAccess() {
@@ -100,10 +92,10 @@ export function Certificate() {
 
           // Generate or fetch certificate
           try {
-            const certificateResponse = await fetch('/api/certificate', {
-              method: 'POST',
+            const certificateResponse = await fetch("/api/certificate", {
+              method: "POST",
               headers: {
-                'Content-Type': 'application/json',
+                "Content-Type": "application/json",
               },
               body: JSON.stringify({
                 userId: user.id,
@@ -115,9 +107,41 @@ export function Certificate() {
             }
 
             const certificateData = await certificateResponse.json()
-            
+
             if (certificateData.certificate) {
               setCertificate(certificateData.certificate)
+
+              // Calculate percentage and grade
+              const percentage =
+                progressData.progress.finalTestScore && progressData.progress.finalTestTotalQuestions
+                  ? Math.round(
+                      (progressData.progress.finalTestScore / progressData.progress.finalTestTotalQuestions) * 100,
+                    ).toString()
+                  : "100"
+
+              const grade =
+                percentage >= "90"
+                  ? "A+"
+                  : percentage >= "80"
+                    ? "A"
+                    : percentage >= "70"
+                      ? "B+"
+                      : percentage >= "60"
+                        ? "B"
+                        : "C"
+
+              // Generate certificate URL for preview
+              const url = await generateCertificateURL(
+                certificateData.certificate.name,
+                certificateData.certificate.certificateId,
+                certificateData.certificate.email,
+                percentage,
+                grade,
+                certificateData.certificate.issueDate,
+                false, // Preview mode
+              )
+
+              setCertificateUrl(url)
             } else {
               throw new Error("Failed to generate certificate")
             }
@@ -140,22 +164,48 @@ export function Certificate() {
   }, [user, router])
 
   const handleDownload = async () => {
-    if (!certificateRef.current) return
-    
+    if (!certificate) return
+
     setDownloadLoading(true)
     try {
-      const canvas = await html2canvas(certificateRef.current, {
-        scale: 3, // Higher scale for better quality
-        backgroundColor: '#ffffff', // Pure white background
-        useCORS: true, // Enable CORS for images
+      // Calculate percentage and grade
+      const percentage =
+        userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions
+          ? Math.round((userProgress.finalTestScore / userProgress.finalTestTotalQuestions) * 100).toString()
+          : "100"
+
+      const grade =
+        percentage >= "90"
+          ? "A+"
+          : percentage >= "80"
+            ? "A"
+            : percentage >= "70"
+              ? "B+"
+              : percentage >= "60"
+                ? "B"
+                : "C"
+
+      // Format completion date
+      const completionDate = new Date().toLocaleDateString("en-US", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
       })
-      
-      const image = canvas.toDataURL('image/png', 1.0) // Max quality
-      const link = document.createElement('a')
-      link.href = image
-      link.download = `CSG_Certificate_${certificate?.certificateId || 'download'}.png`
-      link.click()
-      
+
+      // Generate certificate URL for download
+      const downloadUrl = await generateCertificateURL(
+        certificate.name,
+        certificate.certificateId,
+        certificate.email,
+        percentage,
+        grade,
+        certificate.issueDate,
+        true, // Download mode
+      )
+
+      // Open the download URL in a new tab
+      window.open(downloadUrl, "_blank")
+
       toast({
         title: "Certificate Downloaded",
         description: "Your certificate has been downloaded successfully.",
@@ -174,42 +224,59 @@ export function Certificate() {
 
   const handleShare = async () => {
     if (!certificate) return
-    
+
     setShareLoading(true)
     try {
-      // Generate image for sharing
-      if (certificateRef.current) {
-        const canvas = await html2canvas(certificateRef.current, {
-          scale: 2,
-          backgroundColor: '#ffffff',
-          useCORS: true,
+      // Calculate percentage and grade
+      const percentage =
+        userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions
+          ? Math.round((userProgress.finalTestScore / userProgress.finalTestTotalQuestions) * 100).toString()
+          : "100"
+
+      const grade =
+        percentage >= "90"
+          ? "A+"
+          : percentage >= "80"
+            ? "A"
+            : percentage >= "70"
+              ? "B+"
+              : percentage >= "60"
+                ? "B"
+                : "C"
+
+      // Generate certificate URL for preview (to share the link)
+      const previewUrl = await generateCertificateURL(
+        certificate.name,
+        certificate.certificateId,
+        certificate.email,
+        percentage,
+        grade,
+        certificate.issueDate,
+        false, // Preview mode
+      )
+
+      // Check if Web Share API is available
+      if (navigator.share) {
+        const verificationUrl = `${baseUrl}/verify-certificate?certificateId=${certificate.certificateId}`
+
+        await navigator.share({
+          title: "My Cyber Safe Girl Certificate",
+          text: `I've completed the Cyber Safe Girl course! View my certificate at: ${previewUrl}`,
+          url: previewUrl,
         })
-        
-        const image = canvas.toDataURL('image/png')
-        
-        // Check if Web Share API is available
-        if (navigator.share) {
-          const verificationUrl = `${baseUrl}/verify-certificate?certificateId=${certificate.certificateId}`
-          const blob = await (await fetch(image)).blob()
-          const file = new File([blob], "CSG_Certificate.png", { type: "image/png" })
-          
-          await navigator.share({
-            title: "My Cyber Safe Girl Certificate",
-            text: `I've completed the Cyber Safe Girl course! Verify my certificate at: ${verificationUrl}`,
-            files: [file]
-          })
-          
-          toast({
-            title: "Certificate Shared",
-            description: "Your certificate has been shared successfully.",
-          })
-        } else {
-          // Fallback for browsers that don't support Web Share API
-          toast({
-            title: "Sharing Not Supported",
-            description: "Your browser doesn't support direct sharing. Please use the copy link option instead.",
-          })
-        }
+
+        toast({
+          title: "Certificate Shared",
+          description: "Your certificate has been shared successfully.",
+        })
+      } else {
+        // Fallback for browsers that don't support Web Share API
+        navigator.clipboard.writeText(previewUrl)
+
+        toast({
+          title: "Link Copied",
+          description: "Certificate link copied to clipboard. You can now share it manually.",
+        })
       }
     } catch (err) {
       console.error("Failed to share certificate:", err)
@@ -223,19 +290,55 @@ export function Certificate() {
     }
   }
 
-  const copyVerificationLink = () => {
+  const copyVerificationLink = async () => {
     if (!certificate) return
-    
-    const verificationUrl = `${baseUrl}/verify-certificate?certificateId=${certificate.certificateId}`
-    navigator.clipboard.writeText(verificationUrl)
-    setCopied(true)
-    
-    toast({
-      title: "Link Copied",
-      description: "Verification link copied to clipboard.",
-    })
-    
-    setTimeout(() => setCopied(false), 2000)
+
+    try {
+      // Calculate percentage and grade
+      const percentage =
+        userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions
+          ? Math.round((userProgress.finalTestScore / userProgress.finalTestTotalQuestions) * 100).toString()
+          : "100"
+
+      const grade =
+        percentage >= "90"
+          ? "A+"
+          : percentage >= "80"
+            ? "A"
+            : percentage >= "70"
+              ? "B+"
+              : percentage >= "60"
+                ? "B"
+                : "C"
+
+      // Generate certificate URL for preview
+      const previewUrl = await generateCertificateURL(
+        certificate.name,
+        certificate.certificateId,
+        certificate.email,
+        percentage,
+        grade,
+        certificate.issueDate,
+        false, // Preview mode
+      )
+
+      navigator.clipboard.writeText(previewUrl)
+      setCopied(true)
+
+      toast({
+        title: "Link Copied",
+        description: "Certificate link copied to clipboard.",
+      })
+
+      setTimeout(() => setCopied(false), 2000)
+    } catch (err) {
+      console.error("Failed to copy certificate link:", err)
+      toast({
+        title: "Copy Failed",
+        description: "There was an error copying the certificate link.",
+        variant: "destructive",
+      })
+    }
   }
 
   const formatDate = (dateString: string) => {
@@ -249,7 +352,7 @@ export function Certificate() {
 
   if (loading) {
     return (
-      <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+      <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
             <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
@@ -262,7 +365,7 @@ export function Certificate() {
 
   if (error) {
     return (
-      <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+      <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
         <Card>
           <CardHeader>
             <CardTitle className="text-xl sm:text-2xl">Certificate Access</CardTitle>
@@ -291,7 +394,7 @@ export function Certificate() {
 
   if (!certificate) {
     return (
-      <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
+      <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
         <Card>
           <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
             <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
@@ -302,76 +405,50 @@ export function Certificate() {
     )
   }
 
-  const verificationUrl = `${baseUrl}/verify-certificate?certificateId=${certificate.certificateId}`
-
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-6 px-4 sm:px-6">
-      <Card>
+    <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-xl sm:text-2xl">Your Certificate</CardTitle>
           <CardDescription>Congratulations on completing the Cyber Safe Girl course</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Certificate always white regardless of theme */}
+          {/* Certificate iframe from external API */}
           <div
             ref={certificateRef}
-            className="bg-white text-black border border-gray-300 rounded-lg p-4 sm:p-6 md:p-8 overflow-hidden shadow-md"
-            style={{ 
-              colorScheme: 'light',
-              color: '#000000',
-              backgroundColor: '#ffffff'
+            className="border border-gray-300 rounded-lg overflow-hidden shadow-md w-full"
+            style={{
+              backgroundColor: "#ffffff",
             }}
           >
-            <div className="text-center space-y-4 sm:space-y-6">
-              <div className="mb-4 sm:mb-6">
-                <h2 className="text-2xl sm:text-3xl font-bold text-blue-700">Cyber Safe Girl</h2>
-                <p className="text-xs sm:text-sm text-gray-600">Certificate of Completion</p>
+            {certificateUrl ? (
+              <div className="relative w-full" style={{ paddingTop: "75%" }}>
+                <iframe
+                  src={certificateUrl}
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: "200%",
+                    height: "200%",
+                    border: "none",
+                    transform: "scale(0.5)",
+                    transformOrigin: "0 0",
+                  }}
+                  title="Certificate"
+                  sandbox="allow-same-origin allow-scripts"
+                />
               </div>
-
-              <div className="space-y-1 sm:space-y-2">
-                <p className="text-base sm:text-lg text-gray-800">This is to certify that</p>
-                <p className="text-xl sm:text-2xl font-semibold text-gray-900">{certificate.name || user?.name || "User"}</p>
-                <p className="text-base sm:text-lg text-gray-800">has successfully completed the</p>
-                <p className="text-lg sm:text-xl font-medium text-gray-900">Cyber Safe Girl Course</p>
-                <p className="text-base sm:text-lg text-gray-800 mt-2">with a score of</p>
-                <p className="text-xl sm:text-2xl font-semibold text-gray-900">
-                  {userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions 
-                    ? `${Math.round((userProgress.finalTestScore / userProgress.finalTestTotalQuestions) * 100)}%` 
-                    : "Passing Score"}
-                </p>
+            ) : (
+              <div className="flex items-center justify-center h-[400px]">
+                <Loader2 className="h-10 w-10 animate-spin text-primary" />
               </div>
-
-              <div className="pt-4 sm:pt-6 border-t border-gray-300 mt-4 sm:mt-6 flex flex-col sm:flex-row justify-between items-center sm:items-end gap-6 sm:gap-2">
-                <div className="text-center sm:text-left w-full sm:w-auto">
-                  <p className="text-xs sm:text-sm font-medium text-gray-700">Date Issued</p>
-                  <p className="text-xs sm:text-sm text-gray-800">{formatDate(certificate.issueDate)}</p>
-                  <p className="text-xs sm:text-sm font-medium mt-2 text-gray-700">Valid Until</p>
-                  <p className="text-xs sm:text-sm text-gray-800">{formatDate(certificate.expiryDate)}</p>
-                </div>
-                <div className="flex flex-col items-center order-first sm:order-none">
-                  <QRCodeSVG 
-                    value={verificationUrl}
-                    size={80}
-                    level="H"
-                    includeMargin={true}
-                    bgColor="#ffffff"
-                    fgColor="#000000"
-                  />
-                  <p className="text-xs mt-1 text-gray-600">Scan to verify</p>
-                </div>
-                <div className="text-center sm:text-right w-full sm:w-auto">
-                  <p className="text-xs sm:text-sm font-medium text-gray-700">Certificate ID</p>
-                  <p className="text-xs sm:text-sm text-gray-800">{certificate.certificateId}</p>
-                  <p className="text-xs sm:text-sm font-medium mt-2 text-gray-700">Issued By</p>
-                  <p className="text-xs sm:text-sm text-gray-800">Dr. Ananth Prabhu G</p>
-                </div>
-              </div>
-            </div>
+            )}
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-col sm:flex-row gap-2">
-          <Button className="w-full sm:flex-1" onClick={handleDownload} disabled={downloadLoading}>
+        <CardFooter className="flex flex-row gap-4 px-4 sm:px-6 py-4">
+          <Button className="flex-1" onClick={handleDownload} disabled={downloadLoading}>
             {downloadLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -379,23 +456,21 @@ export function Certificate() {
             )}
             Download Certificate
           </Button>
-          
+
           {/* Share button with dialog for multiple sharing options */}
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" className="w-full sm:flex-1">
+              <Button variant="outline" className="flex-1">
                 <Share2 className="mr-2 h-4 w-4" />
                 Share Certificate
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md">
               <DialogHeader>
                 <DialogTitle>Share Your Certificate</DialogTitle>
-                <DialogDescription>
-                  Choose how you want to share your achievement
-                </DialogDescription>
+                <DialogDescription>Choose how you want to share your achievement</DialogDescription>
               </DialogHeader>
-              
+
               <div className="grid gap-4 py-4">
                 <Button onClick={handleShare} disabled={shareLoading} className="w-full">
                   {shareLoading ? (
@@ -411,30 +486,34 @@ export function Certificate() {
         </CardFooter>
       </Card>
 
-      <Card>
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-xl sm:text-2xl">Verification</CardTitle>
-          <CardDescription>Your certificate can be verified using the details below</CardDescription>
+          <CardDescription>Your certificate can be verified using the link below</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <p className="text-sm font-medium">Certificate ID</p>
-                <p className="text-sm break-all">{certificate.certificateId}</p>
+                <p className="text-sm font-medium">Certificate Link</p>
+                <div className="flex items-center gap-2">
+                  {certificateUrl ? (
+                    <Link
+                      href={certificateUrl}
+                      target="_blank"
+                      className="text-sm break-all text-blue-600 hover:text-blue-800 hover:underline flex items-center"
+                    >
+                      View Certificate
+                      <ExternalLink className="ml-1 h-3 w-3" />
+                    </Link>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Generating certificate link...</p>
+                  )}
+                </div>
               </div>
               <div>
-                <p className="text-sm font-medium">Verification URL</p>
-                <div className="flex items-center gap-2">
-                  <Link 
-                    href={verificationUrl} 
-                    target="_blank" 
-                    className="text-sm break-all text-blue-600 hover:text-blue-800 hover:underline flex items-center"
-                  >
-                    {verificationUrl}
-                    <ExternalLink className="ml-1 h-3 w-3" />
-                  </Link>
-                </div>
+                <p className="text-sm font-medium">Certificate ID</p>
+                <p className="text-sm break-all">{certificate.certificateId}</p>
               </div>
               <div>
                 <p className="text-sm font-medium">Issued By</p>
@@ -444,6 +523,13 @@ export function Certificate() {
                 <p className="text-sm font-medium">Valid Until</p>
                 <p className="text-sm">{formatDate(certificate.expiryDate)}</p>
               </div>
+            </div>
+
+            <div className="mt-4">
+              <Button variant="outline" className="w-full" onClick={copyVerificationLink} disabled={!certificateUrl}>
+                {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+                {copied ? "Copied!" : "Copy Certificate Link"}
+              </Button>
             </div>
           </div>
         </CardContent>
