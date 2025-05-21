@@ -154,7 +154,8 @@ export async function POST(request: NextRequest) {
     // Set issue date and expiry date (1 year from now)
     const issueDate = new Date()
     const expiryDate = new Date(issueDate)
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1)
+    expiryDate.setFullYear(issueDate.getFullYear() + 1)
+    expiryDate.setDate(expiryDate.getDate() + 1)
 
     // Create certificate data
     const certificate: Certificate = {
