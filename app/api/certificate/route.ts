@@ -149,12 +149,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate certificate ID
-    const certificateId = `CSG-${uuidv4().substring(0, 8)}`
+    const certificateId = `CSG7-${uuidv4().substring(0, 8)}`
     
     // Set issue date and expiry date (1 year from now)
     const issueDate = new Date()
     const expiryDate = new Date(issueDate)
-    expiryDate.setFullYear(expiryDate.getFullYear() + 1)
+    expiryDate.setFullYear(issueDate.getFullYear() + 1)
+    expiryDate.setDate(expiryDate.getDate() + 1)
 
     // Create certificate data
     const certificate: Certificate = {

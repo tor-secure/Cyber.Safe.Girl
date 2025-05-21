@@ -101,7 +101,7 @@ function CertificateVerifier() {
             <div className="flex gap-2">
               <Input
                 id="certificateId"
-                placeholder="e.g. CSG-12345678"
+                placeholder="e.g. CSG7-12345678"
                 value={certificateId}
                 onChange={(e) => setCertificateId(e.target.value)}
               />

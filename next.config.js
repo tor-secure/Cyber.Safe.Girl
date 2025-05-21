@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+   // Server configuration for external access
+  serverExternalPackages: ['crypto'],
   // Allow embedding in iframes
   async headers() {
     return [
