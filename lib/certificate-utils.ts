@@ -1,17 +1,11 @@
-/**
- * Certificate utilities for encryption and API integration
- * 
- * Data format required for CertiCore API:
- * "${name};${certificateId};${email};${percent};${grade};${issueDate}"
- * Example: "Ashwin Pramod Bekal;CSG7-USER71903768;ashwin.cy21@sahyadri.edu.in;97;A+;18 May 2025"
- * 
- * Certificate ID must be in format: CSG7-USERxxxxxxxx (where xxxxxxxx is an 8-digit number)
- * Date format must be: "18 May 2025" (day month year)
- */
+// Load constants from environment variables
+const INITIALIZATION_VECTOR = process.env.NEXT_PUBLIC_INITIALIZATION_VECTOR || "";
+const SECRET_KEY = process.env.NEXT_PUBLIC_SECRET_KEY || "";
 
-// Constants for encryption
-const INITIALIZATION_VECTOR = "KEEPGRLCYBERSAFE"; // 16 characters
-const SECRET_KEY = "AUTHENTICATETOKN"; // 16 characters
+// Validate that the constants are loaded
+if (!INITIALIZATION_VECTOR || !SECRET_KEY) {
+  throw new Error("Missing encryption constants in environment variables.");
+}
 
 /**
  * Convert ArrayBuffer or Uint8Array to hex string
