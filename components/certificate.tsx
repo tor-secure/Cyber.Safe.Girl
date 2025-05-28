@@ -63,14 +63,14 @@ export function Certificate() {
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
 
   // Use resize observer to track container size changes
-useResizeObserver(certificateContainerRef as React.RefObject<HTMLDivElement>, (entry) => {
-  if (entry) {
-    setContainerSize({
-      width: entry.contentRect.width,
-      height: entry.contentRect.height,
-    })
-  }
-})
+  useResizeObserver(certificateContainerRef as React.RefObject<HTMLDivElement>, (entry) => {
+    if (entry) {
+      setContainerSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      })
+    }
+  })
 
   const calculateIframeStyles = (): React.CSSProperties => {
     if (!containerSize.width) return {}
@@ -223,13 +223,6 @@ useResizeObserver(certificateContainerRef as React.RefObject<HTMLDivElement>, (e
                 ? "B"
                 : "C"
 
-      // Format completion date
-      const completionDate = new Date().toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-
       // Generate certificate URL for download
       const downloadUrl = await generateCertificateURL(
         certificate.name,
@@ -238,16 +231,33 @@ useResizeObserver(certificateContainerRef as React.RefObject<HTMLDivElement>, (e
         percentage,
         grade,
         certificate.issueDate,
-        true, // Download mode
+        true // Download mode
       )
 
-      // Open the download URL in a new tab
-      window.open(downloadUrl, "_blank")
+      // Debugging: Log the download URL
+      console.log("Download URL:", downloadUrl)
 
+      // Validate the URL
+      if (!downloadUrl || !downloadUrl.startsWith("http")) {
+        throw new Error("Invalid download URL.")
+      }
+
+      // Create a hidden iframe for download
+      const downloadIframe = document.createElement("iframe")
+      downloadIframe.style.display = "none"
+      downloadIframe.src = downloadUrl
+      document.body.appendChild(downloadIframe)
+
+      // Optionally show a toast message
       toast({
-        title: "Certificate Downloaded",
-        description: "Your certificate has been downloaded successfully.",
+        title: "Download Initiated",
+        description: "Your certificate download should start shortly.",
       })
+
+      // Cleanup the iframe after a short delay
+      setTimeout(() => {
+        document.body.removeChild(downloadIframe)
+      }, 5000) // Allow enough time for the download to start
     } catch (err) {
       console.error("Failed to download certificate:", err)
       toast({
@@ -481,7 +491,12 @@ useResizeObserver(certificateContainerRef as React.RefObject<HTMLDivElement>, (e
         </CardContent>
 
         <CardFooter className="flex flex-row gap-4 px-4 sm:px-6 py-4">
-          <Button className="flex-1" onClick={handleDownload} disabled={downloadLoading}>
+          <Button
+            className="flex-1"
+            onClick={handleDownload}
+            disabled={downloadLoading}
+            type="button" // Ensure the button type is explicitly set
+          >
             {downloadLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
