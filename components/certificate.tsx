@@ -79,10 +79,11 @@ export function Certificate() {
     const certificateWidth = 2000
     const certificateHeight = 1414
 
-    // Calculate the scale to fit the certificate in the container
-    const scaleX = containerSize.width / certificateWidth
-    const scaleY = containerSize.width / (certificateWidth / certificateHeight) / certificateHeight
-    const scale = Math.min(scaleX, scaleY)
+    // Calculate the scale to fit the certificate in the container without extra padding
+    const scale = containerSize.width / certificateWidth
+
+    const scaledWidth = certificateWidth * scale
+    const scaledHeight = certificateHeight * scale
 
     return {
       position: "absolute" as const,
@@ -231,7 +232,7 @@ export function Certificate() {
         percentage,
         grade,
         certificate.issueDate,
-        true // Download mode
+        true, // Download mode
       )
 
       // Debugging: Log the download URL
@@ -400,11 +401,11 @@ export function Certificate() {
 
   if (loading) {
     return (
-      <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
+      <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
-            <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
-            <p className="text-base sm:text-lg font-medium text-center">Checking certificate access...</p>
+          <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+            <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
+            <p className="text-sm sm:text-base lg:text-lg font-medium text-center">Checking certificate access...</p>
           </CardContent>
         </Card>
       </div>
@@ -413,24 +414,24 @@ export function Certificate() {
 
   if (error) {
     return (
-      <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
+      <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
         <Card>
-          <CardHeader>
-            <CardTitle className="text-xl sm:text-2xl">Certificate Access</CardTitle>
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg sm:text-xl lg:text-2xl">Certificate Access</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Alert variant="destructive">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Access Denied</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
+              <AlertDescription className="text-sm">{error}</AlertDescription>
             </Alert>
             <div className="flex flex-col items-center justify-center py-8 sm:py-12">
               <Lock className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground mb-4" />
               <p className="text-base sm:text-lg font-medium mb-2 text-center">Certificate Not Available</p>
-              <p className="text-center text-sm sm:text-base text-muted-foreground mb-6 px-2">
+              <p className="text-center text-sm sm:text-base text-muted-foreground mb-6 max-w-md">
                 You need to complete all chapters and pass the final test to receive your certificate.
               </p>
-              <Button asChild>
+              <Button asChild size="sm" className="sm:size-default">
                 <Link href="/dashboard">Return to Dashboard</Link>
               </Button>
             </div>
@@ -442,11 +443,11 @@ export function Certificate() {
 
   if (!certificate) {
     return (
-      <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
+      <div className="w-full max-w-4xl mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
         <Card>
-          <CardContent className="flex flex-col items-center justify-center py-8 sm:py-12">
-            <Loader2 className="h-10 w-10 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
-            <p className="text-base sm:text-lg font-medium text-center">Generating your certificate...</p>
+          <CardContent className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
+            <Loader2 className="h-8 w-8 sm:h-12 sm:w-12 animate-spin text-primary mb-4" />
+            <p className="text-sm sm:text-base lg:text-lg font-medium text-center">Generating your certificate...</p>
           </CardContent>
         </Card>
       </div>
@@ -454,17 +455,20 @@ export function Certificate() {
   }
 
   return (
-    <div className="w-full mx-auto space-y-6 px-4 sm:px-6">
+    <div className="w-full max-w-6xl mx-auto space-y-4 sm:space-y-6 p-4 sm:p-6">
+      {/* Certificate Display Card */}
       <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl">Your Certificate</CardTitle>
-          <CardDescription>Congratulations on completing the Cyber Safe Girl course</CardDescription>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl lg:text-2xl">Your Certificate</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
+            Congratulations on completing the Cyber Safe Girl course
+          </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           {/* Certificate iframe with responsive container */}
           <div
             ref={certificateContainerRef}
-            className="border border-gray-300 rounded-lg overflow-hidden shadow-md w-full bg-white"
+            className="border border-gray-300 rounded-lg overflow-hidden shadow-md w-full relative"
           >
             {certificateUrl ? (
               <div
@@ -483,44 +487,45 @@ export function Certificate() {
                 />
               </div>
             ) : (
-              <div className="flex items-center justify-center h-[400px]">
-                <Loader2 className="h-10 w-10 animate-spin text-primary" />
+              <div className="flex items-center justify-center h-[300px] sm:h-[400px]">
+                <Loader2 className="h-8 w-8 sm:h-10 sm:w-10 animate-spin text-primary" />
               </div>
             )}
           </div>
         </CardContent>
 
-        <CardFooter className="flex flex-row gap-4 px-4 sm:px-6 py-4">
+        <CardFooter className="flex flex-col sm:flex-row gap-3 sm:gap-4 p-4 sm:p-6 pt-0">
           <Button
-            className="flex-1"
+            className="w-full sm:flex-1"
             onClick={handleDownload}
             disabled={downloadLoading}
-            type="button" // Ensure the button type is explicitly set
+            type="button"
+            size="sm"
           >
             {downloadLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
               <Download className="mr-2 h-4 w-4" />
             )}
-            Download Certificate
+            <span className="text-sm sm:text-base">Download Certificate</span>
           </Button>
 
           {/* Share button with dialog for multiple sharing options */}
           <Dialog>
             <DialogTrigger asChild>
-              <Button variant="outline" className="flex-1">
+              <Button variant="outline" className="w-full sm:flex-1" size="sm">
                 <Share2 className="mr-2 h-4 w-4" />
-                Share Certificate
+                <span className="text-sm sm:text-base">Share Certificate</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-md">
+            <DialogContent className="w-[95vw] max-w-md mx-auto">
               <DialogHeader>
-                <DialogTitle>Share Your Certificate</DialogTitle>
-                <DialogDescription>Choose how you want to share your achievement</DialogDescription>
+                <DialogTitle className="text-lg">Share Your Certificate</DialogTitle>
+                <DialogDescription className="text-sm">Choose how you want to share your achievement</DialogDescription>
               </DialogHeader>
 
               <div className="grid gap-4 py-4">
-                <Button onClick={handleShare} disabled={shareLoading} className="w-full">
+                <Button onClick={handleShare} disabled={shareLoading} className="w-full" size="sm">
                   {shareLoading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -534,49 +539,60 @@ export function Certificate() {
         </CardFooter>
       </Card>
 
+      {/* Verification Card */}
       <Card className="w-full">
-        <CardHeader>
-          <CardTitle className="text-xl sm:text-2xl">Verification</CardTitle>
-          <CardDescription>Your certificate can be verified using the link below</CardDescription>
+        <CardHeader className="pb-4 sm:pb-6">
+          <CardTitle className="text-lg sm:text-xl lg:text-2xl">Verification</CardTitle>
+          <CardDescription className="text-sm sm:text-base">
+            Your certificate can be verified using the link below
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+        <CardContent className="p-4 sm:p-6">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="space-y-2">
                 <p className="text-sm font-medium">Certificate Link</p>
                 <div className="flex items-center gap-2">
                   {certificateUrl ? (
                     <Link
                       href={certificateUrl}
                       target="_blank"
-                      className="text-sm break-all text-blue-600 hover:text-blue-800 hover:underline flex items-center"
+                      className="text-sm break-all text-blue-600 hover:text-blue-800 hover:underline flex items-center gap-1"
                     >
-                      View Certificate
-                      <ExternalLink className="ml-1 h-3 w-3" />
+                      <span className="truncate">View Certificate</span>
+                      <ExternalLink className="h-3 w-3 flex-shrink-0" />
                     </Link>
                   ) : (
                     <p className="text-sm text-muted-foreground">Generating certificate link...</p>
                   )}
                 </div>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm font-medium">Certificate ID</p>
-                <p className="text-sm break-all">{certificate.certificateId}</p>
+                <p className="text-sm break-all font-mono bg-muted p-2 rounded text-xs sm:text-sm">
+                  {certificate.certificateId}
+                </p>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm font-medium">Issued By</p>
                 <p className="text-sm">Dr. Ananth Prabhu G</p>
               </div>
-              <div>
+              <div className="space-y-2">
                 <p className="text-sm font-medium">Valid Until</p>
                 <p className="text-sm">{formatDate(certificate.expiryDate)}</p>
               </div>
             </div>
 
-            <div className="mt-4">
-              <Button variant="outline" className="w-full" onClick={copyVerificationLink} disabled={!certificateUrl}>
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={copyVerificationLink}
+                disabled={!certificateUrl}
+                size="sm"
+              >
                 {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
-                {copied ? "Copied!" : "Copy Certificate Link"}
+                <span className="text-sm sm:text-base">{copied ? "Copied!" : "Copy Certificate Link"}</span>
               </Button>
             </div>
           </div>
