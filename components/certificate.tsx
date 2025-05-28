@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState, useEffect, useRef } from "react"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -18,6 +20,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { useToast } from "@/hooks/use-toast"
+import { useResizeObserver } from "@/hooks/use-resize-observer"
 
 interface UserProgress {
   userId: string
@@ -55,8 +58,43 @@ export function Certificate() {
   const [shareLoading, setShareLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null)
-  const certificateRef = useRef<HTMLDivElement>(null)
+  const certificateContainerRef = useRef<HTMLDivElement>(null)
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 })
   const baseUrl = typeof window !== "undefined" ? window.location.origin : ""
+
+  // Use resize observer to track container size changes
+  useResizeObserver(certificateContainerRef as React.RefObject<HTMLDivElement>, (entry) => {
+    if (entry) {
+      setContainerSize({
+        width: entry.contentRect.width,
+        height: entry.contentRect.height,
+      })
+    }
+  })
+
+  const calculateIframeStyles = (): React.CSSProperties => {
+    if (!containerSize.width) return {}
+
+    // Original certificate dimensions
+    const certificateWidth = 2000
+    const certificateHeight = 1414
+
+    // Calculate the scale to fit the certificate in the container
+    const scaleX = containerSize.width / certificateWidth
+    const scaleY = containerSize.width / (certificateWidth / certificateHeight) / certificateHeight
+    const scale = Math.min(scaleX, scaleY)
+
+    return {
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
+      width: `${certificateWidth}px`,
+      height: `${certificateHeight}px`,
+      border: "none",
+      transformOrigin: "0 0",
+      transform: `scale(${scale})`,
+    }
+  }
 
   useEffect(() => {
     async function checkCertificateAccess() {
@@ -185,13 +223,6 @@ export function Certificate() {
                 ? "B"
                 : "C"
 
-      // Format completion date
-      const completionDate = new Date().toLocaleDateString("en-US", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-
       // Generate certificate URL for download
       const downloadUrl = await generateCertificateURL(
         certificate.name,
@@ -200,16 +231,33 @@ export function Certificate() {
         percentage,
         grade,
         certificate.issueDate,
-        true, // Download mode
+        true // Download mode
       )
 
-      // Open the download URL in a new tab
-      window.open(downloadUrl, "_blank")
+      // Debugging: Log the download URL
+      console.log("Download URL:", downloadUrl)
 
+      // Validate the URL
+      if (!downloadUrl || !downloadUrl.startsWith("http")) {
+        throw new Error("Invalid download URL.")
+      }
+
+      // Create a hidden iframe for download
+      const downloadIframe = document.createElement("iframe")
+      downloadIframe.style.display = "none"
+      downloadIframe.src = downloadUrl
+      document.body.appendChild(downloadIframe)
+
+      // Optionally show a toast message
       toast({
-        title: "Certificate Downloaded",
-        description: "Your certificate has been downloaded successfully.",
+        title: "Download Initiated",
+        description: "Your certificate download should start shortly.",
       })
+
+      // Cleanup the iframe after a short delay
+      setTimeout(() => {
+        document.body.removeChild(downloadIframe)
+      }, 5000) // Allow enough time for the download to start
     } catch (err) {
       console.error("Failed to download certificate:", err)
       toast({
@@ -413,30 +461,25 @@ export function Certificate() {
           <CardDescription>Congratulations on completing the Cyber Safe Girl course</CardDescription>
         </CardHeader>
         <CardContent>
-          {/* Certificate iframe from external API */}
+          {/* Certificate iframe with responsive container */}
           <div
-            ref={certificateRef}
-            className="border border-gray-300 rounded-lg overflow-hidden shadow-md w-full"
-            style={{
-              backgroundColor: "#ffffff",
-            }}
+            ref={certificateContainerRef}
+            className="border border-gray-300 rounded-lg overflow-hidden shadow-md w-full bg-white"
           >
             {certificateUrl ? (
-              <div className="relative w-full" style={{ paddingTop: "75%" }}>
+              <div
+                className="relative w-full"
+                style={{
+                  height: containerSize.width ? `${(containerSize.width * 1414) / 2000}px` : "400px",
+                }}
+              >
                 <iframe
                   src={certificateUrl}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "200%",
-                    height: "200%",
-                    border: "none",
-                    transform: "scale(0.5)",
-                    transformOrigin: "0 0",
-                  }}
+                  style={calculateIframeStyles()}
                   title="Certificate"
                   sandbox="allow-same-origin allow-scripts"
+                  className="rounded-lg"
+                  scrolling="no"
                 />
               </div>
             ) : (
@@ -448,7 +491,12 @@ export function Certificate() {
         </CardContent>
 
         <CardFooter className="flex flex-row gap-4 px-4 sm:px-6 py-4">
-          <Button className="flex-1" onClick={handleDownload} disabled={downloadLoading}>
+          <Button
+            className="flex-1"
+            onClick={handleDownload}
+            disabled={downloadLoading}
+            type="button" // Ensure the button type is explicitly set
+          >
             {downloadLoading ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
