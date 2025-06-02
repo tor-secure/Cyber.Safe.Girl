@@ -45,10 +45,43 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
   const [relevantSections, setRelevantSections] = useState<string | null>(null);
   const [loadingRelevantSections, setLoadingRelevantSections] = useState(false);
   const [relevantSectionsError, setRelevantSectionsError] = useState<string | null>(null);
+  const [chapterContent, setChapterContent] = useState<string | null>(null);
+  const [tipsPrecautions, setTipsPrecautions] = useState<string | null>(null);
+  const [loadingChapterData, setLoadingChapterData] = useState(false);
+  const [chapterDataError, setChapterDataError] = useState<string | null>(null);
   const { toast } = useToast();
 
   // Format chapter ID for API calls (e.g., "1" -> "CH-001")
   const formattedChapterId = `CH-${chapterId.padStart(3, '0')}`;
+
+  // Fetch chapter data from Firebase
+  useEffect(() => {
+    async function fetchChapterData() {
+      if (!formattedChapterId) return;
+      
+      setLoadingChapterData(true);
+      setChapterDataError(null);
+      
+      try {
+        const response = await fetch(`/api/chapter-data?chapterId=${formattedChapterId}`);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        setChapterContent(data.data);
+        setTipsPrecautions(data.tips_precautions);
+      } catch (err: any) {
+        console.error("Failed to fetch chapter data:", err);
+        setChapterDataError("Failed to load data for this chapter.");
+      } finally {
+        setLoadingChapterData(false);
+      }
+    }
+    
+    fetchChapterData();
+  }, [formattedChapterId]);
 
   // Fetch relevant sections from Firebase
   useEffect(() => {
@@ -165,25 +198,15 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
     fetchUserProgress();
   }, [user, router, formattedChapterId]);
 
-  // This would come from an API in a real application
+  // Create chapter data object using fetched data
   const chapterData = {
     id: chapterId,
-    title:
-      chapterId === "1"
-        ? "Mobile Recharge Shop"
-        : chapterId === "2"
-        ? "Debit Card Cloning"
-        : `Chapter ${chapterId}`,
-    content:
-      chapterId === "1"
-        ? `If you want to recharge your mobile phone, which is the place that you would go - a local mobile recharge shop near your house or by the customer care of the mobile service provider? Ideally, most of us would say the former one as it is more convenient. Did you know that this could be a potential source of being a victim of cybercrime?
-
-It is like giving off your personal information like phone number as well as ID proofs to a complete stranger. The stranger can send an SMS to your phone asking you to click on a link or scan a QR code which may result in money being debited from your account or in worse cases even your phone being hacked.`
-        : chapterId === "2"
-        ? `We swipe our credit and debit cards at various places like restaurants, petrol pumps, shopping malls etc. We need to check the swiping device for any extra attachments. Sometimes the scammers might have tampered with the card reader and attached with an extra skimming device. When you swipe your card, the skimming device captures your card details and the scamster may use it for fraudulent transactions.
-
-The scamster may even install a hidden camera near the ATM to capture your card details and PIN that was entered. So covering the keypad with your hand while you are entering your pin, as well as not sharing your PIN with anyone (including your friends) is a good practice to avoid being a victim of a fraudulent transaction.`
-        : `This is the content for Chapter ${chapterId}. In a real application, this would be fetched from a database or API.`,
+    title: `Chapter ${chapterId}`,
+    content: loadingChapterData 
+      ? "Loading chapter content..." 
+      : chapterDataError 
+        ? chapterDataError 
+        : chapterContent || `No content available for Chapter ${chapterId}.`,
     sections: [
       {
         title: "Relevant Sections",
@@ -196,15 +219,14 @@ The scamster may even install a hidden camera near the ATM to capture your card 
       },
       {
         title: "Tips / Precautions",
-        content:
-          chapterId === "1"
-            ? `Precautions: While recharging your mobile prepaid card account you have to give your mobile number to the vendor. Though ideally one should go to the Customer Care Centre of the Mobile Service Provider to get the recharge done but as a matter of convenience people approach a local vendor who keeps prepaid vouchers of practically all the mobile service providers and of all denominations. Thereby for recharging they end up giving their cell numbers and hence the scope of misuse. It is advisable to get the recharge done online or through the Customer Care Centre or one should take the voucher and key in the digits by themselves or ask some trusted person to do it for them.`
-            : chapterId === "2"
-            ? `Be attentive, be careful and save your money from being transferred into the hand of scamsters. Always check the ATM machine for any suspicious devices or cameras before using it. Cover the keypad when entering your PIN. Regularly monitor your bank statements for any unauthorized transactions. If you notice any suspicious activity, report it to your bank immediately.`
-            : "This section would contain tips and precautions related to this chapter.",
+        content: loadingChapterData 
+          ? "Loading tips and precautions..." 
+          : chapterDataError 
+            ? chapterDataError 
+            : tipsPrecautions || "No tips or precautions available for this chapter.",
       },
     ],
-    videoUrl: `https://www.youtube.com/embed/example-${chapterId}`,
+    videoUrl: `https://www.youtube.com/embed/SuAfyH0FRUU`, // Placeholder video URL
   };
 
   const handleQuizComplete = (score: number, totalQuestions: number, passed: boolean) => {
@@ -259,14 +281,14 @@ The scamster may even install a hidden camera near the ATM to capture your card 
 
   return (
     <div className="space-y-6">
-      {loading ? (
+      {loading || loadingChapterData ? (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-12 w-12 animate-spin text-primary mr-2" />
           <p className="text-lg font-medium">Loading chapter data...</p>
         </div>
-      ) : error ? (
+      ) : error || chapterDataError ? (
         <Alert variant="destructive" className="mb-4">
-          <AlertDescription>{error}</AlertDescription>
+          <AlertDescription>{error || chapterDataError}</AlertDescription>
         </Alert>
       ) : !chapterUnlocked ? (
         <Card>
@@ -307,7 +329,7 @@ The scamster may even install a hidden camera near the ATM to capture your card 
                   </div>
                 </CardHeader>
                 <CardContent className="pblue dark:pblue-invert max-w-none">
-                  <p>{chapterData.content}</p>
+                  <p className="text-justify">{chapterData.content}</p>
 
                   <div className="aspect-video mt-6 rounded-lg overflow-hidden">
                     <iframe
@@ -431,6 +453,25 @@ The scamster may even install a hidden camera near the ATM to capture your card 
                               </p>
                             );
                           }
+                        })}
+                      </div>
+                    ) : section.title === "Tips / Precautions" && typeof section.content === 'string' ? (
+                      <div className="space-y-2">
+                        {section.content.split('. ').map((tip, tipIndex) => {
+                          const trimmedTip = tip.trim();
+                          if (!trimmedTip) return null;
+                          
+                          // Add period back if it was removed during split (except for the last item if it doesn't end with a period)
+                          const formattedTip = tipIndex < section.content.split('. ').length - 1 || 
+                                              section.content.endsWith('.') ? 
+                                              `${trimmedTip}.` : trimmedTip;
+                          
+                          return (
+                            <p key={tipIndex} className="flex items-start mb-2">
+                              <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mt-2 mr-2"></span>
+                              <span>{formattedTip}</span>
+                            </p>
+                          );
                         })}
                       </div>
                     ) : (
