@@ -27,7 +27,7 @@ interface UserProgress {
   finalTestCompleted: boolean;
   certificateUnlocked: boolean;
   lastUpdated: string;
-  chapterQuizScores?: Record<string, { score: number, totalQuestions: number }>;
+  chapterQuizScores?: Record<string, { score: number; totalQuestions: number }>;
 }
 
 export function ChapterContent({ chapterId }: { chapterId: string }) {
@@ -44,7 +44,10 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
   const [userProgress, setUserProgress] = useState<UserProgress | null>(null);
   const [relevantSections, setRelevantSections] = useState<string | null>(null);
   const [loadingRelevantSections, setLoadingRelevantSections] = useState(false);
-  const [relevantSectionsError, setRelevantSectionsError] = useState<string | null>(null);
+  const [relevantSectionsError, setRelevantSectionsError] = useState<
+    string | null
+  >(null);
+  const [chapterName, setChapterName] = useState<string | null>(null);
   const [chapterContent, setChapterContent] = useState<string | null>(null);
   const [tipsPrecautions, setTipsPrecautions] = useState<string | null>(null);
   const [loadingChapterData, setLoadingChapterData] = useState(false);
@@ -52,24 +55,27 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
   const { toast } = useToast();
 
   // Format chapter ID for API calls (e.g., "1" -> "CH-001")
-  const formattedChapterId = `CH-${chapterId.padStart(3, '0')}`;
+  const formattedChapterId = `CH-${chapterId.padStart(3, "0")}`;
 
   // Fetch chapter data from Firebase
   useEffect(() => {
     async function fetchChapterData() {
       if (!formattedChapterId) return;
-      
+
       setLoadingChapterData(true);
       setChapterDataError(null);
-      
+
       try {
-        const response = await fetch(`/api/chapter-data?chapterId=${formattedChapterId}`);
-        
+        const response = await fetch(
+          `/api/chapter-data?chapterId=${formattedChapterId}`
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
+        setChapterName(data.name);
         setChapterContent(data.data);
         setTipsPrecautions(data.tips_precautions);
       } catch (err: any) {
@@ -79,7 +85,7 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
         setLoadingChapterData(false);
       }
     }
-    
+
     fetchChapterData();
   }, [formattedChapterId]);
 
@@ -87,27 +93,31 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
   useEffect(() => {
     async function fetchRelevantSections() {
       if (!formattedChapterId) return;
-      
+
       setLoadingRelevantSections(true);
       setRelevantSectionsError(null);
-      
+
       try {
-        const response = await fetch(`/api/relevant-sections?chapterId=${formattedChapterId}`);
-        
+        const response = await fetch(
+          `/api/relevant-sections?chapterId=${formattedChapterId}`
+        );
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setRelevantSections(data.content);
       } catch (err: any) {
         console.error("Failed to fetch relevant sections:", err);
-        setRelevantSectionsError("Failed to load relevant sections for this chapter.");
+        setRelevantSectionsError(
+          "Failed to load relevant sections for this chapter."
+        );
       } finally {
         setLoadingRelevantSections(false);
       }
     }
-    
+
     fetchRelevantSections();
   }, [formattedChapterId]);
 
@@ -115,7 +125,7 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
   useEffect(() => {
     async function fetchUserProgress() {
       if (!user) {
-        router.push('/login');
+        router.push("/login");
         return;
       }
 
@@ -124,59 +134,73 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
 
       try {
         const response = await fetch(`/api/user-progress?userId=${user.id}`);
-        
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
+
         const data = await response.json();
         setUserProgress(data.progress);
-        
+
         // Check if this chapter is completed
-        const isCompleted = data.progress.completedChapters.includes(formattedChapterId);
+        const isCompleted =
+          data.progress.completedChapters.includes(formattedChapterId);
         setChapterCompleted(isCompleted);
-        
+
         // Check if this chapter is unlocked
-        const isUnlocked = data.progress.unlockedChapters.includes(formattedChapterId);
+        const isUnlocked =
+          data.progress.unlockedChapters.includes(formattedChapterId);
         setChapterUnlocked(isUnlocked);
-        
+
         // Check if we have stored scores for this chapter
-        if (data.progress.chapterQuizScores && data.progress.chapterQuizScores[formattedChapterId]) {
-          const chapterScore = data.progress.chapterQuizScores[formattedChapterId];
+        if (
+          data.progress.chapterQuizScores &&
+          data.progress.chapterQuizScores[formattedChapterId]
+        ) {
+          const chapterScore =
+            data.progress.chapterQuizScores[formattedChapterId];
           setChapterScore(chapterScore.score);
           setTotalQuestions(chapterScore.totalQuestions);
         }
-        
+
         // If chapter is not unlocked, redirect to dashboard
         if (!isUnlocked) {
           toast({
             title: "Chapter Locked",
-            description: "You need to complete previous chapters to unlock this one.",
+            description:
+              "You need to complete previous chapters to unlock this one.",
             variant: "destructive",
           });
           // We'll let the user stay on the page but disable interactions
         }
-        
+
         // Fetch quiz analytics for this chapter if it's been completed
         if (isCompleted) {
           try {
-            const analyticsResponse = await fetch(`/api/quiz-analytics?userId=${user.id}&chapterId=${formattedChapterId}`);
-            
+            const analyticsResponse = await fetch(
+              `/api/quiz-analytics?userId=${user.id}&chapterId=${formattedChapterId}`
+            );
+
             if (analyticsResponse.ok) {
               const analyticsData = await analyticsResponse.json();
-              
-              if (analyticsData.quizAnalytics && analyticsData.quizAnalytics.length > 0) {
+
+              if (
+                analyticsData.quizAnalytics &&
+                analyticsData.quizAnalytics.length > 0
+              ) {
                 // Filter analytics for the current chapter only
                 const chapterAnalytics = analyticsData.quizAnalytics.filter(
                   (analytics: any) => analytics.chapterId === formattedChapterId
                 );
-                
+
                 if (chapterAnalytics.length > 0) {
                   // Get the most recent attempt for this chapter
                   const latestAttempt = chapterAnalytics.sort(
-                    (a: any, b: any) => new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime()
+                    (a: any, b: any) =>
+                      new Date(b.submittedAt).getTime() -
+                      new Date(a.submittedAt).getTime()
                   )[0];
-                  
+
                   setChapterScore(latestAttempt.score);
                   setTotalQuestions(latestAttempt.totalQuestionsAttempted);
                 }
@@ -189,7 +213,9 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
         }
       } catch (err: any) {
         console.error("Failed to fetch user progress:", err);
-        setError(err.message || "Failed to check if you have access to this chapter.");
+        setError(
+          err.message || "Failed to check if you have access to this chapter."
+        );
       } finally {
         setLoading(false);
       }
@@ -201,76 +227,89 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
   // Create chapter data object using fetched data
   const chapterData = {
     id: chapterId,
-    title: `Chapter ${chapterId}`,
-    content: loadingChapterData 
-      ? "Loading chapter content..." 
-      : chapterDataError 
-        ? chapterDataError 
-        : chapterContent || `No content available for Chapter ${chapterId}.`,
+    // title: `Chapter ${chapterId}`,
+    title: loadingChapterData
+      ? "Loading chapter content..."
+      : chapterDataError
+      ? chapterDataError
+      : chapterName || `No name available for Chapter ${chapterId}.`,
+    content: loadingChapterData
+      ? "Loading chapter content..."
+      : chapterDataError
+      ? chapterDataError
+      : chapterContent || `No content available for Chapter ${chapterId}.`,
     sections: [
       {
         title: "Relevant Sections",
-        content: relevantSections || 
-          (loadingRelevantSections 
-            ? "Loading relevant sections..." 
-            : relevantSectionsError 
-              ? relevantSectionsError 
-              : "No relevant sections available for this chapter."),
+        content:
+          relevantSections ||
+          (loadingRelevantSections
+            ? "Loading relevant sections..."
+            : relevantSectionsError
+            ? relevantSectionsError
+            : "No relevant sections available for this chapter."),
       },
       {
         title: "Tips / Precautions",
-        content: loadingChapterData 
-          ? "Loading tips and precautions..." 
-          : chapterDataError 
-            ? chapterDataError 
-            : tipsPrecautions || "No tips or precautions available for this chapter.",
+        content: loadingChapterData
+          ? "Loading tips and precautions..."
+          : chapterDataError
+          ? chapterDataError
+          : tipsPrecautions ||
+            "No tips or precautions available for this chapter.",
       },
     ],
     videoUrl: `https://www.youtube.com/embed/SuAfyH0FRUU`, // Placeholder video URL
   };
 
-  const handleQuizComplete = (score: number, totalQuestions: number, passed: boolean) => {
+  const handleQuizComplete = (
+    score: number,
+    totalQuestions: number,
+    passed: boolean
+  ) => {
     // Set the score specifically for this chapter
     setChapterScore(score);
     setTotalQuestions(totalQuestions);
 
     if (passed && !chapterCompleted) {
       setChapterCompleted(true);
-      
+
       // Update local state to reflect changes
       if (userProgress) {
         const updatedProgress = { ...userProgress };
-        
+
         if (!updatedProgress.completedChapters.includes(formattedChapterId)) {
           updatedProgress.completedChapters.push(formattedChapterId);
         }
-        
+
         // Store the chapter score in the progress object if it doesn't exist
         if (!updatedProgress.chapterQuizScores) {
           updatedProgress.chapterQuizScores = {};
         }
-        
+
         // Update the score for this specific chapter
         updatedProgress.chapterQuizScores[formattedChapterId] = {
           score: score,
-          totalQuestions: totalQuestions
+          totalQuestions: totalQuestions,
         };
-        
+
         // Unlock next chapter
         const chapterNumber = parseInt(chapterId);
-        const nextChapterId = `CH-${(chapterNumber + 1).toString().padStart(3, '0')}`;
-        
+        const nextChapterId = `CH-${(chapterNumber + 1)
+          .toString()
+          .padStart(3, "0")}`;
+
         if (!updatedProgress.unlockedChapters.includes(nextChapterId)) {
           updatedProgress.unlockedChapters.push(nextChapterId);
         }
-        
+
         setUserProgress(updatedProgress);
       }
-            
+
       // Refresh the progress context to update the sidebar
       refreshProgress();
       console.log("Progress refreshed after quiz completion");
-      
+
       toast({
         title: "Chapter Completed!",
         description: `You've successfully completed Chapter ${chapterId}. The next chapter is now unlocked.`,
@@ -294,7 +333,9 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
         <Card>
           <CardHeader>
             <CardTitle className="text-2xl">Chapter Locked</CardTitle>
-            <CardDescription>You need to complete previous chapters to unlock this one.</CardDescription>
+            <CardDescription>
+              You need to complete previous chapters to unlock this one.
+            </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Lock className="h-16 w-16 text-muted-foreground mb-4" />
@@ -318,9 +359,11 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
                       <CardTitle className="text-2xl">
                         {chapterData.title}
                       </CardTitle>
-                      <CardDescription>Chapter {chapterId} of 70</CardDescription>
+                      <CardDescription>
+                        Chapter {chapterId} of 70
+                      </CardDescription>
                     </div>
-                    <Button 
+                    <Button
                       onClick={() => setIsQuizModalOpen(true)}
                       disabled={!chapterUnlocked}
                     >
@@ -367,10 +410,14 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
                       variant="outline"
                       asChild
                       className={`justify-start ${
-                        !chapterCompleted || Number.parseInt(chapterId) >= 70 ? "pointer-events-none opacity-50" : ""
+                        !chapterCompleted || Number.parseInt(chapterId) >= 70
+                          ? "pointer-events-none opacity-50"
+                          : ""
                       }`}
                     >
-                      <Link href={`/chapters/${Number.parseInt(chapterId) + 1}`}>
+                      <Link
+                        href={`/chapters/${Number.parseInt(chapterId) + 1}`}
+                      >
                         <BookOpen className="mr-2 h-4 w-4" />
                         Next Chapter
                       </Link>
@@ -430,19 +477,23 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
                     <CardTitle>{section.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {section.title === "Relevant Sections" && typeof section.content === 'string' ? (
+                    {section.title === "Relevant Sections" &&
+                    typeof section.content === "string" ? (
                       <div className="space-y-2">
-                        {section.content.split('\n').map((line, lineIndex) => {
+                        {section.content.split("\n").map((line, lineIndex) => {
                           // Check if the line is a category header (ends with a colon)
-                          if (line.trim().endsWith(':')) {
+                          if (line.trim().endsWith(":")) {
                             return (
-                              <h3 key={lineIndex} className="font-bold text-lg mt-4 text-blue-600">
+                              <h3
+                                key={lineIndex}
+                                className="font-bold text-lg mt-4 text-blue-600"
+                              >
                                 {line}
                               </h3>
                             );
-                          } 
+                          }
                           // Check if it's an empty line
-                          else if (line.trim() === '') {
+                          else if (line.trim() === "") {
                             return <div key={lineIndex} className="h-2"></div>;
                           }
                           // Regular content line
@@ -455,17 +506,20 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
                           }
                         })}
                       </div>
-                    ) : section.title === "Tips / Precautions" && typeof section.content === 'string' ? (
+                    ) : section.title === "Tips / Precautions" &&
+                      typeof section.content === "string" ? (
                       <div className="space-y-2">
-                        {section.content.split('. ').map((tip, tipIndex) => {
+                        {section.content.split(". ").map((tip, tipIndex) => {
                           const trimmedTip = tip.trim();
                           if (!trimmedTip) return null;
-                          
+
                           // Add period back if it was removed during split (except for the last item if it doesn't end with a period)
-                          const formattedTip = tipIndex < section.content.split('. ').length - 1 || 
-                                              section.content.endsWith('.') ? 
-                                              `${trimmedTip}.` : trimmedTip;
-                          
+                          const formattedTip =
+                            tipIndex < section.content.split(". ").length - 1 ||
+                            section.content.endsWith(".")
+                              ? `${trimmedTip}.`
+                              : trimmedTip;
+
                           return (
                             <p key={tipIndex} className="flex items-start mb-2">
                               <span className="inline-block w-2 h-2 rounded-full bg-blue-500 mt-2 mr-2"></span>
@@ -475,7 +529,9 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
                         })}
                       </div>
                     ) : (
-                      <div className="whitespace-pre-line">{section.content}</div>
+                      <div className="whitespace-pre-line">
+                        {section.content}
+                      </div>
                     )}
                   </CardContent>
                 </Card>
