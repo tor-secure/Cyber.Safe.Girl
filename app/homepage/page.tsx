@@ -789,7 +789,7 @@ export default function HomePage() {
                   young girls and women to engage with responsible browsing on
                   the internet. The idea was given a shape by building Info
                   toons to help students and women easily understand various
-                  Cybercrimes committed on a daily basis.
+                  Cyber crimes committed on a daily basis.
                 </p>
               </motion.div>
 
