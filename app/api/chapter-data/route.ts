@@ -36,6 +36,7 @@ export async function GET(request: NextRequest) {
     // Return the chapter data
     return NextResponse.json({
       data: chapterData?.Data || "",
+      name: chapterData?.Name || "",
       tips_precautions: chapterData?.Tips_Precautions || ""
     });
 
