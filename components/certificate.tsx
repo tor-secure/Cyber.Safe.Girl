@@ -654,15 +654,15 @@ export function Certificate() {
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">Issued By</p>
-                <p className="text-sm">Dr. Ananth Prabhu G</p>
+                <p className="text-sm break-all font-mono bg-muted p-2 rounded text-xs sm:text-sm">Dr. Ananth Prabhu G</p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">Issue Date</p>
-                <p className="text-sm">{formatDate(certificate.issueDate)}</p>
+                <p className="text-sm break-all font-mono bg-muted p-2 rounded text-xs sm:text-sm">{formatDate(certificate.issueDate)}</p>
               </div>
               <div className="space-y-2">
                 <p className="text-sm font-medium">Expiry Date</p>
-                <p className="text-sm">{formatDate(certificate.expiryDate)}</p>
+                <p className="text-sm break-all font-mono bg-muted p-2 rounded text-xs sm:text-sm">{formatDate(certificate.expiryDate)}</p>
               </div>
             </div>
 
