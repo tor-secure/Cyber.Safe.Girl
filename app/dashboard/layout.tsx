@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   SidebarProvider,
   Sidebar,
@@ -28,15 +27,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter()
   const { isAuthenticated } = useAuth()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [isGuidelinesOpen, setIsGuidelinesOpen] = useState(false)
 
-    // // Redirect to login if not authenticated
-    // useEffect(() => {
-    //   if (!isAuthenticated && pathname !== "/login") {
-    //     router.push("/login")
-    //   }
-    // }, [isAuthenticated, pathname, router])
-
-  // Use the progress context instead of local state
   const { chapters, finalTestUnlocked, certificateUnlocked, isLoading } = useProgress()
 
   return (
@@ -44,7 +36,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex min-h-screen">
         <Sidebar className="border-r z-30">
           <SidebarHeader className="flex items-center justify-between px-4 py-2 border-b">
-            
             <Button variant="ghost" size="icon" className="lg:hidden" onClick={() => setIsMobileMenuOpen(false)}>
               <X className="h-5 w-5" />
             </Button>
@@ -59,6 +50,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname === "/introduction"}>
                   <Link href="/introduction">
@@ -126,8 +118,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </SidebarMenuItem>
 
               <SidebarMenuItem>
-                <SidebarMenuButton 
-                  asChild 
+                <SidebarMenuButton
+                  asChild
                   isActive={pathname === "/certificate"}
                   className={!certificateUnlocked ? "opacity-60 cursor-not-allowed" : ""}
                 >
@@ -163,7 +155,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <Info className="h-4 w-4 mr-2" />
                   About
                 </Button>
-                <Button variant="outline" size="sm" className="hidden md:flex">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="hidden md:flex"
+                  onClick={() => setIsGuidelinesOpen(true)}
+                >
                   <FileQuestion className="h-4 w-4 mr-2" />
                   Guidelines
                 </Button>
@@ -174,27 +171,79 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </header>
 
           <main className="flex-1 p-4 md:p-6 overflow-auto">{children}</main>
+
+          {/* Guidelines Modal */}
+          {isGuidelinesOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-xl max-w-3xl w-full relative overflow-y-auto max-h-[90vh] scrollbar-hide border border-white">
+                <button
+                  onClick={() => setIsGuidelinesOpen(false)}
+                  className="absolute top-2 right-3 text-xl font-bold text-gray-500 hover:text-red-500"
+                >
+                  &times;
+                </button>
+                <h2 className="text-xl font-semibold mb-4">Guidelines</h2>
+                <ul className="list-decimal pl-5 space-y-2 text-sm md:text-base text-gray-800 dark:text-gray-200">
+                  <li>Visit the official website: <a href="https://www.cybersafegirl.com" target="_blank">www.cybersafegirl.com</a>.</li>
+                  <li>You will be presented with two primary options: <strong>Download eBook</strong> and <strong>Get Certified</strong>.</li>
+                  <li>Begin by selecting <strong>Download eBook</strong>. You can access the latest edition of <strong>#CyberSafeGirl</strong> in English, Kannada, or Gujarati.</li>
+                  <li>Thoroughly review the eBook, which includes engaging infotoons, comprehensive chapters, insightful bonus tips, a glossary of key terms, and more.</li>
+                  <li>Next, click on <strong>Get Certification</strong> and sign in using your Gmail account.</li>
+                  <li>You will be prompted to create a new user account. The Gmail credentials used during registration will serve as your permanent login information for future access.</li>
+                  <li>Ensure the pop-up window remains open throughout the authentication process to avoid disruption.</li>
+                  <li>Upon successful login, you will be directed to the eLearning program dashboard.</li>
+                  <li>The course consists of <strong>60 structured modules</strong>.</li>
+                  <li>Each module features an introductory overview, a lecture video by Dr. Ananth Prabhu G., animated infotoons, supplementary video content, downloadable PowerPoint presentations, and a module-specific assessment.</li>
+                  <li>Progression to subsequent modules is contingent upon successfully passing the test associated with the current module.</li>
+                  <li>After completing all 60 modules, you will be eligible to attempt the <strong>Grand Certification Test</strong>.</li>
+                  <li>If you possess a pre-paid voucher, you may input the voucher code to access the test. Otherwise, a certification fee of ₹499/- is applicable. If you have a coupon code, apply it to avail the corresponding discount.</li>
+                  <li>The Grand Test consists of questions derived from all 60 modules and serves as a comprehensive evaluation.</li>
+                  <li>You are permitted <strong>two attempts</strong> to clear the test. Should both attempts be unsuccessful, you must re-register to proceed.</li>
+                  <li>Upon successful completion, you will be awarded the <strong>"I Am Cyber Safe"</strong> certificate, which will feature your name and achieved grade. Please note: name alterations are not permitted after certification issuance.</li>
+                  <li>The certification examination comprises <strong>60 objective questions</strong>. A minimum of <strong>30 correct responses</strong> is required to pass. There is <strong>no negative marking</strong>.<br />
+                    <div className="mt-2 ml-4">
+                      <ul className="space-y-1">
+                        {[
+                          ["30-40", "Grade E"],
+                          ["41-45", "Grade D"],
+                          ["46-50", "Grade C"],
+                          ["51-55", "Grade B"],
+                          ["56-60", "Grade A"],
+                        ].map(([range, grade]) => (
+                          <li key={range} className="flex justify-start gap-6 font-mono">
+                            <span className="w-20">{range}</span>
+                            <span>{grade}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    The duration of the test is <strong>60 minutes</strong>.
+                  </li>
+                  <li>Certificates are blockchain-verified, ensuring authenticity and immunity to forgery or unauthorized alterations.</li>
+                  <li>To validate your certification, visit <a href="https://www.cybersafegirl.com" target="_blank">www.cybersafegirl.com</a>, navigate to the <strong>Verify Certificate</strong> section, and enter your certificate number.</li>
+                  <li>This initiative aims to empower internet users with critical cybersecurity knowledge, foster responsible digital behavior, and raise awareness about the threats present in the digital ecosystem.</li>
+                  <li>For any queries or support-related assistance, please contact: <a href="mailto:support@cybersafegirl.com">support@cybersafegirl.com</a></li>
+                </ul>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-    </SidebarProvider>
-  )
-}
 
-function Shield(props: React.SVGProps<SVGSVGElement>) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-    </svg>
+      <style jsx global>{`
+        .scrollbar-hide {
+          /* Hide scrollbar for Chrome, Safari and Opera */
+          -webkit-scrollbar: none;
+          
+          /* Hide scrollbar for IE, Edge and Firefox */
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+        
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
+    </SidebarProvider>
   )
 }
