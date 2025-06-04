@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate certificate ID
-    const certificateId = `CSG7-${uuidv4().substring(0, 8)}`
+    const certificateId = `CSG-${userId.substring(0, 8)}`
     
     // Set issue date and expiry date (1 year from now)
     const issueDate = new Date()
