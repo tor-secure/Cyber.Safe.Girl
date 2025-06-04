@@ -48,6 +48,7 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
     string | null
   >(null);
   const [chapterName, setChapterName] = useState<string | null>(null);
+  const [chapterLink, setChapterLink] = useState<string | null>(null);
   const [chapterContent, setChapterContent] = useState<string | null>(null);
   const [tipsPrecautions, setTipsPrecautions] = useState<string | null>(null);
   const [loadingChapterData, setLoadingChapterData] = useState(false);
@@ -76,6 +77,7 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
 
         const data = await response.json();
         setChapterName(data.name);
+        setChapterLink(data.yt_link);
         setChapterContent(data.data);
         setTipsPrecautions(data.tips_precautions);
       } catch (err: any) {
@@ -259,7 +261,8 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
             "No tips or precautions available for this chapter.",
       },
     ],
-    videoUrl: `https://www.youtube.com/embed/SuAfyH0FRUU`, // Placeholder video URL
+    // videoUrl: `https://www.youtube.com/embed/SuAfyH0FRUU`, // Placeholder video URL
+    videoUrl: chapterLink
   };
 
   const handleQuizComplete = (

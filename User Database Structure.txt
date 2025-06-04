@@ -1,0 +1,13 @@
+User Data -----> UID -----> Collections
+                            Fields
+
+Collections -----> Chapter Progress
+                   Final Test Progress
+                   Quiz Analytics
+                   Certificate Details
+
+Fields -----> name: "John Doe",
+              email: "john.doe@gmail.com",
+              isAdmin: false
+              lastLogin: ,
+              role: ""
