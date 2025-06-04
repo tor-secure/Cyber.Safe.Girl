@@ -262,7 +262,12 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
       },
     ],
     // videoUrl: `https://www.youtube.com/embed/SuAfyH0FRUU`, // Placeholder video URL
-    videoUrl: chapterLink
+    videoUrl: loadingChapterData
+          ? "Loading tips and precautions..."
+          : chapterDataError
+          ? chapterDataError
+          : chapterLink ||
+            "No tips or precautions available for this chapter.",
   };
 
   const handleQuizComplete = (
