@@ -37,6 +37,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       data: chapterData?.Data || "",
       name: chapterData?.Name || "",
+      yt_link: chapterData?.YT_Link || "",
       tips_precautions: chapterData?.Tips_Precautions || ""
     });
 
