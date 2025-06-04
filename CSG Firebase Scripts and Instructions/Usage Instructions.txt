@@ -1,0 +1,7 @@
+1. Download the Private Key from the Service Accounts tab located under Project Settings of the cyber-safe-girl-database project. The key will be downloaded in JSON format. Rename this file to account.json.
+
+2. Place the account.json file in the same directory as your script. For example, if you're running the script Quiz-DB.py, which is located in the Quiz-DB directory at the root level, ensure that account.json is also placed inside the Quiz-DB directory.
+
+3. Run each script from its respective directory. For instance, to execute the Quiz-DB.py script located in the Quiz-DB directory, navigate to that directory and run the script from within it.
+
+4. The __CSG Book Documents__ directory contains the original soft copy of the book Cyber Safe Girl 7.0.pdf, as well as Book Contents.pdf, which is an extracted version containing only the textual content of all chapters (excluding illustrations). Additionally, the Book Contents Splitted folder contains multiple files—each representing a split segment of Book Contents.pdf. Each segment includes 10 chapters. This splitting was done to accommodate the input limitations of free AI tools when generating questions, answers, and summaries, as the full document would exceed their input size constraints.

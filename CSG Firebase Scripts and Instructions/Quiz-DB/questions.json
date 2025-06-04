@@ -1,0 +1,452 @@
+{
+    "Q01": {
+        "options": {
+            "A": "Sharing passwords, weak security software, and impersonation.",
+            "B": "Device discoverability, lack of parental controls, and unauthorized Wi-Fi access.",
+            "C": "Unsecured charging ports, social media trolling, and data breaches.",
+            "D": "Phishing scams, juice jacking, and online grooming"
+        },
+        "question": "Which of the following scenarios exemplifies risks associated with Profile Hacking, Kids Mobile Phone security, and Juice Jacking?"
+    },
+    "Q02": {
+        "options": {
+            "A": "Cybersquatting, Mobile Recharge Shop frauds, and Exam Malpractice",
+            "B": "Connected Car hacking, Fake Influencer Scams, and LLM Jailbreak",
+            "C": "Cyber Grooming, Cyber Vultures, and Ransomeware",
+            "D": "Fake Profile Sextortion, Cyber Sex Trafficking, and Drug Trafficking"
+        },
+        "question": "Which combination presents situations involving deception, manipulation, and potential exploitation?"
+    },
+    "Q03": {
+        "options": {
+            "A": "Data breaches, identity theft, and financial fraud",
+            "B": "Intermediary liability, hacking, and privacy violations",
+            "C": "Copyright Infringement, theft, extortion",
+            "D": "Denial of Service, Doxing, and QR Code Scam"
+        },
+        "question": "Which of the following threats is closely linked to RFID Cloning, Fileless Attacks, and Ponzi Schemes ?"
+    },
+    "Q04": {
+        "options": {
+            "A": "The act of recording private moments, extortion, voyeurism",
+            "B": "Fake News, SMS Bombing, and Digital Arrest",
+            "C": "Online Radicalization, Digital Arres, and Camera Hacking",
+            "D": "Fake Matrimonial Profile, Virtual Kidnapping, and Keylogging"
+        },
+        "question": "Which scenarios highlights the convergence of privacy violation, coercion, and emotional distress?"
+    },
+    "Q05": {
+        "options": {
+            "A": "Harassment, intimidation, and defamation",
+            "B": "Inaccurate information, data breaches, and social harm.",
+            "C": "Malvertising, delivery scam, and watering hole attacks.",
+            "D": "Formjacking, Blue Snarfing, Online Games"
+        },
+        "question": "A potent mix of social media posts, offensive materials, and lack of checks create a conducive environment for which of the following cybercrimes?"
+    },
+    "Q06": {
+        "options": {
+            "A": "Malvertising, Exam Malpractice, Fake Review",
+            "B": "Stolen Phone, Honeypot, Doxing",
+            "C": "Call Merge Scams, RFID Cloning, and Cyber Sex Trafficking",
+            "D": "Steganography, Fake Productivity App, DNS Hijacking"
+        },
+        "question": "Cybercriminals are increasingly using seemingly harmless platforms such as Ads for spreading misinformation or harm, what's an example?"
+    },
+    "Q07": {
+        "options": {
+            "A": "Online games, digital arrest, online radicalization",
+            "B": "Watering hole attack, online radicalization, doxing",
+            "C": "Fake news, digital arrest, formjacking",
+            "D": "Cyber vultures, mobile repair shop frauds, and cybersquatting."
+        },
+        "question": "Involving manipulation tactics, emotional distress, financial exploitation, and identity theft?"
+    },
+    "Q08": {
+        "options": {
+            "A": "Social Trolling, Fake Influencer Scam, Delivery Scam",
+            "B": "Ransomeware, Honey Traps, LLM Jailbreak",
+            "C": "Cyberwarfare, Fake News, and Mobile Repair Shop Frauds",
+            "D": "Stolen Phone, Camera Hacking, and SMS Spoofing"
+        },
+        "question": "What threats involve a complex combination of online deception, privacy invasion, and exploitation?"
+    },
+    "Q09": {
+        "options": {
+            "A": "Steganography, Pharming, Social Trolling",
+            "B": "IDN Homograph Attack, Juice Jacking, Cyberwarfare",
+            "C": "Connected Car Hack, Call Spoofing, Virtual Kidnapping",
+            "D": "Online Games, Stolen Phone, Mobile Repair Shop Frauds"
+        },
+        "question": "When someone is victim of any attack then what combination needs high security?"
+    },
+    "Q10": {
+        "options": {
+            "A": "Online Radicalization, Crypto Jacking, Fake Reviews",
+            "B": "SMS Bombing, Cyberwarfare, Honey Traps",
+            "C": "Connected Car Hack, Cyber Sex Trafficking, Formjacking",
+            "D": "Cyber Grooming, Social Trolling, Digital Arrest"
+        },
+        "question": "Which cyber crime is a mix of the following:- manipulation, illegal action, blackmail, and data breaches?"
+    },
+    "Q11": {
+        "options": {
+            "A": "Call Spoofing, Watering Hole Attack, Phishing",
+            "B": "Online Grooming, Fake Reviews, Malvertising",
+            "C": "Doxing, Online Radicalization, LLM Jailbreak",
+            "D": "Fileless Attacks, Fake Productivity Apps, Digital Arrest"
+        },
+        "question": "Which of these threat combinations uses technical manipulation to hide actions, spread malware, and gain unauthorized access."
+    },
+    "Q12": {
+        "options": {
+            "A": "Honeypot, Pharming, Watering Hole Attack",
+            "B": "SMS Bombing, Cyber Sex Trafficking, Social Trolling",
+            "C": "Digital Arrest, Virtual Kidnapping, and Camera Hacking",
+            "D": "Fake Influencer Scams, Fake Productivity Apps, Ponzi Schemes"
+        },
+        "question": "The combination of scam will work only if victims are manipulated?"
+    },
+    "Q13": {
+        "options": {
+            "A": "Stolen Phone, RFID Cloning, Fileless Attack",
+            "B": "Pharming, DDOS, Water Holing",
+            "C": "IDN Homograph Attack, Exam Malpractice, Fake News",
+            "D": "Online Games, Connected Cars, and Juice Jacking"
+        },
+        "question": "These threats lead to potential privacy violations and financial exploitation?"
+    },
+    "Q14": {
+        "options": {
+            "A": "Cyber Grooming, Sextortion, Cyber Sex Trafficking",
+            "B": "Online Radicalization, Doxing, Online Games",
+            "C": "SMS Spoofing, Ponzi Scheme, and Pharming",
+            "D": "Honeypot, QR Code Scam, LLM Jailbreak"
+        },
+        "question": "Deception, manipulation, exploitation are common aspects in?"
+    },
+    "Q15": {
+        "options": {
+            "A": "Fileless Attack, Honeypot, Digital Arrest",
+            "B": "Fake Productivity App, SMS Spoofing, Stolen Phone",
+            "C": "Social Trolling, Exam Malpractice, Online Radicalization",
+            "D": "Fake Matrimonial Profiles, Micro Loans, Mobile Recharge Shop Frauds"
+        },
+        "question": "What threats can cause potential privacy violations or financial exploitation?"
+    },
+    "Q16": {
+        "options": {
+            "A": "Virtual Kidnapping, Honeypot, Pharming",
+            "B": "Cyber Sex Trafficking, Social Trolling, SMS Bombing",
+            "C": "Online Grooming, Sextortion, Cyber Sex Trafficking",
+            "D": "Fake News, Exam Malpractice, IDN Homograph Attacks"
+        },
+        "question": "Privacy Violation and Emotional Exploitation are part of following crimes?"
+    },
+    "Q17": {
+        "options": {
+            "A": "Virtual Kidnapping, Online Radicalization, Fake Reviews",
+            "B": "Doxing, SMS Spoofing, Digital Arrest",
+            "C": "Honeypot, Cyber Sex Trafficking, Online Grooming",
+            "D": "SMS Bombing, Exam Malpractice, Social Trolling"
+        },
+        "question": "The combination of abuse, information, and cyber attack leads to dangerous situation, which of these has high rate?"
+    },
+    "Q18": {
+        "options": {
+            "A": "IDN Homograph Attacks, Call Merge Scams, Digital Arrest",
+            "B": "Stolen Phone, RFID Cloning, Keylogger",
+            "C": "SMS Spoofing, Doxing, Cyber Sex Trafficking",
+            "D": "Pharming, Cyber Grooming, Fake Productivity Apps"
+        },
+        "question": "Fraud, Financial Threat, Identity Theft are common concepts in :-"
+    },
+    "Q19": {
+        "options": {
+            "A": "Fake Matrimonial Profile, Deepfakes, and Fileless Attacks",
+            "B": "SMS Spoofing, Digital Arrest, and Delivery Scams",
+            "C": "Fake Reviews, Online Radicalization, and App Traps",
+            "D": "Blue Snarfing, Fake Productivity Apps, and Fileless Attacks"
+        },
+        "question": "What threats primarily revolve around deception, fake identities, and emotional exploitation?"
+    },
+    "Q20": {
+        "options": {
+            "A": "Fileless Attacks, Phishing, Pharming",
+            "B": "Ransomeware, IDN Homograph Attacks, Honeypot",
+            "C": "SMS Bombing, Stolen Phone, Online Games",
+            "D": "Cyberwarfare, IDN Homograph Attacks, Social Trolling"
+        },
+        "question": "Technical Knowledge, Blackmail, Personal Data is needed for performing the following attacks"
+    },
+    "Q21": {
+        "options": {
+            "A": "Fake Productivity Apps, Exam Malpractice, Stolen Phone",
+            "B": "RFID Cloning, Fileless Attacks, Ponzi Schemes",
+            "C": "Fake Matrimonial Profile, Virtual Kidnapping, Keylogging",
+            "D": "Deepfakes, Cyber Sex Trafficking, Fake Influencer Scams"
+        },
+        "question": "Blackmailing, data breach, and financial frauds is possible combination in?"
+    },
+    "Q22": {
+        "options": {
+            "A": "Pharming, SMS Spoofing, Honey Traps",
+            "B": "Cyber Sex Trafficking, Fake Influencer Scam, Mobile Repair Shop Frauds",
+            "C": "Connected Car Hack, Fake News, Cyber Grooming",
+            "D": "Exam Malpractice, Watering Hole Attack, LLM Jailbreak"
+        },
+        "question": "Social Manipulation + Financial Rewards is possible for which scenarios?"
+    },
+    "Q23": {
+        "options": {
+            "A": "Online Games, LLM Jailbreak, Phishing",
+            "B": "Online Radicalization, Mobile Recharge Shop Frauds, QR Code Scams",
+            "C": "Stolen Phone, Pharming, Cyberwarfare",
+            "D": "Fake Productivity Apps, Mobile Repair Shop Frauds, SMS Bombing"
+        },
+        "question": "Which of these threat combinations uses social media accounts, SMS or calls, malware to harvest private data from the device?"
+    },
+    "Q24": {
+        "options": {
+            "A": "Honeypot, Fake News, Digital Arrest",
+            "B": "Ponzi Schemes, Exam Malpractice, Virtual Kidnapping",
+            "C": "Blue Snarfing, Stolen Phone, Social Trolling",
+            "D": "Fake Influencer Scam, Digital Arrest, Cyber Sex Trafficking"
+        },
+        "question": "Privacy, Financial Loss, Emotional Abuse is the order of crime being executed by the criminals in :-"
+    },
+    "Q25": {
+        "options": {
+            "A": "SMS Spoofing, Pharming, Mobile Repair Shop",
+            "B": "Cybersquatting, SMS Bombing, Steganography",
+            "C": "Formjacking, Virtual Kidnapping, Doxing",
+            "D": "Fake Matrimonial Profiles, Connected Car Hack, Cyberwarfare"
+        },
+        "question": "Fake profiles, Data breach, Emotional connection are dangerous with which set of cyber crime?"
+    },
+    "Q26": {
+        "options": {
+            "A": "Honeypot, Digital Arrest, Digital Arrest",
+            "B": "Social Trolling, Exam Malpractice, LLM Jailbreak",
+            "C": "Doxing, Online Games, Blue Snarfing",
+            "D": "Malvertising, Cyber Sex Trafficking, Call Merge Scams"
+        },
+        "question": "These combination are all based on social manipulation.?"
+    },
+    "Q27": {
+        "options": {
+            "A": "Deepfakes, QR Code Scam, Stolen Phone",
+            "B": "Honeypot, Juice Jacking, Fileless Attack",
+            "C": "Blue Snarfing, DDOS, Pharming",
+            "D": "Mobile Recharge Shop Frauds, Ponzi Schemes, Cyber Vultures"
+        },
+        "question": "The trio are mainly based on data breach.?"
+    },
+    "Q28": {
+        "options": {
+            "A": "Cybersquatting, DNS Hijacking, Exam Malpractice",
+            "B": "Honeypot, Cyber Sex Trafficking, Online Grooming",
+            "C": "Online Games, Doxing, Phishing",
+            "D": "QR Code Scams, SMS Spoofing, Pharming"
+        },
+        "question": "All of these cases involves redirection of victims."
+    },
+    "Q29": {
+        "options": {
+            "A": "Exam Malpractice, Stolen Phone, Fake Influencer Scam",
+            "B": "Watering Hole Attack, Fake Review, Online Radicalization",
+            "C": "Fake Productivity App, SMS Bombing, Keylogging",
+            "D": "Connected Car Hacks, Doxing, and DNS Hijacking"
+        },
+        "question": "Privacy violation and sharing personal images is linked with :-"
+    },
+    "Q30": {
+        "options": {
+            "A": "Fileless Attacks, Cyber Sex Trafficking, Social Trolling",
+            "B": "Connected Cars, Doxing, Juice Jacking",
+            "C": "Pharming, Online Games, Fileless Attack",
+            "D": "Fake Matrimonial Profile, QR Code Scams, SMS Spoofing"
+        },
+        "question": "Data leak, financial fraud is a common combination, what is next common aspect?"
+    },
+    "Q31": {
+        "options": {
+            "A": "Mobile Repair Shop Frauds, SMS Bombing, Honeypot",
+            "B": "Fake News, Cyber Sex Trafficking, Doxing",
+            "C": "LLM Jailbreak, Fileless Attack, Mobile Recharge Shop",
+            "D": "QR Code Scams, Stolen Phone, and Online Radicalization"
+        },
+        "question": "Here is list of dangerous cyber attacks. Which set has high chance to be real?"
+    },
+    "Q32": {
+        "options": {
+            "A": "App Traps, Fileless Attack, and QR Code Scams",
+            "B": "Pharming, SMS Spoofing, Honeypot",
+            "C": "SMS Bombing, Steganography, Mobile Repair Shop",
+            "D": "Exam Malpractice, Social Trolling, and Fake Influencer Scam"
+        },
+        "question": "There has been a high chance to share and leak private data using :-"
+    },
+    "Q33": {
+        "options": {
+            "A": "Pharming, Exam Malpractice, Doxing",
+            "B": "Fileless attack, Watering Hole Attack, Mobile Repair Shop Frauds",
+            "C": "Online Grooming, Cyber Sex Trafficking, LLM Jailbreak",
+            "D": "SMS Spoofing, and Stolen Phone, Mobile Recharge Shop Frauds"
+        },
+        "question": "Financial Fraud, Data Leak, Emotional Impact , which scenarios needs extreme security??"
+    },
+    "Q34": {
+        "options": {
+            "A": "Doxing, and SMS Spoofing",
+            "B": "Pharming and Blue Snarfing",
+            "C": "LLM Jailbreak and Exam Malpractice",
+            "D": "Cyber Sex Trafficking and Keylogging"
+        },
+        "question": "Where there are high chances of emotional abuse and violence?"
+    },
+    "Q35": {
+        "options": {
+            "A": "Mobile Repair Shop Frauds, Exam Malpractice, Cyberwarfare",
+            "B": "Connected Car Hack, Honeypot, and Cyber Grooming",
+            "C": "Pharming, Fileless Attacks and Pharming",
+            "D": "Mobile Recharge Shop Frauds, Steganography, Social Trolling"
+        },
+        "question": "High rate of private and government or any organisation data loss comes with.?"
+    },
+    "Q36": {
+        "options": {
+            "A": "Fileless Attacks, Juice Jacking, and Digital Arrest",
+            "B": "LLM Jailbreak, DNS Hijacking, Cyber Vultures",
+            "C": "SMS Spoofing, Cyber Grooming, and Doxing",
+            "D": "Honeypot, Fake Productivity App, QR Code Scam"
+        },
+        "question": "Which involves combination of privacy violation, financial loss?"
+    },
+    "Q37": {
+        "options": {
+            "A": "Cyber Grooming, and Fake Productivity App",
+            "B": "Pharming and Keylogger",
+            "C": "LLM Jailbreak and Online Games",
+            "D": "Doxing and Digital Arrest"
+        },
+        "question": "Which crimes can easily breach private life and privacy?"
+    },
+    "Q38": {
+        "options": {
+            "A": "Pharming, Stolen Phone and Online Games",
+            "B": "Doxing, Cyber Grooming and Stolen Phone",
+            "C": "Malvertising, Session Hijacking, and Cyber Vulture",
+            "D": "Connected Car Hacking, Fileless Attack and QR Code Scams"
+        },
+        "question": "What are common crimes to involve hacking financial information?"
+    },
+    "Q39": {
+        "options": {
+            "A": "Pharming, and Social Trolling",
+            "B": "Virtual Kidnapping and Cyber Sex Trafficking",
+            "C": "Online Games and Fake Productivity Apps",
+            "D": "Online Radicalization, and Ponzi Schemes"
+        },
+        "question": "High rates to create violence and terrorism comes with?"
+    },
+    "Q40": {
+        "options": {
+            "A": "Deepfakes, Cyber Grooming, Phishing",
+            "B": "Fake Matrimonial Profile, Social Trolling, Stolen Phone",
+            "C": "Social Trolling, Mobile Repair Shop Frauds, Connected Car Hacks",
+            "D": "Honeypot, Pharming, DNS Hijacking"
+        },
+        "question": "What cyber crimes can create a high rate of emotional exploitation?"
+    },
+    "Q41": {
+        "options": {
+            "A": "Honeypot, Pharming, Virtual Kidnapping",
+            "B": "Fileless Attack, DNS Hijacking, DDOS",
+            "C": "QR Code Scams, Social Trolling, Exam Malpractice",
+            "D": "Call Spoofing, Fake Productivity Apps, Steganography"
+        },
+        "question": "Financial fraud is possible in??"
+    },
+    "Q42": {
+        "options": {
+            "A": "Doxing, Honeypot, Fileless Attack",
+            "B": "App Traps, Fake Productivity App, Blue Snarfing",
+            "C": "Deepfakes, Cyber Grooming, Cyber Sex Trafficking",
+            "D": "Online Radicalization, Ponzi Schemes, Social Trolling"
+        },
+        "question": "Which scenario has high changes to loss private data, pictures, and conversation?"
+    },
+    "Q43": {
+        "options": {
+            "A": "SMS Spoofing, Cyberwarfare, Digital Arrest",
+            "B": "Pharming, Social Trolling, Exam Malpractice",
+            "C": "Virtual Kidnapping, Digital Arrest, Mobile Recharge Shop",
+            "D": "QR Code Scams, Connected Car Hacks, Juice Jacking"
+        },
+        "question": "A criminal and law inforcement are on each side of action. Which one?"
+    },
+    "Q44": {
+        "options": {
+            "A": "Fileless Attack, Fileless Attack",
+            "B": "Mobile Repair Shop Frauds, Online Games, Fake Reviews",
+            "C": "Pharming, Keylogger, Honey Traps",
+            "D": "SMS Bombing, SMS Bombing, Cyberwarfare"
+        },
+        "question": "A combination of emotional trauma and financial threat can be dangerous for a person, what are those crime names?"
+    },
+    "Q45": {
+        "options": {
+            "A": "Malvertising and Cyber Sex Trafficking",
+            "B": "Connected Car Hacking and Pharming",
+            "C": "Online Radicalization and DNS Hijacking",
+            "D": "LLM Jailbreak and Deepfakes"
+        },
+        "question": "What set of crimes has high chances to damage government or political image?"
+    },
+    "Q46": {
+        "options": {
+            "A": "Virtual Kidnapping, Blue Snarfing, and Honey Trap",
+            "B": "Mobile Repair Shop Frauds, Keylogging, DNS Hijacking",
+            "C": "Social Trolling, Sextortion, and Cyberwarfare",
+            "D": "LLM Jailbreak, Pharming, and Ponzi Schemes"
+        },
+        "question": "High degree of technical skills will be needed in??"
+    },
+    "Q47": {
+        "options": {
+            "A": "Pharming, Exam Malpractice, and Online Games",
+            "B": "Ponzi Schemes, and Fake Matrimonial Profile",
+            "C": "SMS Bombing, and Steganography",
+            "D": "Deepfakes, and Cyber Sex Trafficking"
+        },
+        "question": "These crimes target more than one victims in same period"
+    },
+    "Q48": {
+        "options": {
+            "A": "LLM Jailbreak and Pharming",
+            "B": "Honey Traps and Deepfakes",
+            "C": "Cyber Grooming and Ponzi Schemes",
+            "D": "Honeypot and SMS Spoofing"
+        },
+        "question": "If you find the conversation is going from very good to very bad, then it's :-"
+    },
+    "Q49": {
+        "options": {
+            "A": "Fileless Attack, Pharming",
+            "B": "QR Code Scams, Online Games",
+            "C": "Mobile Repair Shop and Exam Malpractice",
+            "D": "Connected Cars and Deepfakes"
+        },
+        "question": "What is most possible to access your personal data in your house"
+    },
+    "Q50": {
+        "options": {
+            "A": "Honey Traps and Digital Arrest",
+            "B": "Pharming, SMS Bombing, and Keylogger",
+            "C": "Social Trolling and Online radicalization",
+            "D": "Stolen Phone, Session Hijacking, and Cybersquatting"
+        },
+        "question": "Data leaking and emotional violation"
+    }
+}
