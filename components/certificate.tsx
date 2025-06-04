@@ -398,15 +398,17 @@ export function Certificate() {
           : "100";
 
       const grade =
-        percentage >= "90"
-          ? "A+"
-          : percentage >= "80"
-          ? "A"
-          : percentage >= "70"
-          ? "B+"
-          : percentage >= "60"
-          ? "B"
-          : "C";
+        percentage >= "80"
+        ? "A"
+        : percentage >= "70"
+        ? "B"
+        : percentage >= "60"
+        ? "C"
+        : percentage >= "50"
+        ? "D"
+        : percentage >= "40"
+        ? "E"
+        : "F";
 
       // Generate certificate URL for preview
       const previewUrl = await generateCertificateURL(
