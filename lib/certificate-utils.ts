@@ -134,6 +134,6 @@ export async function generateCertificateURL(
   const { ciphertextHex, ivHex, tagHex } = await encryptAES128GCM(dataString);
   
   const downloadParam = isDownload ? "request_is_true" : "request_is_false";
-  
-  return `https://api-certicore.vercel.app/certified?param_ct_=${ciphertextHex}&param_iv_=${ivHex}&param_at_=${tagHex}&download_=${downloadParam}`;
+  // &download_=request_is_true&certificate_details_=request_is_true
+  return `https://api-certicore.vercel.app/certified?param_ct_=${ciphertextHex}&param_iv_=${ivHex}&param_at_=${tagHex}&download_=${downloadParam}&certificate_details_=request_is_false`;
 }

@@ -200,7 +200,7 @@ export function Certificate() {
               // Generate certificate URL for preview
               const url = await generateCertificateURL(
                 certificateData.certificate.name,
-                certificateData.certificate.certificateId,
+                certificateData.certificate.userId,
                 certificateData.certificate.email,
                 percentage,
                 grade,
@@ -264,7 +264,7 @@ export function Certificate() {
       // Generate certificate URL for download
       const downloadUrl = await generateCertificateURL(
         certificate.name,
-        certificate.certificateId,
+        certificate.userId,
         certificate.email,
         percentage,
         grade,
@@ -338,7 +338,7 @@ export function Certificate() {
       // Generate certificate URL for preview (to share the link)
       const previewUrl = await generateCertificateURL(
         certificate.name,
-        certificate.certificateId,
+        certificate.userId,
         certificate.email,
         percentage,
         grade,
@@ -413,7 +413,7 @@ export function Certificate() {
       // Generate certificate URL for preview
       const previewUrl = await generateCertificateURL(
         certificate.name,
-        certificate.certificateId,
+        certificate.userId,
         certificate.email,
         percentage,
         grade,
