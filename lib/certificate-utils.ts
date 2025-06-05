@@ -257,9 +257,16 @@ export async function getCertificateDetailsFromEncryption(
     console.error("Error fetching certificate details:", error);
     
     // Check if it's a timeout error
-    if (error.name === 'AbortError' || error.code === 'UND_ERR_CONNECT_TIMEOUT') {
-      console.error("⏰ External API timeout - API is not responding");
-      throw new Error("External certificate API is currently unavailable (timeout). Please try again later.");
+    if (
+      typeof error === 'object' &&
+      error !== null &&
+      ('name' in error || 'code' in error)
+    ) {
+      const err = error as { name?: string; code?: string };
+      if (err.name === 'AbortError' || err.code === 'UND_ERR_CONNECT_TIMEOUT') {
+        console.error("⏰ External API timeout - API is not responding");
+        throw new Error("External certificate API is currently unavailable (timeout). Please try again later.");
+      }
     }
     
     throw error;
