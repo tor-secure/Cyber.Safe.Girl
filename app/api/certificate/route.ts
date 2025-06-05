@@ -1,7 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebase-admin"
-import { v4 as uuidv4 } from 'uuid'
-import { getCertificateDetails, generateCertificateEncryption, getCertificateDetailsFromEncryption, generateCertificateURLFromEncryption } from "@/lib/certificate-utils"
+import { fetchCertificateIdFromAPI, getCertificateDetailsWithStoredParams } from "@/lib/certificate-utils"
 
 // Define the structure for certificate data
 interface Certificate {
@@ -16,7 +15,7 @@ interface Certificate {
     ciphertextHex: string
     ivHex: string
     tagHex: string
-  } | null
+  }
 }
 
 // GET: Verify certificate
@@ -142,274 +141,134 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has a certificate
-    const existingCertQuery = adminDb.collection("certificates").where("userId", "==", userId)
-    const existingCertSnapshot = await existingCertQuery.get()
+    const existingCertQuery = adminDb.collection("certificates").where("userId", "==", userId);
+    const existingCertSnapshot = await existingCertQuery.get();
 
-    let isUpdatingExisting = false
-    let existingCertDocId = null
-
+    // If certificate already exists, check if it needs to be updated with external API certificate ID
     if (!existingCertSnapshot.empty) {
-      isUpdatingExisting = true
-      existingCertDocId = existingCertSnapshot.docs[0].id
-      console.log("📋 Existing certificate found, will update with latest external API data")
+      const existingCert = existingCertSnapshot.docs[0].data() as Certificate;
+      
+      // If the existing certificate doesn't have encryption params or starts with "CSG-", update it
+      if (!existingCert.encryptionParams || existingCert.certificateId.startsWith("CSG-")) {
+        try {
+          // Calculate percentage and grade
+          const percentage = progress?.finalTestScore && progress?.finalTestTotalQuestions
+            ? Math.round((progress.finalTestScore / progress.finalTestTotalQuestions) * 100).toString()
+            : "100";
+
+          const grade = percentage >= "90" ? "A+" : percentage >= "80" ? "A" : percentage >= "70" ? "B+" : percentage >= "60" ? "B" : "C";
+
+          // Try to fetch certificate ID from external API
+          try {
+            const { certificateId: externalCertId, encryptionParams } = await fetchCertificateIdFromAPI(
+              existingCert.name,
+              existingCert.userId,
+              existingCert.email,
+              percentage,
+              grade,
+              existingCert.issueDate
+            );
+
+            // Update the certificate with external API data
+            const updatedCertificate: Certificate = {
+              ...existingCert,
+              certificateId: externalCertId,
+              encryptionParams
+            };
+
+            // Update in Firestore - delete old document and create new one with external certificate ID
+            await adminDb.collection("certificates").doc(existingCert.certificateId).delete();
+            await adminDb.collection("certificates").doc(externalCertId).set(updatedCertificate);
+
+            return NextResponse.json({ 
+              message: "Certificate updated with external API certificate ID",
+              certificate: updatedCertificate
+            });
+          } catch (apiError) {
+            console.error("Failed to update certificate with external API, keeping existing certificate:", apiError);
+            // If external API fails, just return the existing certificate
+            return NextResponse.json({ 
+              message: "Certificate already exists (external API unavailable)",
+              certificate: existingCert
+            });
+          }
+        } catch (error) {
+          console.error("Failed to update certificate with external API:", error);
+          // Return existing certificate if external API fails
+          return NextResponse.json({ 
+            message: "Certificate already exists",
+            certificate: existingCert
+          });
+        }
+      }
+
+      return NextResponse.json({ 
+        message: "Certificate already exists",
+        certificate: existingCert
+      });
     }
 
     // Set issue date and expiry date (1 year from now)
-    const issueDate = new Date()
-    const expiryDate = new Date(issueDate)
-    expiryDate.setFullYear(issueDate.getFullYear() + 1)
-    expiryDate.setDate(expiryDate.getDate() + 1)
+    const issueDate = new Date();
+    const expiryDate = new Date(issueDate);
+    expiryDate.setFullYear(issueDate.getFullYear() + 1);
+    expiryDate.setDate(expiryDate.getDate() + 1);
 
-    // Get certificate details from external API first to get the certificate ID
-    console.log("=== CERTIFICATE API - POST REQUEST ===");
-    console.log("User ID:", userId);
-    console.log("User Progress Data:", {
-      name: progress?.name,
-      email: progress?.email,
-      finalTestScore: progress?.finalTestScore,
-      finalTestGrade: progress?.finalTestGrade
-    });
-    
-    // Generate encryption parameters once to ensure consistency
-    let encryptionParams: any = null;
-    let certificateDetails: any = null;
-    let usingFallback = false;
+    // Calculate percentage and grade
+    const percentage = progress?.finalTestScore && progress?.finalTestTotalQuestions
+      ? Math.round((progress.finalTestScore / progress.finalTestTotalQuestions) * 100).toString()
+      : "100";
+
+    const grade = percentage >= "90" ? "A+" : percentage >= "80" ? "A" : percentage >= "70" ? "B+" : percentage >= "60" ? "B" : "C";
+
+    // Try to fetch certificate ID from external API
+    let certificateId: string;
+    let encryptionParams: { ciphertextHex: string; ivHex: string; tagHex: string } | undefined;
     
     try {
-      console.log("🔄 Generating encryption parameters...");
-      encryptionParams = await generateCertificateEncryption(
+      const apiResult = await fetchCertificateIdFromAPI(
         progress?.name || "",
         userId,
         progress?.email || "",
-        progress?.finalTestScore?.toString() || "0",
-        progress?.finalTestGrade || "F",
+        percentage,
+        grade,
         issueDate.toISOString()
       );
-      
-      console.log("🔐 Encryption parameters generated:", {
-        ciphertextHex: encryptionParams.ciphertextHex.substring(0, 20) + "...",
-        ivHex: encryptionParams.ivHex,
-        tagHex: encryptionParams.tagHex.substring(0, 20) + "..."
-      });
-      
-      console.log("🔄 Calling external API for certificate details...");
-      certificateDetails = await getCertificateDetailsFromEncryption(
-        encryptionParams.ciphertextHex,
-        encryptionParams.ivHex,
-        encryptionParams.tagHex
-      );
-      
-      console.log("✅ EXTERNAL API CERTIFICATE DETAILS RESPONSE:");
-      console.log("📋 Full Response:", JSON.stringify(certificateDetails, null, 2));
-      console.log("🆔 Certificate Number:", certificateDetails?.certificate_no_);
-      console.log("📅 Completion Date:", certificateDetails?.completion_date_);
-      console.log("👤 Name:", certificateDetails?.name_);
-      console.log("📧 Email:", certificateDetails?.email_);
-      console.log("📊 Grade:", certificateDetails?.grade_);
-      console.log("📈 Percent:", certificateDetails?.percent_);
-      console.log("🔑 UID:", certificateDetails?.uid_);
-      console.log("⏰ Valid Until:", certificateDetails?.valid_upto_);
-    } catch (apiError) {
-      console.error("❌ Error with external API, using fallback:", apiError);
-      usingFallback = true;
-      
-      // Fallback: Generate certificate with local data if external API fails
-      console.log("🔄 External API failed, generating certificate with local data as fallback");
-      
-      const fallbackCertificateId = `CSG-${Date.now().toString(36).toUpperCase()}-${userId.substring(0, 8)}`;
-      
-      console.log("🆔 Fallback Certificate ID:", fallbackCertificateId);
-      
-      // Use fallback certificate ID and local data
-      certificateDetails = {
-        certificate_no_: fallbackCertificateId,
-        completion_date_: issueDate.toLocaleDateString('en-GB', { 
-          day: '2-digit', 
-          month: 'long', 
-          year: 'numeric' 
-        }),
-        email_: progress?.email || "",
-        grade_: progress?.finalTestGrade || "F",
-        name_: progress?.name || "",
-        percent_: progress?.finalTestScore?.toString() || "0",
-        uid_: userId,
-        valid_upto_: expiryDate.toLocaleDateString('en-GB', { 
-          day: '2-digit', 
-          month: 'long', 
-          year: 'numeric' 
-        })
-      };
-      
-      console.log("✅ FALLBACK CERTIFICATE DETAILS:");
-      console.log("📋 Fallback Response:", JSON.stringify(certificateDetails, null, 2));
-      
-      // Clear encryption params since external API failed
-      encryptionParams = null;
+      certificateId = apiResult.certificateId;
+      encryptionParams = apiResult.encryptionParams;
+      console.log("Successfully fetched certificate ID from external API:", certificateId);
+    } catch (error) {
+      console.error("External API failed:", error);
+      return NextResponse.json({
+        error: "Certificate generation temporarily unavailable",
+        message: "External certificate service is currently not available. Please try again later.",
+        details: "The external API for certificate generation is not responding."
+      }, { status: 503 });
     }
 
-    // Use certificate ID from external API response
-    const certificateId = certificateDetails?.certificate_no_ || `CSG-${userId.substring(0, 8)}`
-
-    // Generate certificate URLs using the same encryption parameters (if available)
-    let certificatePreviewURL = `#preview-unavailable-${certificateId}`;
-    let certificateDownloadURL = `#download-unavailable-${certificateId}`;
-    
-    if (encryptionParams) {
-      certificatePreviewURL = generateCertificateURLFromEncryption(
-        encryptionParams.ciphertextHex,
-        encryptionParams.ivHex,
-        encryptionParams.tagHex,
-        false // preview
-      );
-      
-      certificateDownloadURL = generateCertificateURLFromEncryption(
-        encryptionParams.ciphertextHex,
-        encryptionParams.ivHex,
-        encryptionParams.tagHex,
-        true // download
-      );
-    }
-
-    console.log("🔗 Certificate URLs generated:");
-    console.log("👁️ Preview URL:", certificatePreviewURL);
-    console.log("⬇️ Download URL:", certificateDownloadURL);
-
-    // Create certificate data with details from external API
+    // Create certificate data
     const certificate: Certificate = {
       certificateId,
       userId,
-      email: certificateDetails?.email_ || progress?.email || "",
-      name: certificateDetails?.name_ || progress?.name || "",
+      email: progress?.email || "",
+      name: progress?.name || "",
       issueDate: issueDate.toISOString(),
       expiryDate: expiryDate.toISOString(),
       isValid: true,
-      // Store encryption parameters for consistent URL generation
-      encryptionParams: encryptionParams ? {
-        ciphertextHex: encryptionParams.ciphertextHex,
-        ivHex: encryptionParams.ivHex,
-        tagHex: encryptionParams.tagHex
-      } : null
-    }
+      ...(encryptionParams && { encryptionParams })
+    };
 
-    // Store certificate in Firestore
-    try {
-      if (isUpdatingExisting && existingCertDocId) {
-        // Delete old certificate document if certificate ID changed
-        if (existingCertDocId !== certificateId) {
-          await adminDb.collection("certificates").doc(existingCertDocId).delete()
-          console.log("🗑️ Deleted old certificate document:", existingCertDocId)
-        }
-        await adminDb.collection("certificates").doc(certificateId).set(certificate)
-        console.log("🔄 Updated existing certificate with new external API data")
-      } else {
-        await adminDb.collection("certificates").doc(certificateId).set(certificate)
-        console.log("✨ Created new certificate")
-      }
-    } catch (dbError) {
-      console.error("⚠️ Database error (certificate still generated):", dbError)
-      // Continue execution - certificate data is still valid even if DB save fails
-    }
+    // Store certificate in Firestore using external certificate ID as document ID
+    await adminDb.collection("certificates").doc(certificateId).set(certificate);
 
     return NextResponse.json({
       success: true,
-      message: isUpdatingExisting ? "Certificate updated successfully" : "Certificate generated successfully",
-      certificate,
-      certificatePreviewURL,
-      certificateDownloadURL,
-      isUpdate: isUpdatingExisting,
-      usingFallback: usingFallback,
-      apiStatus: usingFallback ? "external_api_failed_fallback_used" : "external_api_success"
-    })
-  } catch (error) {
-    console.error("Error generating certificate:", error)
-    const errorMessage = error instanceof Error ? error.message : "Failed to generate certificate"
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
-  }
-}
-
-// PUT: Get certificate details from external API
-export async function PUT(request: NextRequest) {
-  try {
-    const { name, userId, email, percent, grade, issueDate } = await request.json()
-
-    if (!name || !userId || !email || !percent || !grade || !issueDate) {
-      return NextResponse.json({ 
-        error: "Missing required fields: name, userId, email, percent, grade, issueDate" 
-      }, { status: 400 })
-    }
-
-    console.log("=== CERTIFICATE API - PUT REQUEST ===");
-    console.log("📝 Input Parameters:", { name, userId, email, percent, grade, issueDate });
-
-    // Generate encryption parameters once to ensure consistency
-    console.log("🔄 Generating encryption parameters...");
-    const encryptionParams = await generateCertificateEncryption(
-      name,
-      userId,
-      email,
-      percent,
-      grade,
-      issueDate
-    );
-    
-    console.log("🔐 Encryption parameters generated:", {
-      ciphertextHex: encryptionParams.ciphertextHex.substring(0, 20) + "...",
-      ivHex: encryptionParams.ivHex,
-      tagHex: encryptionParams.tagHex.substring(0, 20) + "..."
+      message: "Certificate generated successfully",
+      certificate
     });
-
-    // Get certificate details from external API using same encryption parameters
-    console.log("🔄 Calling external API for certificate details...");
-    const certificateDetails = await getCertificateDetailsFromEncryption(
-      encryptionParams.ciphertextHex,
-      encryptionParams.ivHex,
-      encryptionParams.tagHex
-    );
-
-    // Generate certificate URLs using the same encryption parameters
-    const certificatePreviewURL = generateCertificateURLFromEncryption(
-      encryptionParams.ciphertextHex,
-      encryptionParams.ivHex,
-      encryptionParams.tagHex,
-      false // preview
-    );
-    
-    const certificateDownloadURL = generateCertificateURLFromEncryption(
-      encryptionParams.ciphertextHex,
-      encryptionParams.ivHex,
-      encryptionParams.tagHex,
-      true // download
-    );
-
-    console.log("✅ EXTERNAL API CERTIFICATE DETAILS RESPONSE:");
-    console.log("📋 Full Response:", JSON.stringify(certificateDetails, null, 2));
-    console.log("🆔 Certificate Number:", certificateDetails?.certificate_no_);
-    console.log("📅 Completion Date:", certificateDetails?.completion_date_);
-    console.log("👤 Name:", certificateDetails?.name_);
-    console.log("📧 Email:", certificateDetails?.email_);
-    console.log("📊 Grade:", certificateDetails?.grade_);
-    console.log("📈 Percent:", certificateDetails?.percent_);
-    console.log("🔑 UID:", certificateDetails?.uid_);
-    console.log("⏰ Valid Until:", certificateDetails?.valid_upto_);
-    console.log("🔗 Certificate URLs generated:");
-    console.log("👁️ Preview URL:", certificatePreviewURL);
-    console.log("⬇️ Download URL:", certificateDownloadURL);
-
-    return NextResponse.json({
-      success: true,
-      message: "Certificate details retrieved successfully",
-      certificateDetails,
-      certificatePreviewURL,
-      certificateDownloadURL,
-      encryptionParams: {
-        ciphertextHex: encryptionParams.ciphertextHex,
-        ivHex: encryptionParams.ivHex,
-        tagHex: encryptionParams.tagHex
-      }
-    })
   } catch (error) {
-    console.error("❌ Error getting certificate details:", error)
-    const errorMessage = error instanceof Error ? error.message : "Failed to get certificate details"
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    console.error("Error generating certificate:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate certificate";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

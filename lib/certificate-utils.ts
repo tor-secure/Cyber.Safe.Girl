@@ -109,21 +109,23 @@ export function generateCertificateDataString(
 
 
 /**
- * Generate encryption parameters for certificate data
- * This ensures consistent encryption across different function calls
+ * Fetch certificate ID from external API with retry logic
  */
-export async function generateCertificateEncryption(
+export async function fetchCertificateIdFromAPI(
   name: string,
   userId: string,
   email: string,
   percent: string,
   grade: string,
-  issueDate: string
+  issueDate: string,
+  maxRetries: number = 3
 ): Promise<{
-  ciphertextHex: string;
-  ivHex: string;
-  tagHex: string;
-  dataString: string;
+  certificateId: string;
+  encryptionParams: {
+    ciphertextHex: string;
+    ivHex: string;
+    tagHex: string;
+  };
 }> {
   const dataString = generateCertificateDataString(
     name,
@@ -138,18 +140,126 @@ export async function generateCertificateEncryption(
   
   const { ciphertextHex, ivHex, tagHex } = await encryptAES128GCM(dataString);
   
-  return {
+  // Use the dedicated function to get certificate details
+  const certificateDetails = await getCertificateDetailsFromAPI(
     ciphertextHex,
     ivHex,
     tagHex,
-    dataString
+    maxRetries
+  );
+  
+  console.log(`Successfully fetched certificate ID: ${certificateDetails.certificate_no_}`);
+  
+  return {
+    certificateId: certificateDetails.certificate_no_,
+    encryptionParams: {
+      ciphertextHex,
+      ivHex,
+      tagHex
+    }
   };
 }
 
 /**
- * Generate certificate URL for preview or download using provided encryption parameters
+ * Generate encryption parameters for certificate data
  */
-export function generateCertificateURLFromEncryption(
+export async function generateEncryptionParams(
+  name: string,
+  userId: string,
+  email: string,
+  percent: string,
+  grade: string,
+  issueDate: string
+): Promise<{
+  ciphertextHex: string;
+  ivHex: string;
+  tagHex: string;
+}> {
+  const dataString = generateCertificateDataString(
+    name,
+    userId,
+    email,
+    percent,
+    grade,
+    issueDate
+  );
+  
+  return await encryptAES128GCM(dataString);
+}
+
+/**
+ * Get certificate details from external API using encryption parameters
+ */
+export async function getCertificateDetailsFromAPI(
+  ciphertextHex: string,
+  ivHex: string,
+  tagHex: string,
+  maxRetries: number = 3
+): Promise<{
+  certificate_no_: string;
+  completion_date_: string;
+  email_: string;
+  grade_: string;
+  name_: string;
+  percent_: string;
+  uid_: string;
+  valid_upto_: string;
+}> {
+  const apiUrl = `https://api-certicore.vercel.app/certified?param_ct_=${ciphertextHex}&param_iv_=${ivHex}&param_at_=${tagHex}&download_=request_is_false&certificate_details_=request_is_true`;
+  
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`Attempting to fetch certificate details from external API (attempt ${attempt}/${maxRetries})`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+      
+      const response = await fetch(apiUrl, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'curl/7.68.0',
+          'Accept': '*/*',
+        }
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`External API error: ${response.status} ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (!data.certificate_no_) {
+        throw new Error("Certificate details not found in external API response");
+      }
+      
+      console.log(`Successfully fetched certificate details: ${data.certificate_no_}`);
+      
+      return data;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Attempt ${attempt} failed:`, lastError.message);
+      
+      if (attempt < maxRetries) {
+        // Wait before retrying (exponential backoff)
+        const delay = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+        console.log(`Waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  
+  console.error("All attempts to fetch certificate details from external API failed:", lastError);
+  throw new Error(`Failed to fetch certificate details from external API after ${maxRetries} attempts: ${lastError?.message}`);
+}
+
+/**
+ * Generate certificate URL for preview or download using stored encryption params
+ */
+export function generateCertificateURLWithParams(
   ciphertextHex: string,
   ivHex: string,
   tagHex: string,
@@ -160,7 +270,36 @@ export function generateCertificateURLFromEncryption(
 }
 
 /**
- * Generate certificate URL for preview or download
+ * Get certificate details using stored encryption parameters
+ * This function is useful when you have encryption parameters and need to fetch certificate details
+ */
+export async function getCertificateDetailsWithStoredParams(
+  encryptionParams: {
+    ciphertextHex: string;
+    ivHex: string;
+    tagHex: string;
+  },
+  maxRetries: number = 3
+): Promise<{
+  certificate_no_: string;
+  completion_date_: string;
+  email_: string;
+  grade_: string;
+  name_: string;
+  percent_: string;
+  uid_: string;
+  valid_upto_: string;
+}> {
+  return await getCertificateDetailsFromAPI(
+    encryptionParams.ciphertextHex,
+    encryptionParams.ivHex,
+    encryptionParams.tagHex,
+    maxRetries
+  );
+}
+
+/**
+ * Generate certificate URL for preview or download (legacy function for backward compatibility)
  */
 export async function generateCertificateURL(
   name: string,
@@ -171,7 +310,7 @@ export async function generateCertificateURL(
   issueDate: string,
   isDownload: boolean = false
 ): Promise<string> {
-  const { ciphertextHex, ivHex, tagHex } = await generateCertificateEncryption(
+  const dataString = generateCertificateDataString(
     name,
     userId,
     email,
@@ -180,153 +319,11 @@ export async function generateCertificateURL(
     issueDate
   );
   
-  return generateCertificateURLFromEncryption(ciphertextHex, ivHex, tagHex, isDownload);
-}
-
-/**
- * Test basic connectivity to the external API
- */
-async function testApiConnectivity(): Promise<boolean> {
-  try {
-    console.log("🔍 Testing API connectivity...");
-    const response = await fetch("https://api-certicore.vercel.app/", {
-      method: 'HEAD',
-      headers: {
-        'User-Agent': 'curl/7.88.1',
-      }
-    });
-    console.log(`✅ API connectivity test: ${response.status}`);
-    return true;
-  } catch (error) {
-    console.error("❌ API connectivity test failed:", error);
-    return false;
-  }
-}
-
-/**
- * Get certificate details from the API using provided encryption parameters
- */
-export async function getCertificateDetailsFromEncryption(
-  ciphertextHex: string,
-  ivHex: string,
-  tagHex: string
-): Promise<any> {
-  try {
-    // Test connectivity first
-    await testApiConnectivity();
-    
-    const apiUrl = `https://api-certicore.vercel.app/certified?param_ct_=${ciphertextHex}&param_iv_=${ivHex}&param_at_=${tagHex}&download_=request_is_false&certificate_details_=request_is_true`;
-    
-    console.log("Fetching certificate details from:", apiUrl);
-    console.log("🌐 Starting fetch request...");
-    
-    // Add timeout and retry logic
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-      console.log("⏰ Fetch timeout reached, aborting request");
-      controller.abort();
-    }, 20000); // Increased to 20 second timeout
-    
-    const startTime = Date.now();
-    
-    const response = await fetch(apiUrl, {
-      signal: controller.signal,
-      headers: {
-        'User-Agent': 'curl/7.88.1',
-        'Accept': '*/*',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Connection': 'keep-alive',
-      }
-    });
-    
-    const endTime = Date.now();
-    console.log(`🚀 Fetch completed in ${endTime - startTime}ms`);
-    
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    
-    const certificateDetails = await response.json();
-    
-    console.log("Certificate details received:", certificateDetails);
-    
-    return certificateDetails;
-  } catch (error) {
-    console.error("Error fetching certificate details:", error);
-    
-    // Check if it's a timeout error
-    if (
-      typeof error === 'object' &&
-      error !== null &&
-      ('name' in error || 'code' in error)
-    ) {
-      const err = error as { name?: string; code?: string };
-      if (err.name === 'AbortError' || err.code === 'UND_ERR_CONNECT_TIMEOUT') {
-        console.error("⏰ External API timeout - API is not responding");
-        throw new Error("External certificate API is currently unavailable (timeout). Please try again later.");
-      }
-    }
-    
-    throw error;
-  }
-}
-
-/**
- * Get certificate details from the API
- */
-export async function getCertificateDetails(
-  name: string,
-  userId: string,
-  email: string,
-  percent: string,
-  grade: string,
-  issueDate: string
-): Promise<any> {
-  try {
-    const { ciphertextHex, ivHex, tagHex } = await generateCertificateEncryption(
-      name,
-      userId,
-      email,
-      percent,
-      grade,
-      issueDate
-    );
-    
-    return await getCertificateDetailsFromEncryption(ciphertextHex, ivHex, tagHex);
-  } catch (error) {
-    console.error("Error fetching certificate details:", error);
-    throw error;
-  }
-}
-
-/**
- * Generate certificate URLs using stored encryption parameters from a certificate object
- */
-export function generateCertificateURLsFromStoredParams(
-  certificate: {
-    encryptionParams?: {
-      ciphertextHex: string;
-      ivHex: string;
-      tagHex: string;
-    } | null;
-  }
-): {
-  previewUrl: string;
-  downloadUrl: string;
-} {
-  if (!certificate.encryptionParams) {
-    return {
-      previewUrl: "#preview-unavailable-no-encryption-params",
-      downloadUrl: "#download-unavailable-no-encryption-params"
-    };
-  }
-
-  const { ciphertextHex, ivHex, tagHex } = certificate.encryptionParams;
+  console.log("Certificate data string:", dataString);
   
-  return {
-    previewUrl: generateCertificateURLFromEncryption(ciphertextHex, ivHex, tagHex, false),
-    downloadUrl: generateCertificateURLFromEncryption(ciphertextHex, ivHex, tagHex, true)
-  };
+  const { ciphertextHex, ivHex, tagHex } = await encryptAES128GCM(dataString);
+  
+  const downloadParam = isDownload ? "request_is_true" : "request_is_false";
+  // &download_=request_is_true&certificate_details_=request_is_true
+  return `https://api-certicore.vercel.app/certified?param_ct_=${ciphertextHex}&param_iv_=${ivHex}&param_at_=${tagHex}&download_=${downloadParam}&certificate_details_=request_is_false`;
 }
