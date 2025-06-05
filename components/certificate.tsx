@@ -26,7 +26,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
-import { generateCertificateURL } from "@/lib/certificate-utils";
+import { generateCertificateURLsFromStoredParams } from "@/lib/certificate-utils";
 import {
   Dialog,
   DialogContent,
@@ -59,6 +59,11 @@ interface Certificate {
   issueDate: string;
   expiryDate: string;
   isValid: boolean;
+  encryptionParams?: {
+    ciphertextHex: string;
+    ivHex: string;
+    tagHex: string;
+  } | null;
 }
 
 export function Certificate() {
@@ -74,6 +79,7 @@ export function Certificate() {
   const [shareLoading, setShareLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [certificateUrl, setCertificateUrl] = useState<string | null>(null);
+  const [certificateDownloadUrl, setCertificateDownloadUrl] = useState<string | null>(null);
   const certificateContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
@@ -165,50 +171,37 @@ export function Certificate() {
             });
 
             if (!certificateResponse.ok) {
+              const errorData = await certificateResponse.json().catch(() => ({}));
+              console.error("Certificate API error:", {
+                status: certificateResponse.status,
+                error: errorData
+              });
               throw new Error(
-                `HTTP error! status: ${certificateResponse.status}`
+                errorData.error || `HTTP error! status: ${certificateResponse.status}`
               );
             }
 
             const certificateData = await certificateResponse.json();
+            
+            // Log if using fallback
+            if (certificateData.usingFallback) {
+              console.warn("⚠️ Certificate generated using fallback (external API unavailable)");
+            }
 
             if (certificateData.certificate) {
               setCertificate(certificateData.certificate);
 
-              // Calculate percentage and grade
-              const percentage =
-                progressData.progress.finalTestScore &&
-                progressData.progress.finalTestTotalQuestions
-                  ? Math.round(
-                      (progressData.progress.finalTestScore /
-                        progressData.progress.finalTestTotalQuestions) *
-                        100
-                    ).toString()
-                  : "100";
-
-              const grade =
-                percentage >= "90"
-                  ? "A+"
-                  : percentage >= "80"
-                  ? "A"
-                  : percentage >= "70"
-                  ? "B+"
-                  : percentage >= "60"
-                  ? "B"
-                  : "C";
-
-              // Generate certificate URL for preview
-              const url = await generateCertificateURL(
-                certificateData.certificate.name,
-                certificateData.certificate.userId,
-                certificateData.certificate.email,
-                percentage,
-                grade,
-                certificateData.certificate.issueDate,
-                false // Preview mode
-              );
-
-              setCertificateUrl(url);
+              // Use certificate URLs from API response (consistent encryption)
+              const previewUrl = certificateData.certificatePreviewURL || "#preview-unavailable";
+              const downloadUrl = certificateData.certificateDownloadURL || "#download-unavailable";
+              
+              console.log("🔗 Using certificate URLs from API response:");
+              console.log("👁️ Preview URL:", previewUrl);
+              console.log("⬇️ Download URL:", downloadUrl);
+              console.log("🔐 Certificate has stored encryption params:", !!certificateData.certificate.encryptionParams);
+              
+              setCertificateUrl(previewUrl);
+              setCertificateDownloadUrl(downloadUrl);
             } else {
               throw new Error("Failed to generate certificate");
             }
@@ -240,40 +233,21 @@ export function Certificate() {
 
     setDownloadLoading(true);
     try {
-      // Calculate percentage and grade
-      const percentage =
-        userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions
-          ? Math.round(
-              (userProgress.finalTestScore /
-                userProgress.finalTestTotalQuestions) *
-                100
-            ).toString()
-          : "100";
-
-      const grade =
-        percentage >= "90"
-          ? "A+"
-          : percentage >= "80"
-          ? "A"
-          : percentage >= "70"
-          ? "B+"
-          : percentage >= "60"
-          ? "B"
-          : "C";
-
-      // Generate certificate URL for download
-      const downloadUrl = await generateCertificateURL(
-        certificate.name,
-        certificate.userId,
-        certificate.email,
-        percentage,
-        grade,
-        certificate.issueDate,
-        true // Download mode
-      );
+      // Use stored download URL if available, otherwise generate from stored encryption params
+      let downloadUrl = certificateDownloadUrl;
+      
+      if (!downloadUrl && certificate.encryptionParams) {
+        console.log("🔄 Generating download URL from stored encryption params");
+        const urls = generateCertificateURLsFromStoredParams(certificate);
+        downloadUrl = urls.downloadUrl;
+      }
+      
+      if (!downloadUrl) {
+        throw new Error("No download URL available");
+      }
 
       // Debugging: Log the download URL
-      console.log("Download URL:", downloadUrl);
+      console.log("🔗 Using download URL:", downloadUrl);
 
       // Validate the URL
       if (!downloadUrl || !downloadUrl.startsWith("http")) {
@@ -314,37 +288,18 @@ export function Certificate() {
 
     setShareLoading(true);
     try {
-      // Calculate percentage and grade
-      const percentage =
-        userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions
-          ? Math.round(
-              (userProgress.finalTestScore /
-                userProgress.finalTestTotalQuestions) *
-                100
-            ).toString()
-          : "100";
-
-      const grade =
-        percentage >= "90"
-          ? "A+"
-          : percentage >= "80"
-          ? "A"
-          : percentage >= "70"
-          ? "B+"
-          : percentage >= "60"
-          ? "B"
-          : "C";
-
-      // Generate certificate URL for preview (to share the link)
-      const previewUrl = await generateCertificateURL(
-        certificate.name,
-        certificate.userId,
-        certificate.email,
-        percentage,
-        grade,
-        certificate.issueDate,
-        false // Preview mode
-      );
+      // Use stored preview URL if available, otherwise generate from stored encryption params
+      let previewUrl = certificateUrl;
+      
+      if (!previewUrl && certificate.encryptionParams) {
+        console.log("🔄 Generating preview URL from stored encryption params");
+        const urls = generateCertificateURLsFromStoredParams(certificate);
+        previewUrl = urls.previewUrl;
+      }
+      
+      if (!previewUrl) {
+        throw new Error("No preview URL available");
+      }
 
       // Check if Web Share API is available
       if (navigator.share) {
@@ -387,39 +342,18 @@ export function Certificate() {
     if (!certificate) return;
 
     try {
-      // Calculate percentage and grade
-      const percentage =
-        userProgress?.finalTestScore && userProgress?.finalTestTotalQuestions
-          ? Math.round(
-              (userProgress.finalTestScore /
-                userProgress.finalTestTotalQuestions) *
-                100
-            ).toString()
-          : "100";
-
-      const grade =
-        percentage >= "80"
-        ? "A"
-        : percentage >= "70"
-        ? "B"
-        : percentage >= "60"
-        ? "C"
-        : percentage >= "50"
-        ? "D"
-        : percentage >= "40"
-        ? "E"
-        : "F";
-
-      // Generate certificate URL for preview
-      const previewUrl = await generateCertificateURL(
-        certificate.name,
-        certificate.userId,
-        certificate.email,
-        percentage,
-        grade,
-        certificate.issueDate,
-        false // Preview mode
-      );
+      // Use stored preview URL if available, otherwise generate from stored encryption params
+      let previewUrl = certificateUrl;
+      
+      if (!previewUrl && certificate.encryptionParams) {
+        console.log("🔄 Generating preview URL from stored encryption params");
+        const urls = generateCertificateURLsFromStoredParams(certificate);
+        previewUrl = urls.previewUrl;
+      }
+      
+      if (!previewUrl) {
+        throw new Error("No preview URL available");
+      }
 
       navigator.clipboard.writeText(previewUrl);
       setCopied(true);
