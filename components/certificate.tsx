@@ -439,7 +439,7 @@ export function Certificate() {
                   src={certificateUrl}
                   style={calculateIframeStyles()}
                   title="Certificate"
-                  sandbox="allow-same-origin allow-scripts"
+                  sandbox="allow-scripts"
                   className="rounded-lg"
                   scrolling="no"
                 />
