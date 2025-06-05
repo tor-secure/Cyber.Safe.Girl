@@ -20,11 +20,6 @@ interface Certificate {
   issueDate: string
   expiryDate: string
   isValid: boolean
-  encryptionParams?: {
-    ciphertextHex: string
-    ivHex: string
-    tagHex: string
-  } | null
 }
 
 export default function AdminCertificatesPage() {
