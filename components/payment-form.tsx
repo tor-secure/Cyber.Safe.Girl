@@ -94,12 +94,21 @@ export function PaymentForm() {
   useEffect(() => {
     const loadRazorpayScript = () => {
       return new Promise((resolve) => {
+        // Check if script is already loaded
+        if (window.Razorpay) {
+          resolve(true)
+          return
+        }
+
         const script = document.createElement("script")
         script.src = "https://checkout.razorpay.com/v1/checkout.js"
         script.onload = () => {
+          console.log("Razorpay script loaded successfully")
           resolve(true)
         }
         script.onerror = () => {
+          console.error("Failed to load Razorpay script")
+          setError("Failed to load payment gateway. Please check your internet connection and try again.")
           resolve(false)
         }
         document.body.appendChild(script)
@@ -276,9 +285,20 @@ export function PaymentForm() {
         throw new Error(orderData.error || "Failed to create order")
       }
 
+      // Check if Razorpay key is available
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      if (!razorpayKey) {
+        throw new Error("Razorpay configuration is missing. Please contact support.")
+      }
+
+      // Check if Razorpay script is loaded
+      if (!window.Razorpay) {
+        throw new Error("Razorpay payment gateway is not available. Please refresh the page and try again.")
+      }
+
       // Initialize Razorpay payment
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKey,
         amount: orderData.amount,
         currency: orderData.currency,
         name: "Cyber Safe Girl",
