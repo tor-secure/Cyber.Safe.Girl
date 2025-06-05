@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebase-admin"
-import { v4 as uuidv4 } from 'uuid'
+import { fetchCertificateIdFromAPI, getCertificateDetailsWithStoredParams } from "@/lib/certificate-utils"
 
 // Define the structure for certificate data
 interface Certificate {
@@ -11,6 +11,11 @@ interface Certificate {
   issueDate: string
   expiryDate: string
   isValid: boolean
+  encryptionParams?: {
+    ciphertextHex: string
+    ivHex: string
+    tagHex: string
+  }
 }
 
 // GET: Verify certificate
@@ -136,26 +141,110 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already has a certificate
-    const existingCertQuery = adminDb.collection("certificates").where("userId", "==", userId)
-    const existingCertSnapshot = await existingCertQuery.get()
+    const existingCertQuery = adminDb.collection("certificates").where("userId", "==", userId);
+    const existingCertSnapshot = await existingCertQuery.get();
 
-    // If certificate already exists, return it
+    // If certificate already exists, check if it needs to be updated with external API certificate ID
     if (!existingCertSnapshot.empty) {
-      const existingCert = existingCertSnapshot.docs[0].data() as Certificate
+      const existingCert = existingCertSnapshot.docs[0].data() as Certificate;
+      
+      // If the existing certificate doesn't have encryption params or starts with "CSG-", update it
+      if (!existingCert.encryptionParams || existingCert.certificateId.startsWith("CSG-")) {
+        try {
+          // Calculate percentage and grade
+          const percentage = progress?.finalTestScore && progress?.finalTestTotalQuestions
+            ? Math.round((progress.finalTestScore / progress.finalTestTotalQuestions) * 100).toString()
+            : "100";
+
+          const grade = percentage >= "90" ? "A+" : percentage >= "80" ? "A" : percentage >= "70" ? "B+" : percentage >= "60" ? "B" : "C";
+
+          // Try to fetch certificate ID from external API
+          try {
+            const { certificateId: externalCertId, encryptionParams } = await fetchCertificateIdFromAPI(
+              existingCert.name,
+              existingCert.userId,
+              existingCert.email,
+              percentage,
+              grade,
+              existingCert.issueDate
+            );
+
+            // Update the certificate with external API data
+            const updatedCertificate: Certificate = {
+              ...existingCert,
+              certificateId: externalCertId,
+              encryptionParams
+            };
+
+            // Update in Firestore - delete old document and create new one with external certificate ID
+            await adminDb.collection("certificates").doc(existingCert.certificateId).delete();
+            await adminDb.collection("certificates").doc(externalCertId).set(updatedCertificate);
+
+            return NextResponse.json({ 
+              message: "Certificate updated with external API certificate ID",
+              certificate: updatedCertificate
+            });
+          } catch (apiError) {
+            console.error("Failed to update certificate with external API, keeping existing certificate:", apiError);
+            // If external API fails, just return the existing certificate
+            return NextResponse.json({ 
+              message: "Certificate already exists (external API unavailable)",
+              certificate: existingCert
+            });
+          }
+        } catch (error) {
+          console.error("Failed to update certificate with external API:", error);
+          // Return existing certificate if external API fails
+          return NextResponse.json({ 
+            message: "Certificate already exists",
+            certificate: existingCert
+          });
+        }
+      }
+
       return NextResponse.json({ 
         message: "Certificate already exists",
         certificate: existingCert
-      })
+      });
     }
 
-    // Generate certificate ID
-    const certificateId = `CSG7-${uuidv4().substring(0, 8)}`
-    
     // Set issue date and expiry date (1 year from now)
-    const issueDate = new Date()
-    const expiryDate = new Date(issueDate)
-    expiryDate.setFullYear(issueDate.getFullYear() + 1)
-    expiryDate.setDate(expiryDate.getDate() + 1)
+    const issueDate = new Date();
+    const expiryDate = new Date(issueDate);
+    expiryDate.setFullYear(issueDate.getFullYear() + 1);
+    expiryDate.setDate(expiryDate.getDate() + 1);
+
+    // Calculate percentage and grade
+    const percentage = progress?.finalTestScore && progress?.finalTestTotalQuestions
+      ? Math.round((progress.finalTestScore / progress.finalTestTotalQuestions) * 100).toString()
+      : "100";
+
+    const grade = percentage >= "90" ? "A+" : percentage >= "80" ? "A" : percentage >= "70" ? "B+" : percentage >= "60" ? "B" : "C";
+
+    // Try to fetch certificate ID from external API
+    let certificateId: string;
+    let encryptionParams: { ciphertextHex: string; ivHex: string; tagHex: string } | undefined;
+    
+    try {
+      const apiResult = await fetchCertificateIdFromAPI(
+        progress?.name || "",
+        userId,
+        progress?.email || "",
+        percentage,
+        grade,
+        issueDate.toISOString()
+      );
+      certificateId = apiResult.certificateId;
+      encryptionParams = apiResult.encryptionParams;
+      console.log("Successfully fetched certificate ID from external API:", certificateId);
+    } catch (error) {
+      console.error("External API failed:", error);
+      return NextResponse.json({
+        error: "Certificate generation temporarily unavailable",
+        message: "External certificate service is currently not available. Please try again later.",
+        details: "The external API for certificate generation is not responding."
+      }, { status: 503 });
+    }
 
     // Create certificate data
     const certificate: Certificate = {
@@ -165,20 +254,21 @@ export async function POST(request: NextRequest) {
       name: progress?.name || "",
       issueDate: issueDate.toISOString(),
       expiryDate: expiryDate.toISOString(),
-      isValid: true
-    }
+      isValid: true,
+      ...(encryptionParams && { encryptionParams })
+    };
 
-    // Store certificate in Firestore
-    await adminDb.collection("certificates").doc(certificateId).set(certificate)
+    // Store certificate in Firestore using external certificate ID as document ID
+    await adminDb.collection("certificates").doc(certificateId).set(certificate);
 
     return NextResponse.json({
       success: true,
       message: "Certificate generated successfully",
       certificate
-    })
+    });
   } catch (error) {
-    console.error("Error generating certificate:", error)
-    const errorMessage = error instanceof Error ? error.message : "Failed to generate certificate"
-    return NextResponse.json({ error: errorMessage }, { status: 500 })
+    console.error("Error generating certificate:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to generate certificate";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

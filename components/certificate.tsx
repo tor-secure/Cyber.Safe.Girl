@@ -26,7 +26,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import Link from "next/link";
-import { generateCertificateURL } from "@/lib/certificate-utils";
+import { generateCertificateURL, generateCertificateURLWithParams, generateEncryptionParams, getCertificateDetailsWithStoredParams } from "@/lib/certificate-utils";
 import {
   Dialog,
   DialogContent,
@@ -59,6 +59,11 @@ interface Certificate {
   issueDate: string;
   expiryDate: string;
   isValid: boolean;
+  encryptionParams?: {
+    ciphertextHex: string;
+    ivHex: string;
+    tagHex: string;
+  };
 }
 
 export function Certificate() {
@@ -77,6 +82,24 @@ export function Certificate() {
   const certificateContainerRef = useRef<HTMLDivElement>(null);
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+
+  // Helper function to ensure encryption parameters are available
+  const ensureEncryptionParams = async (cert: Certificate, percentage: string, grade: string) => {
+    if (cert.encryptionParams) {
+      return cert.encryptionParams;
+    }
+    
+    // Generate encryption parameters if not available
+    console.log("Generating encryption parameters for certificate:", cert.certificateId);
+    return await generateEncryptionParams(
+      cert.name,
+      cert.userId,
+      cert.email,
+      percentage,
+      grade,
+      cert.issueDate
+    );
+  };
 
   // Use resize observer to track container size changes
   useResizeObserver(
@@ -197,18 +220,30 @@ export function Certificate() {
                   ? "B"
                   : "C";
 
-              // Generate certificate URL for preview
-              const url = await generateCertificateURL(
-                certificateData.certificate.name,
-                certificateData.certificate.certificateId,
-                certificateData.certificate.email,
-                percentage,
-                grade,
-                certificateData.certificate.issueDate,
-                false // Preview mode
-              );
-
-              setCertificateUrl(url);
+              // Generate certificate URL for preview using encryption params
+              try {
+                const encryptionParams = await ensureEncryptionParams(certificateData.certificate, percentage, grade);
+                const url = generateCertificateURLWithParams(
+                  encryptionParams.ciphertextHex,
+                  encryptionParams.ivHex,
+                  encryptionParams.tagHex,
+                  false // Preview mode
+                );
+                setCertificateUrl(url);
+              } catch (encryptionError) {
+                console.error("Failed to generate encryption parameters, using fallback URL generation:", encryptionError);
+                // Final fallback to legacy URL generation
+                const url = await generateCertificateURL(
+                  certificateData.certificate.name,
+                  certificateData.certificate.userId,
+                  certificateData.certificate.email,
+                  percentage,
+                  grade,
+                  certificateData.certificate.issueDate,
+                  false // Preview mode
+                );
+                setCertificateUrl(url);
+              }
             } else {
               throw new Error("Failed to generate certificate");
             }
@@ -261,16 +296,29 @@ export function Certificate() {
           ? "B"
           : "C";
 
-      // Generate certificate URL for download
-      const downloadUrl = await generateCertificateURL(
-        certificate.name,
-        certificate.certificateId,
-        certificate.email,
-        percentage,
-        grade,
-        certificate.issueDate,
-        true // Download mode
-      );
+      // Generate certificate URL for download using encryption params
+      let downloadUrl: string;
+      try {
+        const encryptionParams = await ensureEncryptionParams(certificate, percentage, grade);
+        downloadUrl = generateCertificateURLWithParams(
+          encryptionParams.ciphertextHex,
+          encryptionParams.ivHex,
+          encryptionParams.tagHex,
+          true // Download mode
+        );
+      } catch (encryptionError) {
+        console.error("Failed to generate encryption parameters, using fallback URL generation:", encryptionError);
+        // Final fallback to legacy URL generation
+        downloadUrl = await generateCertificateURL(
+          certificate.name,
+          certificate.userId,
+          certificate.email,
+          percentage,
+          grade,
+          certificate.issueDate,
+          true // Download mode
+        );
+      }
 
       // Debugging: Log the download URL
       console.log("Download URL:", downloadUrl);
@@ -335,16 +383,29 @@ export function Certificate() {
           ? "B"
           : "C";
 
-      // Generate certificate URL for preview (to share the link)
-      const previewUrl = await generateCertificateURL(
-        certificate.name,
-        certificate.certificateId,
-        certificate.email,
-        percentage,
-        grade,
-        certificate.issueDate,
-        false // Preview mode
-      );
+      // Generate certificate URL for preview (to share the link) using encryption params
+      let previewUrl: string;
+      try {
+        const encryptionParams = await ensureEncryptionParams(certificate, percentage, grade);
+        previewUrl = generateCertificateURLWithParams(
+          encryptionParams.ciphertextHex,
+          encryptionParams.ivHex,
+          encryptionParams.tagHex,
+          false // Preview mode
+        );
+      } catch (encryptionError) {
+        console.error("Failed to generate encryption parameters, using fallback URL generation:", encryptionError);
+        // Final fallback to legacy URL generation
+        previewUrl = await generateCertificateURL(
+          certificate.name,
+          certificate.userId,
+          certificate.email,
+          percentage,
+          grade,
+          certificate.issueDate,
+          false // Preview mode
+        );
+      }
 
       // Check if Web Share API is available
       if (navigator.share) {
@@ -410,16 +471,29 @@ export function Certificate() {
         ? "E"
         : "F";
 
-      // Generate certificate URL for preview
-      const previewUrl = await generateCertificateURL(
-        certificate.name,
-        certificate.certificateId,
-        certificate.email,
-        percentage,
-        grade,
-        certificate.issueDate,
-        false // Preview mode
-      );
+      // Generate certificate URL for preview using encryption params
+      let previewUrl: string;
+      try {
+        const encryptionParams = await ensureEncryptionParams(certificate, percentage, grade);
+        previewUrl = generateCertificateURLWithParams(
+          encryptionParams.ciphertextHex,
+          encryptionParams.ivHex,
+          encryptionParams.tagHex,
+          false // Preview mode
+        );
+      } catch (encryptionError) {
+        console.error("Failed to generate encryption parameters, using fallback URL generation:", encryptionError);
+        // Final fallback to legacy URL generation
+        previewUrl = await generateCertificateURL(
+          certificate.name,
+          certificate.userId,
+          certificate.email,
+          percentage,
+          grade,
+          certificate.issueDate,
+          false // Preview mode
+        );
+      }
 
       navigator.clipboard.writeText(previewUrl);
       setCopied(true);
