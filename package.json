@@ -54,6 +54,7 @@
     "next-themes": "latest",
     "puppeteer": "^24.8.2",
     "qrcode.react": "^4.2.0",
+    "razorpay": "^2.9.6",
     "react": "^19",
     "react-day-picker": "8.10.1",
     "react-dom": "^19",

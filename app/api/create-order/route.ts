@@ -1,24 +1,39 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { adminDb } from "@/lib/firebase-admin"
-import crypto from "crypto"
+import Razorpay from "razorpay"
 
-// This would be replaced with actual Razorpay SDK in production
+// Initialize Razorpay instance
+const razorpay = new Razorpay({
+  key_id: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+  key_secret: process.env.RAZORPAY_KEY_SECRET!,
+})
+
 const createRazorpayOrder = async (amount: number, currency: string) => {
-  // In a real implementation, you would use the Razorpay SDK to create an order
-  // For now, we'll simulate the response
-  const orderId = "order_" + crypto.randomBytes(8).toString("hex")
+  try {
+    const options = {
+      amount: amount * 100, // Razorpay expects amount in paise (smallest currency unit)
+      currency: currency,
+      receipt: "receipt_" + Date.now(),
+    }
 
-  return {
-    id: orderId,
-    amount: amount,
-    currency: currency,
-    receipt: "receipt_" + Date.now(),
-    status: "created",
+    const order = await razorpay.orders.create(options)
+    return order
+  } catch (error) {
+    console.error("Razorpay order creation failed:", error)
+    throw new Error("Failed to create Razorpay order")
   }
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if Razorpay credentials are configured
+    if (!process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error("Razorpay credentials not configured");
+      return NextResponse.json({ 
+        error: "Payment gateway is not configured. Please contact support." 
+      }, { status: 500 });
+    }
+
     const { userId, amount, currency, fullName, couponCode, discountPercentage } = await request.json();
 
     if (!userId) {
@@ -31,6 +46,11 @@ export async function POST(request: NextRequest) {
 
     if (!fullName) {
       return NextResponse.json({ error: "Full name is required" }, { status: 400 });
+    }
+
+    // Validate amount
+    if (amount <= 0) {
+      return NextResponse.json({ error: "Invalid amount" }, { status: 400 });
     }
     
     // Validate amount if coupon is applied
@@ -88,7 +108,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create Razorpay order
+    console.log(`Creating Razorpay order for amount: ₹${amount}, currency: ${currency}`);
     const order = await createRazorpayOrder(amount, currency);
+    console.log(`Razorpay order created successfully: ${order.id}`);
 
     // Store order details in Firestore
     const orderRef = adminDb.collection("paymentOrders").doc(order.id);
@@ -111,10 +133,34 @@ export async function POST(request: NextRequest) {
       lastUpdated: new Date().toISOString(),
     });
 
+    console.log(`Order stored in database successfully for user: ${userId}`);
     return NextResponse.json(order);
   } catch (error) {
     console.error("Error creating order:", error);
-    const errorMessage = error instanceof Error ? error.message : "Failed to create order";
-    return NextResponse.json({ error: errorMessage }, { status: 500 });
+    
+    // Provide more specific error messages
+    let errorMessage = "Failed to create order";
+    let statusCode = 500;
+    
+    if (error instanceof Error) {
+      if (error.message.includes("Razorpay")) {
+        errorMessage = "Payment gateway error. Please try again or contact support.";
+      } else if (error.message.includes("Firebase") || error.message.includes("Database")) {
+        errorMessage = "Database error. Please try again.";
+      } else {
+        errorMessage = error.message;
+      }
+      
+      // Handle specific Razorpay errors
+      if ((error as any).statusCode === 400) {
+        statusCode = 400;
+        errorMessage = "Invalid payment details. Please check and try again.";
+      } else if ((error as any).statusCode === 401) {
+        statusCode = 500;
+        errorMessage = "Payment gateway configuration error. Please contact support.";
+      }
+    }
+    
+    return NextResponse.json({ error: errorMessage }, { status: statusCode });
   }
 }

@@ -1,11 +1,28 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { adminDb, FieldValue } from "@/lib/firebase-admin"
+import crypto from "crypto"
 
-// This would be replaced with actual Razorpay verification in production
 const verifyRazorpayPayment = (orderId: string, paymentId: string, signature: string) => {
-  // In a real implementation, you would verify the signature using Razorpay's method
-  // For now, we'll simulate a successful verification
-  return true
+  try {
+    const keySecret = process.env.RAZORPAY_KEY_SECRET
+    if (!keySecret) {
+      console.error("Razorpay key secret not found")
+      return false
+    }
+
+    // Create the expected signature
+    const body = orderId + "|" + paymentId
+    const expectedSignature = crypto
+      .createHmac("sha256", keySecret)
+      .update(body.toString())
+      .digest("hex")
+
+    // Compare signatures
+    return expectedSignature === signature
+  } catch (error) {
+    console.error("Error verifying Razorpay payment:", error)
+    return false
+  }
 }
 
 export async function POST(request: NextRequest) {
