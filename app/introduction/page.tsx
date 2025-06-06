@@ -23,7 +23,7 @@ const Introduction: React.FC = () => {
       {/* Introduction Content */}
      { <div className="text-sm leading-6 text-justify text-card-foreground">
         <p>
-          Welcome to Cyber Safe Girl Version 5 Beta Release of the Online
+          Welcome to Cyber Safe Girl Version 7 Beta Release of the Online
           Learning Program. I am Dr. Ananth Prabhu G, the curator of this
           program. I am happy to see you here. This shows your keen interest in
           responsible browsing and supporting my mission of{" "}
@@ -45,14 +45,14 @@ const Introduction: React.FC = () => {
         </p>        <br/>
 
         <p>
-          We will be discussing about 60 common cyber crimes that are committed
+          We will be discussing about 70 common cyber crimes that are committed
           all over the world. I believe awareness is the key, and if you can
           learn from others' mistakes, you can avoid committing the same.
         </p>
         <p>
-          In this course, there are 60 modules. Each module comprises 5 parts:
+          In this course, there are 70 modules. Each module comprises 5 parts:
           an introduction of the topic, my video lecture, the infotoon from the
-          Cyber Safe Girl v5.0, another video to give you more insights,
+          Cyber Safe Girl v7.0, another video to give you more insights,
           precautionary measures to be taken, and finally, the module test.
         </p>        <br/>
 
@@ -64,12 +64,11 @@ const Introduction: React.FC = () => {
         </p>        <br/>
 
         <p>
-          Upon completion of 60 modules, you can also enroll for the
-          certification program. The registration fee is Rs 499/- and you can
-          take the grand finale test which comprises 100 questions. The duration
-          of the exam is 60 minutes. Upon successfully clearing the exam, by
-          scoring 60 marks and above, you will receive an{" "}
-          <strong>I am Cyber Safe</strong> eCertificate which is valid for 2
+          Upon completion of 70 modules, you can also enroll for the
+          certification program. The registration fee is Rs 999/- and you can
+          take the grand finale test which comprises 50 questions. Upon successfully 
+          clearing the exam, by scoring 60 marks and above, you will receive an{" "}
+          <strong>I am Cyber Safe</strong> eCertificate which is valid for 1
           years. In case you do not clear the exam, you can apply for the
           supplementary exam, using the same voucher code.
         </p>
