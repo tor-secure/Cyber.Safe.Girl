@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     
     // Validate amount if coupon is applied
     if (couponCode && discountPercentage) {
-      const originalAmount = 499;
+      const originalAmount = 999;
       const expectedDiscountedAmount = Math.max(1, Math.round(originalAmount - (originalAmount * discountPercentage / 100)));
       
       if (amount !== expectedDiscountedAmount) {
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
       couponCode: couponCode || null,
       discountPercentage: discountPercentage || 0,
-      originalAmount: couponCode ? 499 : amount, // Store original amount if coupon was applied
+      originalAmount: couponCode ? 999 : amount, // Store original amount if coupon was applied
     });
 
     // Update user progress with name if provided

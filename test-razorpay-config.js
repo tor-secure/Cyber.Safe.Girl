@@ -48,7 +48,7 @@ async function testRazorpayConfig() {
     console.log('🧪 Testing order creation...');
     
     const orderOptions = {
-      amount: 49900, // ₹499 in paise
+      amount: 99900, // ₹999 in paise
       currency: 'INR',
       receipt: 'test_receipt_' + Date.now(),
     };

@@ -205,8 +205,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <li>Each module features an introductory overview, a lecture video by Dr. Ananth Prabhu G., animated infotoons, supplementary video content, downloadable PowerPoint presentations, and a module-specific assessment.</li>
                   <li>Progression to subsequent modules is contingent upon successfully passing the test associated with the current module.</li>
                   <li>After completing all 60 modules, you will be eligible to attempt the <strong>Grand Certification Test</strong>.</li>
-                  <li>If you possess a pre-paid voucher, you may input the voucher code to access the test. Otherwise, a certification fee of ₹499/- is applicable. If you have a coupon code, apply it to avail the corresponding discount.</li>
-                  <li>The Grand Test consists of questions derived from all 60 modules and serves as a comprehensive evaluation.</li>
+                  <li>If you possess a pre-paid voucher, you may input the voucher code to access the test. Otherwise, a certification fee of ₹999/- is applicable. If you have a coupon code, apply it to avail the corresponding discount.</li>
+                  <li>The Grand Test consists of questions derived from all 70 modules and serves as a comprehensive evaluation.</li>
                   <li>You are permitted <strong>two attempts</strong> to clear the test. Should both attempts be unsuccessful, you must re-register to proceed.</li>
                   <li>Upon successful completion, you will be awarded the <strong>"I Am Cyber Safe"</strong> certificate, which will feature your name and achieved grade. Please note: name alterations are not permitted after certification issuance.</li>
                   <li>The certification examination comprises <strong>60 objective questions</strong>. A minimum of <strong>30 correct responses</strong> is required to pass. There is <strong>no negative marking</strong>.<br />

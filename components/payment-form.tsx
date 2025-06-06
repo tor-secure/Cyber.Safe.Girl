@@ -218,7 +218,7 @@ export function PaymentForm() {
           }, 3000)
         } else {
           // Calculate discounted amount
-          const originalAmount = 499;
+          const originalAmount = 999;
           const discountPercentage = data.coupon.discountPercentage || 0;
           const discount = (originalAmount * discountPercentage) / 100;
           const finalAmount = Math.max(1, Math.round(originalAmount - discount)); // Ensure minimum 1 rupee
@@ -261,7 +261,7 @@ export function PaymentForm() {
 
     try {
       // Calculate the amount to charge
-      const amount = discountedAmount || 499; // Use discounted amount if available
+      const amount = discountedAmount || 999; // Use discounted amount if available
       
       // Create order on the server
       const orderResponse = await fetch("/api/create-order", {
@@ -492,7 +492,7 @@ export function PaymentForm() {
 
             <Tabs defaultValue="razorpay" onValueChange={(value) => setPaymentMethod(value as "razorpay" | "coupon")}>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="razorpay">Pay ₹499</TabsTrigger>
+                <TabsTrigger value="razorpay">Pay ₹999</TabsTrigger>
                 <TabsTrigger value="coupon">Use Coupon</TabsTrigger>
               </TabsList>
 
@@ -504,13 +504,13 @@ export function PaymentForm() {
                   </p>
                   <div className="flex items-center justify-between mb-2">
                     <span>Final Test Access Fee</span>
-                    <span className="font-medium">₹499</span>
+                    <span className="font-medium">₹999</span>
                   </div>
                   
                   {appliedCoupon && appliedCoupon.discountPercentage < 100 && (
                     <div className="flex items-center justify-between mb-2 text-green-600">
                       <span>Coupon Discount ({appliedCoupon.discountPercentage}%)</span>
-                      <span>-₹{Math.round((499 * appliedCoupon.discountPercentage) / 100)}</span>
+                      <span>-₹{Math.round((999 * appliedCoupon.discountPercentage) / 100)}</span>
                     </div>
                   )}
                   
@@ -520,7 +520,7 @@ export function PaymentForm() {
                   </div>
                   <div className="flex items-center justify-between font-medium pt-2 border-t mt-2">
                     <span>Total</span>
-                    <span>₹{discountedAmount || 499}</span>
+                    <span>₹{discountedAmount || 999}</span>
                   </div>
                   
                   {appliedCoupon && (
