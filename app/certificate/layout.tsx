@@ -159,14 +159,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <h1 className="font-semibold text-lg hidden md:block">Cyber Safe Girl</h1>
               </div>
               <div className="flex items-center gap-2 md:gap-4">
-                <Button variant="outline" size="sm" className="hidden md:flex">
+                {/* <Button variant="outline" size="sm" className="hidden md:flex">
                   <Info className="h-4 w-4 mr-2" />
                   About
                 </Button>
                 <Button variant="outline" size="sm" className="hidden md:flex">
                   <FileQuestion className="h-4 w-4 mr-2" />
                   Guidelines
-                </Button>
+                </Button> */}
                 <ThemeToggle />
                 <UserAccountNav />
               </div>

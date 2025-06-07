@@ -160,10 +160,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 <h1 className="font-semibold text-lg hidden md:block">Cyber Safe Girl</h1>
               </div>
               <div className="flex items-center gap-2 md:gap-4">
-                <Button variant="outline" size="sm" className="hidden md:flex">
+                {/* <Button variant="outline" size="sm" className="hidden md:flex">
                   <Info className="h-4 w-4 mr-2" />
                   About
-                </Button>
+                </Button> */}
                 <Button
                   variant="outline"
                   size="sm"
@@ -209,7 +209,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   <li>The Grand Test consists of questions derived from all 70 modules and serves as a comprehensive evaluation.</li>
                   <li>You are permitted <strong>two attempts</strong> to clear the test. Should both attempts be unsuccessful, you must re-register to proceed.</li>
                   <li>Upon successful completion, you will be awarded the <strong>"I Am Cyber Safe"</strong> certificate, which will feature your name and achieved grade. Please note: name alterations are not permitted after certification issuance.</li>
-                  <li>The certification examination comprises <strong>50 objective questions</strong>. A minimum of <strong>15 correct responses</strong> is required to pass. There is <strong>no negative marking</strong>.<br />
+                  <li>The certification examination comprises <strong>50 objective questions</strong>. A minimum of <strong>18 correct responses</strong> is required to pass. There is <strong>no negative marking</strong>.<br />
                     <div className="mt-2 ml-4">
                       <ul className="space-y-1">
                         {[

@@ -66,7 +66,7 @@ type ResourceItem = {
 };
 
 const resources: ResourceItem[] = [
-  { label: "E-Book", href: "/ebook" },
+  { label: "E-Book", href: "/" },
   { label: "Certification", href: "/certification" },
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Terms of Service", href: "/terms-of-service" },
@@ -648,38 +648,56 @@ export default function HomePage() {
                   transition={{ delay: 0.6, duration: 0.8 }}
                   className="mt-12 flex flex-wrap gap-4"
                 >
-                  <div className="relative">
-                    <Button
-                      variant="outline"
-                      className="relative overflow-hidden"
-                      onClick={() => setIsEbookMenuOpen((prev) => !prev)} 
-                      
-                      // Toggle menu on click
-                    >
-                      <span
-                        className={`absolute inset-0 bg-gradient-to-r from-blue-500 to-pink-500 ${
-                          isEbookMenuOpen ? "opacity-20" : "opacity-0"
-                        } transition-opacity duration-300`}
-                      ></span>
-                      Download E-Book
-                    </Button>
-                    {isEbookMenuOpen && ( // Show menu only when clicked
-                      <div className="absolute z-50 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700">
-                        <button className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left">
-                          English
-                        </button>
-                        <button className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left">
-                          ગુજરાતી
-                        </button>
-                        <button className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left">
-                          ಕನ್ನಡ
-                        </button>
-                        <button className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left">
-                          اللغة العربية
-                        </button>
-                      </div>
-                    )}
-                  </div>
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    className="relative overflow-hidden"
+                    onClick={() => setIsEbookMenuOpen((prev) => !prev)} 
+                  >
+                    <span
+                      className={`absolute inset-0 bg-gradient-to-r from-blue-500 to-pink-500 ${
+                        isEbookMenuOpen ? "opacity-20" : "opacity-0"
+                      } transition-opacity duration-300`}
+                    ></span>
+                    Download E-Book
+                  </Button>
+                  {isEbookMenuOpen && (
+                    <div className="absolute z-50 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700">
+                      <a 
+                        href="https://drive.google.com/file/d/1eStGSu5wmjX6_HgexVKFklk04k60i-rG/view?usp=sharing" target="_blank"
+                        download
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
+                        onClick={() => setIsEbookMenuOpen(false)}
+                      >
+                        English
+                      </a>
+                      <a 
+                        href="https://drive.google.com/file/d/1FIvctW56j_zjXW8JZK9K1JyVN704t6PA/view?usp=sharing" target="_blank"
+                        download
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
+                        onClick={() => setIsEbookMenuOpen(false)}
+                      >
+                        ગુજરાતી
+                      </a>
+                      <a 
+                        href="YOUR_KANNADA_GOOGLE_DRIVE_DIRECT_LINK_HERE" target="_blank"
+                        download
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
+                        onClick={() => setIsEbookMenuOpen(false)}
+                      >
+                        ಕನ್ನಡ
+                      </a>
+                      <a 
+                        href="https://drive.google.com/file/d/16tI6KwRK5KjN0WHPglrKEkg_xeJt84r2/view?usp=sharing" target="_blank"
+                        download
+                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
+                        onClick={() => setIsEbookMenuOpen(false)}
+                      >
+                        اللغة العربية
+                      </a>
+                    </div>
+                  )}
+                </div>
                   <Button
                     className="relative overflow-hidden bg-gradient-to-r from-[#87ABC2] to-[#55A0E3] hover:from-blue-700 hover:to-pink-700 transition-all duration-300"
                     style={{
@@ -1347,7 +1365,7 @@ export default function HomePage() {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">Call Us</h3>
                 <p className="text-gray-600 dark:text-gray-300">
-                  +91 95356 45357
+                  +91 89515 11111
                 </p>
               </motion.div>
 
