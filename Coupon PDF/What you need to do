@@ -1,0 +1,13 @@
+1. Copy all the coupon codes from "Sample Coupons.txt"
+
+2. Paste them in "Coupon PDF Format.docx"
+
+3. Select the pasted coupons in the .docx file, make it bold and change the font to Calibri (Body), 15.
+
+4. Select all the coupon codes in the .docx file again. Go to Layout Tab --> Columns --> Two Columns.
+
+5. Select all the coupon codes in the .docx file again. Go to Insert Tab --> Table --> Convert Text to Table --> Columns = 2 --> Separate Text at Paragraph.
+
+6. Select the table. Go to Table Layout, and set Height as 0.95cm and alignment as center.
+
+7. Update the footer, with Generated Date, Validity Days and Expiry Date.
