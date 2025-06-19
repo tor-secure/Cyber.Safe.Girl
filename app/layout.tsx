@@ -37,15 +37,15 @@ export default function RootLayout({
         />
         <link
           rel="icon"
-          href="https://cybersafegirl.com/Images/MainCSG6.png"
+          href="https://cybersafegirl.com/CSG-7.0-Banner.png"
         />
         {/* <link
           rel="apple-touch-icon"
-          href="https://cybersafegirl.com/Images/MainCSG6.png"
+          href="https://cybersafegirl.com/CSG-7.0-Banner.png"
         />
         <link
           rel="manifest"
-          href="https://cybersafegirl.com/Images/MainCSG6.png"
+          href="https://cybersafegirl.com/CSG-7.0-Banner.png"
         /> */}
       </head>
       <body className={`${inter.className} min-h-screen`}>
