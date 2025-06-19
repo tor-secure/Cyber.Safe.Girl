@@ -824,7 +824,7 @@ export default function HomePage() {
                     transition={{ type: "spring", stiffness: 400, damping: 10 }}
                   >
                     <Image
-                      src="https://www.cybersafegirl.com/Images/MainCSG6.png"
+                      src="https://www.cybersafegirl.com/CSG-7.0-Banner.png"
                       width={600}
                       height={400}
                       alt="Cyber Safe Girl"
