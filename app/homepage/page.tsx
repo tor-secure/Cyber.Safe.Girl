@@ -231,7 +231,7 @@ export default function HomePage() {
   // Handle certificate validation
   const handleCertificateValidation = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  const baseUrl = "https://cybersafegirl.com/verify-certificate?certificateId=";
+  const baseUrl = "http://localhost:3000/verify-certificate?certificateId=";
   const fullUrl = `${baseUrl}${encodeURIComponent(certificateNo)}`;
   window.location.href = fullUrl;
     console.log("Certificate number submitted:", certificateNo);
@@ -1299,7 +1299,7 @@ export default function HomePage() {
               <h2 className="text-4xl font-bold">Contact Us</h2>
               <div className="mt-4 h-1 w-24 bg-blue-600 mx-auto rounded-full"></div>
             </motion.div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {/* Our Address */}
               <motion.div
                 initial={{ opacity: 0, y: 50 }}
@@ -1373,7 +1373,7 @@ export default function HomePage() {
               </motion.div>
 
               {/* Verify Certificate */}
-              <motion.div
+              {/* <motion.div
                 initial={{ opacity: 0, y: 50 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
@@ -1422,7 +1422,7 @@ export default function HomePage() {
                     Verify
                   </Button>
                 </form>
-              </motion.div>
+              </motion.div> */}
             </div>
           </div>
         </section>
