@@ -231,7 +231,9 @@ export default function HomePage() {
   // Handle certificate validation
   const handleCertificateValidation = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Add your certificate validation logic here.
+  const baseUrl = "https://cybersafegirl.com/verify-certificate?certificateId=";
+  const fullUrl = `${baseUrl}${encodeURIComponent(certificateNo)}`;
+  window.location.href = fullUrl;
     console.log("Certificate number submitted:", certificateNo);
   };
 
@@ -662,39 +664,40 @@ export default function HomePage() {
                     Download E-Book
                   </Button>
                   {isEbookMenuOpen && (
+                    // English: https://drive.google.com/file/d/1eStGSu5wmjX6_HgexVKFklk04k60i-rG/view?usp=sharing
                     <div className="absolute z-50 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700">
                       <a 
-                        href="https://drive.google.com/file/d/1eStGSu5wmjX6_HgexVKFklk04k60i-rG/view?usp=sharing" target="_blank"
+                        href="https://cybersafegirl.com/Cyber_Safe_Girl_7.0_English.pdf" target="_blank"
                         download
                         className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
                         onClick={() => setIsEbookMenuOpen(false)}
                       >
                         English
                       </a>
-                      <a 
+                      {/* <a 
                         href="https://drive.google.com/file/d/1FIvctW56j_zjXW8JZK9K1JyVN704t6PA/view?usp=sharing" target="_blank"
                         download
                         className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
                         onClick={() => setIsEbookMenuOpen(false)}
                       >
                         ગુજરાતી
-                      </a>
+                      </a> */}
                       <a 
-                        href="YOUR_KANNADA_GOOGLE_DRIVE_DIRECT_LINK_HERE" target="_blank"
+                        href="https://cybersafegirl.com/Cyber_Safe_Girl_7.0_Kannada.pdf" target="_blank"
                         download
                         className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
                         onClick={() => setIsEbookMenuOpen(false)}
                       >
                         ಕನ್ನಡ
                       </a>
-                      <a 
+                      {/* <a 
                         href="https://drive.google.com/file/d/16tI6KwRK5KjN0WHPglrKEkg_xeJt84r2/view?usp=sharing" target="_blank"
                         download
                         className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
                         onClick={() => setIsEbookMenuOpen(false)}
                       >
                         اللغة العربية
-                      </a>
+                      </a> */}
                     </div>
                   )}
                 </div>

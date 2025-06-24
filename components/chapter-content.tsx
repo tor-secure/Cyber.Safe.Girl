@@ -474,10 +474,10 @@ export function ChapterContent({ chapterId }: { chapterId: string }) {
           </div>
 
           <Tabs defaultValue="sections">
-            <TabsList>
-              <TabsTrigger value="sections">Additional Sections</TabsTrigger>
+            {/* <TabsList>
+              <TabsTrigger value="sections">Additional Sections</TabsTrigger> 
               <TabsTrigger value="resources">Resources</TabsTrigger>
-            </TabsList>
+            </TabsList> */}
             <TabsContent value="sections" className="space-y-4">
               {chapterData.sections.map((section, index) => (
                 <Card key={index}>
