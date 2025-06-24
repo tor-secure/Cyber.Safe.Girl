@@ -21,7 +21,7 @@ export async function middleware(request: NextRequest) {
     pathname === '/login' ||
     pathname === '/register' ||
     pathname === '/introduction' ||
-    pathname === '/verify-certificate' 
+    pathname === '/verify-certificate' ||
     // admin login (both variants)
     pathname === '/admin/login' ||
     pathname === '/admin/login/' ||
