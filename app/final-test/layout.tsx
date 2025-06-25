@@ -227,7 +227,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       </ul>
                     </div>
                   </li>
-                  <li>Certificates are blockchain-verified, ensuring authenticity and immunity to forgery or unauthorized alterations.</li>
+                  {/* <li>Certificates are blockchain-verified, ensuring authenticity and immunity to forgery or unauthorized alterations.</li> */}
                   <li>To validate your certification, visit <a href="https://www.cybersafegirl.com" target="_blank" className="text-blue-600 hover:text-blue-800 underline">www.cybersafegirl.com</a>, navigate to the <strong>Verify Certificate</strong> section, and enter your certificate number.</li>
                   <li>This initiative aims to empower internet users with critical cybersecurity knowledge, foster responsible digital behavior, and raise awareness about the threats present in the digital ecosystem.</li>
                   <li>For any queries or support-related assistance, please contact: <a href="mailto:support@cybersafegirl.com" className="text-blue-600 hover:text-blue-800 underline">support@cybersafegirl.com</a></li>
