@@ -50,19 +50,19 @@ const db = admin.firestore();
 async function updateUserProgress() {
   try {
     // Get the user by email
-    const userRecord = await admin.auth().getUserByEmail('s09082003@gmail.com');
+    const userRecord = await admin.auth().getUserByEmail('fullcontent@csg.com');
     const userId = userRecord.uid;
     console.log(`Found user with ID: ${userId}`);
 
     // Generate completed chapters array (CH-001 to CH-069)
     const completedChapters = [];
-    for (let i = 1; i <= 69; i++) {
+    for (let i = 1; i <= 70; i++) {
       completedChapters.push(`CH-${i.toString().padStart(3, '0')}`);
     }
 
     // Generate unlocked chapters array (CH-001 to CH-070)
     const unlockedChapters = [...completedChapters];
-    unlockedChapters.push('CH-070'); // Add chapter 70
+    unlockedChapters.push('FINAL'); // Add chapter 70
 
     // Update user progress in Firestore
     const userProgressRef = db.collection('userProgress').doc(userId);
@@ -79,13 +79,13 @@ async function updateUserProgress() {
         paymentCompleted: false, // Mark payment as completed
         lastUpdated: new Date().toISOString()
       });
-      console.log(`Successfully updated progress for user ${userId} to chapter 69`);
+      console.log(`Successfully updated progress for user ${userId} to chapter 70!`);
     } else {
       // Create new document
       await userProgressRef.set({
         userId,
-        email: 'test@test.com',
-        name: 'Test User',
+        email: 'fullcontent@csg.com',
+        name: 'Full Content',
         completedChapters,
         unlockedChapters,
         finalTestUnlocked: true,
