@@ -63,10 +63,15 @@ const devs = [
 type ResourceItem = {
   label: string;
   href: string;
+  target?: string;
 };
 
 const resources: ResourceItem[] = [
-  { label: "E-Book", href: "/" },
+  { 
+    label: "E-Book", 
+    href: "https://drive.google.com/file/d/1YA2Xewv1lD42muucm7Jx9NmrA88PyIT-/view?usp=sharing",
+    target: "_blank"
+  },
   { label: "Certification", href: "/certification" },
   { label: "Privacy Policy", href: "/privacy-policy" },
   { label: "Terms of Service", href: "/terms-of-service" },
@@ -180,7 +185,7 @@ const PosterCarousel = ({ imagesPerSlide = 4 }) => {
             <motion.div key={num} whileHover={{ scale: 1.05 }} className="p-2">
               <div className="bg-white dark:bg-gray-700 rounded-lg overflow-hidden shadow-lg">
                 <a
-                  href={`https://www.cybersafegirl.com/posters/post${num}.pdf`}
+                  href={`https://www.cybersafegirl.com/posters/${num}.webp`}
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -1564,7 +1569,10 @@ export default function HomePage() {
                     transition={{ delay: 0.1 * index }}
                   >
                     <Link legacyBehavior href={item.href} passHref>
-                      <a className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block">
+                      <a 
+                        className="text-gray-400 hover:text-white transition-colors hover:translate-x-1 inline-block"
+                        target={item.target}
+                      >
                         {item.label}
                       </a>
                     </Link>
