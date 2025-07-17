@@ -376,7 +376,7 @@ export default function HomePage() {
           <div className="flex items-center">
             <Mail className="h-4 w-4 mr-2" />
             <a
-              href="mailto:support@cybersafegirl.com"
+              // href="mailto:support@cybersafegirl.com"
               className="text-sm hover:text-blue-400 transition-colors"
             >
               support@cybersafegirl.com
@@ -405,7 +405,9 @@ export default function HomePage() {
               transition={{ delay: 0.2 }}
               className="font-bold text-xl"
             >
+              <Link href="https://www.cybersafegirl.com/">
               Cyber Safe Girl
+              </Link>
             </motion.span>
           </div>
           <nav className="hidden md:flex items-center gap-6">
