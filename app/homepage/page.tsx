@@ -69,7 +69,7 @@ type ResourceItem = {
 const resources: ResourceItem[] = [
   { 
     label: "E-Book", 
-    href: "https://drive.google.com/file/d/1YA2Xewv1lD42muucm7Jx9NmrA88PyIT-/view?usp=sharing",
+    href: "https://drive.google.com/file/d/1aYEE4Y-RTcfqg5a2F0MLWHtkEZ-pIy97/view?usp=sharing",
     target: "_blank"
   },
   { label: "Certification", href: "/certification" },
@@ -674,7 +674,7 @@ export default function HomePage() {
                     // English: https://drive.google.com/file/d/1eStGSu5wmjX6_HgexVKFklk04k60i-rG/view?usp=sharing
                     <div className="absolute z-50 mt-2 w-48 bg-white dark:bg-gray-800 rounded-md shadow-lg py-1 border border-gray-200 dark:border-gray-700">
                       <a 
-                        href="https://drive.google.com/file/d/1YA2Xewv1lD42muucm7Jx9NmrA88PyIT-/view?usp=sharing" target="_blank"
+                        href="https://drive.google.com/file/d/1aYEE4Y-RTcfqg5a2F0MLWHtkEZ-pIy97/view?usp=sharing" target="_blank"
                         download
                         className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 w-full text-left cursor-pointer"
                         onClick={() => setIsEbookMenuOpen(false)}
