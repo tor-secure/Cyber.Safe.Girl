@@ -11,6 +11,10 @@ interface Certificate {
   issueDate: string
   expiryDate: string
   isValid: boolean
+  finalTestScore?: number
+  finalTestTotalQuestions?: number
+  grade?: string
+  percentage?: string
   encryptionParams?: {
     ciphertextHex: string
     ivHex: string
@@ -144,36 +148,52 @@ export async function POST(request: NextRequest) {
     const existingCertQuery = adminDb.collection("certificates").where("userId", "==", userId);
     const existingCertSnapshot = await existingCertQuery.get();
 
-    // If certificate already exists, check if it needs to be updated with external API certificate ID
+    // If certificate already exists, check if it needs to be updated
     if (!existingCertSnapshot.empty) {
       const existingCert = existingCertSnapshot.docs[0].data() as Certificate;
       
-      // If the existing certificate doesn't have encryption params or starts with "CSG-", update it
-      if (!existingCert.encryptionParams || existingCert.certificateId.startsWith("CSG-")) {
+      // Calculate current percentage and grade from latest final test score
+      const currentPercentage = progress?.finalTestScore && progress?.finalTestTotalQuestions
+        ? Math.round((progress.finalTestScore / progress.finalTestTotalQuestions) * 100).toString()
+        : "100";
+
+      const currentGrade = currentPercentage >= "90" ? "A+" : currentPercentage >= "80" ? "A" : currentPercentage >= "70" ? "B+" : currentPercentage >= "60" ? "B" : "C";
+
+      // Check if we need to update the certificate due to:
+      // 1. Missing encryption params or CSG- prefix (legacy certificates)
+      // 2. Score improvement since the certificate was issued
+      const hasScoreImprovement = progress?.finalTestScore && progress?.finalTestTotalQuestions &&
+                                 existingCert.finalTestScore !== undefined &&
+                                 progress.finalTestScore > existingCert.finalTestScore;
+      
+      const needsUpdate = !existingCert.encryptionParams || 
+                         existingCert.certificateId.startsWith("CSG-") ||
+                         hasScoreImprovement ||
+                         // Also update if certificate doesn't have score data stored
+                         (existingCert.finalTestScore === undefined && progress?.finalTestScore);
+
+      if (needsUpdate) {
         try {
-          // Calculate percentage and grade
-          const percentage = progress?.finalTestScore && progress?.finalTestTotalQuestions
-            ? Math.round((progress.finalTestScore / progress.finalTestTotalQuestions) * 100).toString()
-            : "100";
-
-          const grade = percentage >= "90" ? "A+" : percentage >= "80" ? "A" : percentage >= "70" ? "B+" : percentage >= "60" ? "B" : "C";
-
-          // Try to fetch certificate ID from external API
+          // Try to fetch certificate ID from external API with current score
           try {
             const { certificateId: externalCertId, encryptionParams } = await fetchCertificateIdFromAPI(
               existingCert.name,
               existingCert.userId,
               existingCert.email,
-              percentage,
-              grade,
+              currentPercentage,
+              currentGrade,
               existingCert.issueDate
             );
 
-            // Update the certificate with external API data
+            // Update the certificate with external API data and current score
             const updatedCertificate: Certificate = {
               ...existingCert,
               certificateId: externalCertId,
-              encryptionParams
+              encryptionParams,
+              finalTestScore: progress?.finalTestScore,
+              finalTestTotalQuestions: progress?.finalTestTotalQuestions,
+              grade: currentGrade,
+              percentage: currentPercentage
             };
 
             // Update in Firestore - delete old document and create new one with external certificate ID
@@ -181,7 +201,7 @@ export async function POST(request: NextRequest) {
             await adminDb.collection("certificates").doc(externalCertId).set(updatedCertificate);
 
             return NextResponse.json({ 
-              message: "Certificate updated with external API certificate ID",
+              message: "Certificate updated with latest final test score",
               certificate: updatedCertificate
             });
           } catch (apiError) {
@@ -255,6 +275,10 @@ export async function POST(request: NextRequest) {
       issueDate: issueDate.toISOString(),
       expiryDate: expiryDate.toISOString(),
       isValid: true,
+      finalTestScore: progress?.finalTestScore,
+      finalTestTotalQuestions: progress?.finalTestTotalQuestions,
+      grade: grade,
+      percentage: percentage,
       ...(encryptionParams && { encryptionParams })
     };
 
@@ -269,6 +293,47 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error("Error generating certificate:", error);
     const errorMessage = error instanceof Error ? error.message : "Failed to generate certificate";
+    return NextResponse.json({ error: errorMessage }, { status: 500 });
+  }
+}
+
+// DELETE: Remove certificate to allow regeneration with updated scores
+export async function DELETE(request: NextRequest) {
+  try {
+    const { userId } = await request.json()
+
+    if (!userId) {
+      return NextResponse.json({ error: "User ID is required" }, { status: 400 })
+    }
+
+    console.log("Certificate API DELETE - User ID:", userId)
+
+    if (!adminDb) {
+      console.error("Firebase admin is not initialized")
+      return NextResponse.json({ error: "Database connection error" }, { status: 500 })
+    }
+
+    // Find and delete existing certificate
+    const existingCertQuery = adminDb.collection("certificates").where("userId", "==", userId);
+    const existingCertSnapshot = await existingCertQuery.get();
+
+    if (existingCertSnapshot.empty) {
+      return NextResponse.json({ 
+        message: "No certificate found for this user" 
+      }, { status: 404 })
+    }
+
+    // Delete the certificate
+    const existingCert = existingCertSnapshot.docs[0];
+    await adminDb.collection("certificates").doc(existingCert.id).delete();
+
+    return NextResponse.json({
+      success: true,
+      message: "Certificate deleted successfully. You can now generate a new certificate with updated scores."
+    });
+  } catch (error) {
+    console.error("Error deleting certificate:", error);
+    const errorMessage = error instanceof Error ? error.message : "Failed to delete certificate";
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
